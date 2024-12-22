@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import PredictionOverlay from './PredictionOverlay';
@@ -14,8 +14,16 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Custom vehicle icon
+const vehicleIcon = L.divIcon({
+  html: '🚗',
+  className: 'vehicle-marker',
+  iconSize: [30, 30],
+  iconAnchor: [15, 15]
+});
+
 // Component to handle map center updates
-const MapUpdater = ({ position }: { position: [number, number] }) => {
+const MapUpdater = ({ position, onRoadStatusChange }: { position: [number, number], onRoadStatusChange: (status: boolean) => void }) => {
   const map = useMap();
   
   useEffect(() => {
@@ -25,6 +33,8 @@ const MapUpdater = ({ position }: { position: [number, number] }) => {
     const checkRoadPosition = async () => {
       const [lat, lon] = position;
       const onRoad = await isPointOnRoad(lat, lon);
+      
+      onRoadStatusChange(onRoad);
       
       if (!onRoad) {
         toast({
@@ -36,7 +46,7 @@ const MapUpdater = ({ position }: { position: [number, number] }) => {
     };
 
     checkRoadPosition();
-  }, [position, map]);
+  }, [position, map, onRoadStatusChange]);
   
   return null;
 };
@@ -44,9 +54,17 @@ const MapUpdater = ({ position }: { position: [number, number] }) => {
 interface MapViewProps {
   position: [number, number];
   speed: number;
+  onRoadStatusChange: (status: boolean) => void;
 }
 
-const MapView = ({ position, speed }: MapViewProps) => {
+const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
+  const [isOnRoad, setIsOnRoad] = useState(true);
+
+  const handleRoadStatusChange = (status: boolean) => {
+    setIsOnRoad(status);
+    onRoadStatusChange(status);
+  };
+
   return (
     <MapContainer
       center={position}
@@ -59,9 +77,12 @@ const MapView = ({ position, speed }: MapViewProps) => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         className="map-tiles"
       />
-      <MapUpdater position={position} />
+      <MapUpdater position={position} onRoadStatusChange={handleRoadStatusChange} />
       <PredictionOverlay position={position} speed={speed} />
-      <Marker position={position} />
+      <Marker 
+        position={position} 
+        icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
+      />
     </MapContainer>
   );
 };

@@ -8,6 +8,7 @@ const Index = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [speed, setSpeed] = useState<number>(0);
   const [recommendedSpeed, setRecommendedSpeed] = useState<number>(0);
+  const [isOnRoad, setIsOnRoad] = useState<boolean>(true);
 
   useEffect(() => {
     // Request location permission and start watching position
@@ -52,12 +53,17 @@ const Index = () => {
   return (
     <div className="h-screen flex flex-col">
       <div className="flex-1">
-        <MapView position={position} speed={speed} />
+        <MapView 
+          position={position} 
+          speed={speed} 
+          onRoadStatusChange={setIsOnRoad}
+        />
       </div>
       <div className="h-32 bg-gray-900 p-4">
         <SpeedPanel 
           currentSpeed={speed} 
           recommendedSpeed={recommendedSpeed}
+          isOnRoad={isOnRoad}
         />
       </div>
     </div>
