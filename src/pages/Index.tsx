@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import MapView from '../components/MapView';
-import SpeedPanel from '../components/SpeedPanel';
 import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
-import DestinationPanel from '../components/DestinationPanel';
+import LoadingScreen from '../components/LoadingScreen';
+import MainLayout from '../components/MainLayout';
 
 const Index = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
@@ -39,54 +38,21 @@ const Index = () => {
   }, []);
 
   if (!position) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-900 text-white">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Initializing Driver Assistant</h2>
-          <p>Please enable location services...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="h-16 bg-gray-900 p-4">
-        <DestinationPanel 
-          destination={destination} 
-          onDestinationSelect={(location, address) => {
-            setDestination({ location, address });
-          }}
-          onDestinationClick={() => {
-            if (destination) {
-              // Trigger map zoom to destination
-              const mapView = document.querySelector('.leaflet-container');
-              if (mapView) {
-                const event = new CustomEvent('zoomToDestination', {
-                  detail: { location: destination.location }
-                });
-                mapView.dispatchEvent(event);
-              }
-            }
-          }}
-        />
-      </div>
-      <div className="flex-1">
-        <MapView 
-          position={position} 
-          speed={speed} 
-          onRoadStatusChange={setIsOnRoad}
-          destination={destination?.location}
-        />
-      </div>
-      <div className="h-40 bg-gray-900 p-4">
-        <SpeedPanel 
-          currentSpeed={speed} 
-          recommendedSpeed={recommendedSpeed}
-          isOnRoad={isOnRoad}
-        />
-      </div>
-    </div>
+    <MainLayout
+      position={position}
+      speed={speed}
+      recommendedSpeed={recommendedSpeed}
+      isOnRoad={isOnRoad}
+      destination={destination}
+      onDestinationSelect={(location, address) => {
+        setDestination({ location, address });
+      }}
+      onRoadStatusChange={setIsOnRoad}
+    />
   );
 };
 
