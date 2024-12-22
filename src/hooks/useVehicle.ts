@@ -129,8 +129,7 @@ export const useVehicle = (
       currentRouteIndexRef.current = 0;
       const startPosition = routePoints[0];
       console.log('Setting initial simulation position:', startPosition);
-      globalVehicle.reset(startPosition);
-      setVehicle(globalVehicle);
+      updateVehicle(startPosition, 0); // Use updateVehicle instead of direct reset
 
       simulationIntervalRef.current = setInterval(() => {
         const nextIndex = currentRouteIndexRef.current + 1;
@@ -149,7 +148,7 @@ export const useVehicle = (
         const speed = distance / 3;
 
         console.log('Simulation update - New Position:', nextPosition);
-        updateVehicle(nextPosition, speed);
+        updateVehicle(nextPosition, speed); // Use updateVehicle instead of direct update
         currentRouteIndexRef.current = nextIndex;
       }, 3000);
 
