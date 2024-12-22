@@ -80,3 +80,43 @@ export const getSpeedLimit = async (lat: number, lon: number): Promise<number | 
     return null;
   }
 };
+
+export const getCurrentRoadSegment = async (lat: number, lon: number): Promise<[number, number][]> => {
+  const query = `
+    [out:json];
+    way(around:20,${lat},${lon})["highway"];
+    out geom;
+  `;
+
+  try {
+    const response = await fetch(OVERPASS_API, {
+      method: 'POST',
+      body: `data=${encodeURIComponent(query)}`,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Erreur lors de la requête Overpass');
+      return [];
+    }
+
+    const data = await response.json();
+    
+    if (data.elements.length === 0) {
+      return [];
+    }
+
+    // Prendre le premier segment trouvé et convertir ses coordonnées
+    const way = data.elements[0];
+    if (way.geometry) {
+      return way.geometry.map((node: { lat: number; lon: number }) => [node.lat, node.lon]);
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Erreur lors de la récupération du segment:', error);
+    return [];
+  }
+};
