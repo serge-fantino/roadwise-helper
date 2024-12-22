@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import PredictionOverlay from './PredictionOverlay';
 import L from 'leaflet';
@@ -59,11 +59,23 @@ interface MapViewProps {
 
 const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
   const [isOnRoad, setIsOnRoad] = useState(true);
+  const [positionHistory, setPositionHistory] = useState<[number, number][]>([]);
 
   const handleRoadStatusChange = (status: boolean) => {
     setIsOnRoad(status);
     onRoadStatusChange(status);
   };
+
+  // Update position history
+  useEffect(() => {
+    if (speed > 0) {
+      setPositionHistory(prev => {
+        const newHistory = [...prev, position];
+        // Keep only last 10 seconds of positions (assuming 1 position per second)
+        return newHistory.slice(-10);
+      });
+    }
+  }, [position, speed]);
 
   return (
     <MapContainer
@@ -83,6 +95,14 @@ const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
         position={position} 
         icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
       />
+      {speed > 0 && positionHistory.length > 1 && (
+        <Polyline
+          positions={positionHistory}
+          color="#3B82F6"
+          weight={3}
+          opacity={0.7}
+        />
+      )}
     </MapContainer>
   );
 };
