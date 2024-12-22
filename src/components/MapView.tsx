@@ -7,7 +7,6 @@ import { isPointOnRoad } from '../utils/osmUtils';
 import { getRoute } from '../utils/routingUtils';
 import { toast } from '../components/ui/use-toast';
 
-// Fix for default marker icon in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -31,18 +30,25 @@ const destinationIcon = L.divIcon({
   iconAnchor: [15, 30]
 });
 
-// Component to handle map center updates
-const MapUpdater = ({ position, onRoadStatusChange }: { position: [number, number], onRoadStatusChange: (status: boolean) => void }) => {
+// Component to handle map center updates and zoom to destination
+const MapUpdater = ({ 
+  position, 
+  onRoadStatusChange,
+  destination 
+}: { 
+  position: [number, number], 
+  onRoadStatusChange: (status: boolean) => void,
+  destination?: [number, number]
+}) => {
   const map = useMap();
   
   useEffect(() => {
     map.setView(position, map.getZoom());
 
-    // Vérifier si le point est sur une route
+    // Check if point is on road
     const checkRoadPosition = async () => {
       const [lat, lon] = position;
       const onRoad = await isPointOnRoad(lat, lon);
-      
       onRoadStatusChange(onRoad);
       
       if (!onRoad) {
@@ -56,11 +62,24 @@ const MapUpdater = ({ position, onRoadStatusChange }: { position: [number, numbe
 
     checkRoadPosition();
   }, [position, map, onRoadStatusChange]);
+
+  useEffect(() => {
+    const handleZoomToDestination = (e: CustomEvent) => {
+      const { location } = e.detail;
+      map.setView(location, 15);
+    };
+
+    const mapElement = map.getContainer();
+    mapElement.addEventListener('zoomToDestination', handleZoomToDestination as EventListener);
+
+    return () => {
+      mapElement.removeEventListener('zoomToDestination', handleZoomToDestination as EventListener);
+    };
+  }, [map]);
   
   return null;
 };
 
-// New component to handle map clicks
 const MapClickHandler = ({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) => {
   useMapEvents({
     click: onMapClick,
@@ -72,12 +91,12 @@ interface MapViewProps {
   position: [number, number];
   speed: number;
   onRoadStatusChange: (status: boolean) => void;
+  destination?: [number, number];
 }
 
-const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
+const MapView = ({ position, speed, onRoadStatusChange, destination }: MapViewProps) => {
   const [isOnRoad, setIsOnRoad] = useState(true);
   const [positionHistory, setPositionHistory] = useState<[number, number][]>([]);
-  const [destination, setDestination] = useState<[number, number] | null>(null);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
 
   const handleRoadStatusChange = (status: boolean) => {
@@ -98,7 +117,6 @@ const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
   // Handle map click to set destination
   const handleMapClick = async (e: L.LeafletMouseEvent) => {
     const newDestination: [number, number] = [e.latlng.lat, e.latlng.lng];
-    setDestination(newDestination);
 
     try {
       const route = await getRoute(position, newDestination);
@@ -128,7 +146,11 @@ const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         className="map-tiles"
       />
-      <MapUpdater position={position} onRoadStatusChange={handleRoadStatusChange} />
+      <MapUpdater 
+        position={position} 
+        onRoadStatusChange={handleRoadStatusChange}
+        destination={destination}
+      />
       <MapClickHandler onMapClick={handleMapClick} />
       <PredictionOverlay position={position} speed={speed} />
       <Marker 

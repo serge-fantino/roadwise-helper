@@ -6,7 +6,7 @@ import { Search } from 'lucide-react';
 import debounce from 'lodash/debounce';
 
 interface AddressSearchProps {
-  onLocationSelect: (location: [number, number]) => void;
+  onLocationSelect: (location: [number, number], address: string) => void;
 }
 
 interface SearchResult {
@@ -53,7 +53,7 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
   };
 
   const handleResultClick = (result: SearchResult) => {
-    onLocationSelect([parseFloat(result.lat), parseFloat(result.lon)]);
+    onLocationSelect([parseFloat(result.lat), parseFloat(result.lon)], result.display_name);
     setQuery(result.display_name);
     setResults([]);
     toast({

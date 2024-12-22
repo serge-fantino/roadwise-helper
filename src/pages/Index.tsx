@@ -3,22 +3,21 @@ import MapView from '../components/MapView';
 import SpeedPanel from '../components/SpeedPanel';
 import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
+import DestinationPanel from '../components/DestinationPanel';
 
 const Index = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [speed, setSpeed] = useState<number>(0);
   const [recommendedSpeed, setRecommendedSpeed] = useState<number>(0);
   const [isOnRoad, setIsOnRoad] = useState<boolean>(true);
+  const [destination, setDestination] = useState<{ address: string; location: [number, number] } | null>(null);
 
   useEffect(() => {
-    // Request location permission and start watching position
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(
         (pos) => {
           setPosition([pos.coords.latitude, pos.coords.longitude]);
           setSpeed(pos.coords.speed || 0);
-          
-          // Calculate recommended speed based on current conditions
           const newRecommendedSpeed = calculateRecommendedSpeed(pos.coords.speed || 0);
           setRecommendedSpeed(newRecommendedSpeed);
         },
@@ -52,11 +51,32 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col">
+      <div className="h-16 bg-gray-900 p-4">
+        <DestinationPanel 
+          destination={destination} 
+          onDestinationSelect={(location, address) => {
+            setDestination({ location, address });
+          }}
+          onDestinationClick={() => {
+            if (destination) {
+              // Trigger map zoom to destination
+              const mapView = document.querySelector('.leaflet-container');
+              if (mapView) {
+                const event = new CustomEvent('zoomToDestination', {
+                  detail: { location: destination.location }
+                });
+                mapView.dispatchEvent(event);
+              }
+            }
+          }}
+        />
+      </div>
       <div className="flex-1">
         <MapView 
           position={position} 
           speed={speed} 
           onRoadStatusChange={setIsOnRoad}
+          destination={destination?.location}
         />
       </div>
       <div className="h-40 bg-gray-900 p-4">
