@@ -34,34 +34,24 @@ export const calculateDistance = (point1: [number, number], point2: [number, num
 };
 
 export const predictRoadAhead = (position: [number, number], speed: number, heading: number = 0): [number, number][] => {
-  // Convert speed from m/s to km/h and calculate prediction distance
-  const speedKmh = speed * 3.6;
-  const predictionDistance = speedKmh / 10; // 1/10th of speed in kilometers
+  const vehicle = (window as any).globalVehicle;
+  if (!vehicle || vehicle.positionHistory.length < 2) {
+    return [position, position]; // Return same point if no history
+  }
 
-  // Convert heading to radians
-  const headingRad = heading * Math.PI / 180;
+  // Get the last two positions
+  const currentPos = vehicle.positionHistory[0];
+  const prevPos = vehicle.positionHistory[1];
 
-  // Calculate end point using heading
-  const R = 6371; // Earth's radius in km
-  const d = predictionDistance;
-  
-  const lat1 = position[0] * Math.PI / 180;
-  const lon1 = position[1] * Math.PI / 180;
+  // Calculate the difference in latitude and longitude
+  const deltaLat = currentPos[0] - prevPos[0];
+  const deltaLon = currentPos[1] - prevPos[1];
 
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d/R) +
-    Math.cos(lat1) * Math.sin(d/R) * Math.cos(headingRad)
-  );
+  // Multiply by 3 to get 3 seconds prediction
+  const predictedLat = currentPos[0] + (deltaLat * 3);
+  const predictedLon = currentPos[1] + (deltaLon * 3);
 
-  const lon2 = lon1 + Math.atan2(
-    Math.sin(headingRad) * Math.sin(d/R) * Math.cos(lat1),
-    Math.cos(d/R) - Math.sin(lat1) * Math.sin(lat2)
-  );
-
-  const endPoint: [number, number] = [
-    lat2 * 180 / Math.PI,
-    lon2 * 180 / Math.PI
-  ];
+  const endPoint: [number, number] = [predictedLat, predictedLon];
 
   return [position, endPoint];
 };
