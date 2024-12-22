@@ -1,3 +1,5 @@
+import { getSpeedLimit } from '../utils/osmUtils';
+
 type PredictionObserver = (speedLimit: number | null) => void;
 
 class PredictionService {
