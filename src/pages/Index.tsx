@@ -14,6 +14,7 @@ const Index = () => {
   const [destination, setDestination] = useState<{ address: string; location: [number, number] } | null>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);
   const { routePoints, calculateRoute } = useRouting();
+  const watchIdRef = useRef<number | null>(null);
 
   const handlePositionChange = useCallback((newPosition: [number, number]) => {
     setPosition(newPosition);
@@ -32,9 +33,10 @@ const Index = () => {
     handleSpeedChange
   );
 
+  // Handle real GPS updates
   useEffect(() => {
     if (!isDebugMode && 'geolocation' in navigator) {
-      const watchId = navigator.geolocation.watchPosition(
+      watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           setPosition([pos.coords.latitude, pos.coords.longitude]);
           setSpeed(pos.coords.speed || 0);
@@ -56,16 +58,22 @@ const Index = () => {
         }
       );
 
-      return () => navigator.geolocation.clearWatch(watchId);
+      return () => {
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+      };
     }
   }, [isDebugMode]);
 
+  // Handle route calculation when destination changes
   useEffect(() => {
     if (position && destination) {
       calculateRoute(position, destination.location);
     }
   }, [position, destination]);
 
+  // Reset simulation when debug mode is enabled
   useEffect(() => {
     if (isDebugMode && routePoints.length > 0) {
       resetSimulation();
