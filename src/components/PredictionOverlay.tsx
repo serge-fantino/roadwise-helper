@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Polyline, useMap } from 'react-leaflet';
-import { predictRoadAhead, calculateBearing, calculateAngleDifference } from '../utils/mapUtils';
+import { predictRoadAhead, calculateBearing, calculateAngleDifference, calculateDistance } from '../utils/mapUtils';
 import { getCurrentRoadSegment } from '../utils/osmUtils';
 
 interface PredictionOverlayProps {
