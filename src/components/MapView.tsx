@@ -56,6 +56,11 @@ const MapView = ({
     onRoadStatusChange(status);
   };
 
+  // Debug position history
+  useEffect(() => {
+    console.log('Position history updated:', positionHistory);
+  }, [positionHistory]);
+
   return (
     <MapContainer
       center={position}
@@ -79,7 +84,7 @@ const MapView = ({
         position={position} 
         icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
       />
-      {positionHistory.length > 1 && (
+      {positionHistory.length > 0 && (
         <Polyline
           positions={positionHistory}
           color="#3B82F6"

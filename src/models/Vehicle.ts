@@ -26,9 +26,11 @@ export class Vehicle {
     this._position = newPosition;
     this._speed = newSpeed;
     
+    // Add new position to history
     this._positionHistory.push(newPosition);
+    // Keep only the last maxHistoryLength positions
     if (this._positionHistory.length > this.maxHistoryLength) {
-      this._positionHistory.shift();
+      this._positionHistory = this._positionHistory.slice(-this.maxHistoryLength);
     }
   }
 
