@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, useMap, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import PredictionOverlay from './PredictionOverlay';
@@ -50,20 +50,29 @@ const MapView = ({
   positionHistory
 }: MapViewProps) => {
   const [isOnRoad, setIsOnRoad] = useState(true);
+  const [currentPosition, setCurrentPosition] = useState(position);
+  const [currentSpeed, setCurrentSpeed] = useState(speed);
+
+  const handleVehicleUpdate = useCallback((newPosition: [number, number], newSpeed: number) => {
+    console.log('Vehicle update received in MapView:', newPosition);
+    setCurrentPosition(newPosition);
+    setCurrentSpeed(newSpeed);
+  }, []);
+
+  useEffect(() => {
+    // Synchronize with initial props
+    setCurrentPosition(position);
+    setCurrentSpeed(speed);
+  }, [position, speed]);
 
   const handleRoadStatusChange = (status: boolean) => {
     setIsOnRoad(status);
     onRoadStatusChange(status);
   };
 
-  // Debug position history
-  useEffect(() => {
-    console.log('Position history updated:', positionHistory);
-  }, [positionHistory]);
-
   return (
     <MapContainer
-      center={position}
+      center={currentPosition}
       zoom={17}
       className="w-full h-full"
       zoomControl={false}
@@ -74,14 +83,14 @@ const MapView = ({
         className="map-tiles"
       />
       <MapUpdater 
-        position={position} 
+        position={currentPosition} 
         onRoadStatusChange={handleRoadStatusChange}
         destination={destination}
       />
       <MapClickHandler onMapClick={onMapClick} />
-      <PredictionOverlay position={position} speed={speed} />
+      <PredictionOverlay position={currentPosition} speed={currentSpeed} />
       <Marker 
-        position={position} 
+        position={currentPosition} 
         icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
       />
       {positionHistory.length > 0 && (
