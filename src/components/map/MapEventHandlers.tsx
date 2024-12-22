@@ -20,14 +20,6 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
       const [lat, lon] = position;
       const onRoad = await isPointOnRoad(lat, lon);
       onRoadStatusChange(onRoad);
-      
-      if (!onRoad) {
-        toast({
-          title: "Attention",
-          description: "Le véhicule ne semble pas être sur une route",
-          variant: "destructive"
-        });
-      }
     };
 
     checkRoadPosition();
