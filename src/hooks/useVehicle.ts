@@ -33,6 +33,7 @@ export const useVehicle = (
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          console.log('GPS Update - New Position:', newPosition);
           updateVehicle(newPosition, pos.coords.speed || 0);
         },
         (error) => {
