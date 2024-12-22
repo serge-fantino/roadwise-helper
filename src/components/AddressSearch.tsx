@@ -62,6 +62,12 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
     });
   };
 
+  const handleSearchClick = () => {
+    if (query.length >= 3) {
+      searchAddress(query);
+    }
+  };
+
   return (
     <div className="relative">
       <div className="flex gap-2">
@@ -72,7 +78,12 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
           onChange={handleInputChange}
           className="flex-1"
         />
-        <Button size="icon" disabled={isSearching}>
+        <Button 
+          variant="default"
+          size="icon" 
+          onClick={handleSearchClick}
+          disabled={isSearching || query.length < 3}
+        >
           <Search className="h-4 w-4" />
         </Button>
       </div>
