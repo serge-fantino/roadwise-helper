@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from './ui/button';
 import { Search, MapPin } from 'lucide-react';
 
@@ -20,7 +19,7 @@ const DestinationPanel = ({
 
   if (isSearchMode) {
     return (
-      <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white">
+      <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white px-4">
         <span className="text-lg font-semibold w-full">Search destination</span>
       </div>
     );
