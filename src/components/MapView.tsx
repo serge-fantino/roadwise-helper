@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, useMap, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import PredictionOverlay from './PredictionOverlay';
+import RouteOverlay from './map/RouteOverlay';
 import L from 'leaflet';
 import { isPointOnRoad } from '../utils/osmUtils';
-import { getRoute } from '../utils/routingUtils';
-import { toast } from '../components/ui/use-toast';
+import { toast } from './ui/use-toast';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -129,20 +129,26 @@ interface MapViewProps {
   speed: number;
   onRoadStatusChange: (status: boolean) => void;
   destination?: [number, number];
+  routePoints: [number, number][];
   onMapClick: (location: [number, number], address: string) => void;
 }
 
-const MapView = ({ position, speed, onRoadStatusChange, destination, onMapClick }: MapViewProps) => {
+const MapView = ({ 
+  position, 
+  speed, 
+  onRoadStatusChange, 
+  destination,
+  routePoints,
+  onMapClick 
+}: MapViewProps) => {
   const [isOnRoad, setIsOnRoad] = useState(true);
   const [positionHistory, setPositionHistory] = useState<[number, number][]>([]);
-  const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
 
   const handleRoadStatusChange = (status: boolean) => {
     setIsOnRoad(status);
     onRoadStatusChange(status);
   };
 
-  // Update position history
   useEffect(() => {
     if (speed > 0) {
       setPositionHistory(prev => {
@@ -151,26 +157,6 @@ const MapView = ({ position, speed, onRoadStatusChange, destination, onMapClick 
       });
     }
   }, [position, speed]);
-
-  // Handle map click to set destination
-  const handleMapClick = async (e: L.LeafletMouseEvent) => {
-    const newDestination: [number, number] = [e.latlng.lat, e.latlng.lng];
-
-    try {
-      const route = await getRoute(position, newDestination);
-      setRoutePoints(route);
-      toast({
-        title: "Itinéraire calculé",
-        description: "L'itinéraire a été calculé avec succès",
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de calculer l'itinéraire",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <MapContainer
@@ -209,15 +195,7 @@ const MapView = ({ position, speed, onRoadStatusChange, destination, onMapClick 
           icon={destinationIcon}
         />
       )}
-      {routePoints.length > 0 && (
-        <Polyline
-          positions={routePoints}
-          color="#10B981"
-          weight={4}
-          opacity={0.8}
-          dashArray="10, 10"
-        />
-      )}
+      <RouteOverlay routePoints={routePoints} />
     </MapContainer>
   );
 };

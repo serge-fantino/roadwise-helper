@@ -9,6 +9,7 @@ interface MainLayoutProps {
   recommendedSpeed: number;
   isOnRoad: boolean;
   destination: { address: string; location: [number, number] } | null;
+  routePoints: [number, number][];
   onDestinationSelect: (location: [number, number], address: string) => void;
   onRoadStatusChange: (status: boolean) => void;
 }
@@ -19,6 +20,7 @@ const MainLayout = ({
   recommendedSpeed,
   isOnRoad,
   destination,
+  routePoints,
   onDestinationSelect,
   onRoadStatusChange,
 }: MainLayoutProps) => {
@@ -53,6 +55,7 @@ const MainLayout = ({
           speed={speed} 
           onRoadStatusChange={onRoadStatusChange}
           destination={destination?.location}
+          routePoints={routePoints}
           onMapClick={handleMapClick}
         />
       </div>

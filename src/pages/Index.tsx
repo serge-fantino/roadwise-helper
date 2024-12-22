@@ -3,6 +3,7 @@ import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
 import LoadingScreen from '../components/LoadingScreen';
 import MainLayout from '../components/MainLayout';
+import { useRouting } from '../hooks/useRouting';
 
 const Index = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
@@ -10,6 +11,7 @@ const Index = () => {
   const [recommendedSpeed, setRecommendedSpeed] = useState<number>(0);
   const [isOnRoad, setIsOnRoad] = useState<boolean>(true);
   const [destination, setDestination] = useState<{ address: string; location: [number, number] } | null>(null);
+  const { routePoints, calculateRoute } = useRouting();
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -37,6 +39,12 @@ const Index = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (position && destination) {
+      calculateRoute(position, destination.location);
+    }
+  }, [position, destination]);
+
   if (!position) {
     return <LoadingScreen />;
   }
@@ -48,6 +56,7 @@ const Index = () => {
       recommendedSpeed={recommendedSpeed}
       isOnRoad={isOnRoad}
       destination={destination}
+      routePoints={routePoints}
       onDestinationSelect={(location, address) => {
         setDestination({ location, address });
       }}
