@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import PredictionOverlay from './PredictionOverlay';
 import L from 'leaflet';
+import { isPointOnRoad } from '../utils/osmUtils';
+import { toast } from '../components/ui/use-toast';
 
 // Fix for default marker icon in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -18,6 +20,22 @@ const MapUpdater = ({ position }: { position: [number, number] }) => {
   
   useEffect(() => {
     map.setView(position, map.getZoom());
+
+    // Vérifier si le point est sur une route
+    const checkRoadPosition = async () => {
+      const [lat, lon] = position;
+      const onRoad = await isPointOnRoad(lat, lon);
+      
+      if (!onRoad) {
+        toast({
+          title: "Attention",
+          description: "Le véhicule ne semble pas être sur une route",
+          variant: "destructive"
+        });
+      }
+    };
+
+    checkRoadPosition();
   }, [position, map]);
   
   return null;
