@@ -8,7 +8,7 @@ export class Snake {
   private readonly maxLength: number;
   private readonly maxAge: number = 60000; // 60 secondes en millisecondes
 
-  constructor(initialPosition: [number, number], maxLength: number = 20) {
+  constructor(initialPosition: [number, number], maxLength: number = 60) {
     this._positions = initialPosition ? [{
       position: [...initialPosition],
       timestamp: Date.now()
