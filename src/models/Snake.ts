@@ -9,7 +9,7 @@ export class Snake {
   }
 
   get positions(): Array<[number, number]> {
-    return this._positions.map(pos => [pos[0], pos[1]]);
+    return this._positions.map(pos => [...pos]);
   }
 
   addPosition(position: [number, number]) {
@@ -26,7 +26,7 @@ export class Snake {
       }
     }
 
-    this._positions.unshift([position[0], position[1]]);
+    this._positions.unshift([...position]);
     
     if (this._positions.length > this.maxLength) {
       this._positions = this._positions.slice(0, this.maxLength);
@@ -40,7 +40,7 @@ export class Snake {
       console.error('Invalid reset position:', position);
       return;
     }
-    this._positions = [[position[0], position[1]]];
+    this._positions = [[...position]];
     console.log('Snake reset to position:', position);
   }
 

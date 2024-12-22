@@ -3,9 +3,8 @@ import { Vehicle } from '../models/Vehicle';
 import { calculateDistance } from '../utils/mapUtils';
 import { toast } from '../components/ui/use-toast';
 
-// Create a single instance of the vehicle with null initial position
 const globalVehicle = new Vehicle(null);
-(window as any).globalVehicle = globalVehicle; // Make it accessible globally for debugging
+(window as any).globalVehicle = globalVehicle;
 
 export const useVehicle = (
   isDebugMode: boolean,
@@ -19,6 +18,7 @@ export const useVehicle = (
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
   const hasInitializedRef = useRef(false);
+  const previousDebugModeRef = useRef(isDebugMode);
 
   const updateVehicle = (position: [number, number], speed: number) => {
     console.log('Updating vehicle position:', position);
@@ -26,7 +26,29 @@ export const useVehicle = (
     setVehicle(globalVehicle);
   };
 
-  // Initialize vehicle with GPS position
+  // Reset vehicle when switching modes
+  useEffect(() => {
+    if (previousDebugModeRef.current !== isDebugMode) {
+      console.log('Debug mode changed, resetting vehicle');
+      if (!isDebugMode) {
+        // Switching to GPS mode
+        startGPSTracking();
+      } else {
+        // Switching to debug mode
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+        }
+        // Reset with first route point if available
+        if (routePoints.length > 0) {
+          globalVehicle.reset(routePoints[0]);
+          currentRouteIndexRef.current = 0;
+        }
+      }
+      previousDebugModeRef.current = isDebugMode;
+    }
+  }, [isDebugMode, routePoints]);
+
   const startGPSTracking = () => {
     if (!('geolocation' in navigator)) {
       toast({
@@ -130,6 +152,7 @@ export const useVehicle = (
       currentRouteIndexRef.current = 0;
       const startPosition = routePoints[0];
       console.log('Setting initial simulation position:', startPosition);
+      globalVehicle.reset(startPosition);
       updateVehicle(startPosition, 0);
 
       simulationIntervalRef.current = setInterval(() => {
