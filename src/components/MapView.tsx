@@ -44,6 +44,9 @@ const MapView = ({
     handleRoadStatusChange
   } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
 
+  // Récupérer le heading depuis le véhicule global
+  const heading = (window as any).globalVehicle?.heading || 0;
+
   return (
     <MapContainer
       center={currentPosition}
@@ -63,7 +66,7 @@ const MapView = ({
       />
       <HistoryTrail positions={currentHistory} />
       <PredictionOverlay position={currentPosition} speed={currentSpeed} />
-      <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} />
+      <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} heading={heading} />
       {destination && <DestinationMarker position={destination} />}
       <RouteOverlay routePoints={routePoints} />
     </MapContainer>
