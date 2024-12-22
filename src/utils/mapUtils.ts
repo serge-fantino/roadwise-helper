@@ -34,10 +34,20 @@ export const calculateDistance = (point1: [number, number], point2: [number, num
 };
 
 export const calculateAngleDifference = (angle1: number, angle2: number): number => {
-  let diff = Math.abs(angle1 - angle2);
+  // Normalize angles to be between 0 and 360
+  angle1 = ((angle1 % 360) + 360) % 360;
+  angle2 = ((angle2 % 360) + 360) % 360;
+
+  // Calculate the shortest angle difference
+  let diff = angle1 - angle2;
+  
+  // Normalize the difference to be between -180 and 180
   if (diff > 180) {
-    diff = 360 - diff;
+    diff -= 360;
+  } else if (diff < -180) {
+    diff += 360;
   }
+
   return diff;
 };
 
