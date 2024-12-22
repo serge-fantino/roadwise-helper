@@ -63,9 +63,9 @@ const MapView = ({
         onRoadStatusChange={handleRoadStatusChange}
         onMapClick={onMapClick}
       />
-      {/* Ensure we only render one instance of HistoryTrail */}
       <HistoryTrail positions={currentHistory} />
-      <PredictionOverlay position={currentPosition} speed={currentSpeed} />
+      {/* Temporarily commenting out PredictionOverlay to verify our hypothesis */}
+      {/* <PredictionOverlay position={currentPosition} speed={currentSpeed} /> */}
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} />
       {destination && <DestinationMarker position={destination} />}
       <RouteOverlay routePoints={routePoints} />
