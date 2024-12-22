@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import MapView from './MapView';
 import SpeedPanel from './SpeedPanel';
 import DestinationPanel from './DestinationPanel';
+import AddressSearch from './AddressSearch';
 
 interface MainLayoutProps {
   position: [number, number];
