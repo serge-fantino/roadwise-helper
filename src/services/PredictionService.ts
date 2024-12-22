@@ -31,13 +31,6 @@ class PredictionService {
     this.observers.forEach(observer => observer(this.currentSpeedLimit));
   }
 
-  public updateSpeedLimit(speedLimit: number | null) {
-    if (this.currentSpeedLimit !== speedLimit) {
-      this.currentSpeedLimit = speedLimit;
-      this.notifyObservers();
-    }
-  }
-
   public async updatePrediction(position: [number, number]) {
     try {
       const [lat, lon] = position;
@@ -59,6 +52,7 @@ class PredictionService {
   public startUpdates(position: [number, number]) {
     this.updatePrediction(position);
     
+    // Mettre à jour toutes les 10 secondes
     if (!this.updateInterval) {
       this.updateInterval = setInterval(() => {
         this.updatePrediction(position);
