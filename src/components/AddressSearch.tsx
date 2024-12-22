@@ -80,11 +80,12 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
         />
         <Button 
           variant="default"
-          size="icon" 
           onClick={handleSearchClick}
           disabled={isSearching || query.length < 3}
+          className="px-4"
         >
-          <Search className="h-4 w-4" />
+          <Search className="h-4 w-4 mr-2" />
+          Rechercher
         </Button>
       </div>
       
