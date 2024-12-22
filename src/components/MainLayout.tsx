@@ -34,6 +34,10 @@ const MainLayout = ({
     }
   };
 
+  const handleMapClick = (location: [number, number], address: string) => {
+    onDestinationSelect(location, address);
+  };
+
   return (
     <div className="h-screen flex flex-col">
       <div className="h-16 bg-gray-900 p-4">
@@ -49,6 +53,7 @@ const MainLayout = ({
           speed={speed} 
           onRoadStatusChange={onRoadStatusChange}
           destination={destination?.location}
+          onMapClick={handleMapClick}
         />
       </div>
       <div className="h-40 bg-gray-900 p-4">

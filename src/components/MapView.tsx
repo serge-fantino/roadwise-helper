@@ -80,9 +80,46 @@ const MapUpdater = ({
   return null;
 };
 
-const MapClickHandler = ({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) => {
+interface MapClickHandlerProps {
+  onMapClick: (location: [number, number], address: string) => void;
+}
+
+const MapClickHandler = ({ onMapClick }: MapClickHandlerProps) => {
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'DriverAssistant/1.0',
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Geocoding failed');
+      }
+      
+      const data = await response.json();
+      return data.display_name;
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer l'adresse",
+        variant: "destructive"
+      });
+      return "Adresse inconnue";
+    }
+  };
+
   useMapEvents({
-    click: onMapClick,
+    click: async (e) => {
+      const location: [number, number] = [e.latlng.lat, e.latlng.lng];
+      const address = await reverseGeocode(e.latlng.lat, e.latlng.lng);
+      onMapClick(location, address);
+    },
   });
   return null;
 };
@@ -92,9 +129,10 @@ interface MapViewProps {
   speed: number;
   onRoadStatusChange: (status: boolean) => void;
   destination?: [number, number];
+  onMapClick: (location: [number, number], address: string) => void;
 }
 
-const MapView = ({ position, speed, onRoadStatusChange, destination }: MapViewProps) => {
+const MapView = ({ position, speed, onRoadStatusChange, destination, onMapClick }: MapViewProps) => {
   const [isOnRoad, setIsOnRoad] = useState(true);
   const [positionHistory, setPositionHistory] = useState<[number, number][]>([]);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
@@ -151,7 +189,7 @@ const MapView = ({ position, speed, onRoadStatusChange, destination }: MapViewPr
         onRoadStatusChange={handleRoadStatusChange}
         destination={destination}
       />
-      <MapClickHandler onMapClick={handleMapClick} />
+      <MapClickHandler onMapClick={onMapClick} />
       <PredictionOverlay position={position} speed={speed} />
       <Marker 
         position={position} 
