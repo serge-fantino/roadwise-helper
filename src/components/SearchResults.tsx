@@ -7,14 +7,15 @@ interface SearchResult {
 interface SearchResultsProps {
   results: SearchResult[];
   onResultClick: (result: SearchResult) => void;
+  fullScreen?: boolean;
 }
 
-const SearchResults = ({ results, onResultClick }: SearchResultsProps) => {
+const SearchResults = ({ results, onResultClick, fullScreen = false }: SearchResultsProps) => {
   if (results.length === 0) return null;
 
   return (
-    <div className="absolute z-50 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
-      <ul className="py-1 text-sm max-h-60 overflow-auto">
+    <div className={`${fullScreen ? 'mt-4' : 'absolute z-50 mt-1'} w-full bg-white rounded-md shadow-lg border border-gray-200`}>
+      <ul className={`py-1 text-sm ${fullScreen ? 'max-h-[calc(100vh-200px)]' : 'max-h-60'} overflow-auto`}>
         {results.map((result, index) => (
           <li
             key={index}

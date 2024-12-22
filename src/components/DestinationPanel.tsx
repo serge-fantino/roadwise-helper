@@ -1,33 +1,23 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, X } from 'lucide-react';
 import AddressSearch from './AddressSearch';
 
 interface DestinationPanelProps {
   destination: { address: string; location: [number, number] } | null;
   onDestinationSelect: (location: [number, number], address: string) => void;
   onDestinationClick: () => void;
+  onSearchModeChange: (isSearchMode: boolean) => void;
+  isSearchMode: boolean;
 }
 
 const DestinationPanel = ({ 
   destination, 
   onDestinationSelect,
-  onDestinationClick 
+  onDestinationClick,
+  onSearchModeChange,
+  isSearchMode
 }: DestinationPanelProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-
-  if (isEditing) {
-    return (
-      <div className="w-full max-w-xl mx-auto">
-        <AddressSearch 
-          onLocationSelect={(location, address) => {
-            onDestinationSelect(location, address);
-            setIsEditing(false);
-          }}
-        />
-      </div>
-    );
-  }
 
   if (!destination) {
     return (
@@ -40,10 +30,27 @@ const DestinationPanel = ({
           variant="ghost"
           size="sm"
           className="text-white hover:text-white hover:bg-gray-800"
-          onClick={() => setIsEditing(true)}
+          onClick={() => onSearchModeChange(true)}
         >
           <Search className="h-4 w-4 mr-2" />
           Search destination
+        </Button>
+      </div>
+    );
+  }
+
+  if (isSearchMode) {
+    return (
+      <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white">
+        <span className="text-lg font-semibold">Search destination</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-white hover:text-white hover:bg-gray-800"
+          onClick={() => onSearchModeChange(false)}
+        >
+          <X className="h-4 w-4 mr-2" />
+          Cancel
         </Button>
       </div>
     );
@@ -62,7 +69,7 @@ const DestinationPanel = ({
         variant="ghost"
         size="sm"
         className="text-white hover:text-white hover:bg-gray-800"
-        onClick={() => setIsEditing(true)}
+        onClick={() => onSearchModeChange(true)}
       >
         <Search className="h-4 w-4 mr-2" />
         Change

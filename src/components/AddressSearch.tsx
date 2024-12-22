@@ -4,9 +4,10 @@ import { useAddressSearch } from '../hooks/useAddressSearch';
 
 interface AddressSearchProps {
   onLocationSelect: (location: [number, number], address: string) => void;
+  fullScreen?: boolean;
 }
 
-const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
+const AddressSearch = ({ onLocationSelect, fullScreen = false }: AddressSearchProps) => {
   const {
     query,
     results,
@@ -18,7 +19,7 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
   } = useAddressSearch(onLocationSelect);
 
   return (
-    <div className="relative w-full">
+    <div className={`relative w-full ${fullScreen ? 'h-full' : ''}`}>
       <SearchBar
         query={query}
         isSearching={isSearching}
@@ -29,6 +30,7 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
       <SearchResults 
         results={results}
         onResultClick={handleResultClick}
+        fullScreen={fullScreen}
       />
     </div>
   );
