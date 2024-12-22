@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
 import LoadingScreen from '../components/LoadingScreen';
 import MainLayout from '../components/MainLayout';
 import { useRouting } from '../hooks/useRouting';
+import { useSimulation } from '../hooks/useSimulation';
 
 const Index = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
@@ -11,11 +12,29 @@ const Index = () => {
   const [recommendedSpeed, setRecommendedSpeed] = useState<number>(0);
   const [isOnRoad, setIsOnRoad] = useState<boolean>(true);
   const [destination, setDestination] = useState<{ address: string; location: [number, number] } | null>(null);
+  const [isDebugMode, setIsDebugMode] = useState(false);
   const { routePoints, calculateRoute } = useRouting();
 
+  const handlePositionChange = useCallback((newPosition: [number, number]) => {
+    setPosition(newPosition);
+  }, []);
+
+  const handleSpeedChange = useCallback((newSpeed: number) => {
+    setSpeed(newSpeed);
+    const newRecommendedSpeed = calculateRecommendedSpeed(newSpeed);
+    setRecommendedSpeed(newRecommendedSpeed);
+  }, []);
+
+  const { resetSimulation } = useSimulation(
+    routePoints,
+    isDebugMode,
+    handlePositionChange,
+    handleSpeedChange
+  );
+
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.watchPosition(
+    if (!isDebugMode && 'geolocation' in navigator) {
+      const watchId = navigator.geolocation.watchPosition(
         (pos) => {
           setPosition([pos.coords.latitude, pos.coords.longitude]);
           setSpeed(pos.coords.speed || 0);
@@ -36,14 +55,22 @@ const Index = () => {
           maximumAge: 0
         }
       );
+
+      return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, []);
+  }, [isDebugMode]);
 
   useEffect(() => {
     if (position && destination) {
       calculateRoute(position, destination.location);
     }
   }, [position, destination]);
+
+  useEffect(() => {
+    if (isDebugMode && routePoints.length > 0) {
+      resetSimulation();
+    }
+  }, [isDebugMode, routePoints]);
 
   if (!position) {
     return <LoadingScreen />;
@@ -61,6 +88,8 @@ const Index = () => {
         setDestination({ location, address });
       }}
       onRoadStatusChange={setIsOnRoad}
+      isDebugMode={isDebugMode}
+      onDebugModeChange={setIsDebugMode}
     />
   );
 };

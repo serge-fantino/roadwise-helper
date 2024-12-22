@@ -1,12 +1,22 @@
-import { Card } from '../components/ui/card';
+import { Card } from './ui/card';
+import { Toggle } from './ui/toggle';
+import { Bug } from 'lucide-react';
 
 interface SpeedPanelProps {
   currentSpeed: number;
   recommendedSpeed: number;
   isOnRoad?: boolean;
+  isDebugMode?: boolean;
+  onDebugModeChange?: (enabled: boolean) => void;
 }
 
-const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad }: SpeedPanelProps) => {
+const SpeedPanel = ({ 
+  currentSpeed, 
+  recommendedSpeed, 
+  isOnRoad,
+  isDebugMode,
+  onDebugModeChange 
+}: SpeedPanelProps) => {
   const kmhSpeed = Math.round(currentSpeed * 3.6); // Convert m/s to km/h
   const kmhRecommended = Math.round(recommendedSpeed * 3.6);
   const isIdle = currentSpeed === 0;
@@ -40,6 +50,18 @@ const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad }: SpeedPanelProp
             </div>
           </div>
         </div>
+        {onDebugModeChange && (
+          <div className="mt-4 flex justify-end">
+            <Toggle
+              pressed={isDebugMode}
+              onPressedChange={onDebugModeChange}
+              className="data-[state=on]:bg-green-500"
+            >
+              <Bug className="h-4 w-4 mr-2" />
+              Debug Mode
+            </Toggle>
+          </div>
+        )}
       </Card>
     </div>
   );

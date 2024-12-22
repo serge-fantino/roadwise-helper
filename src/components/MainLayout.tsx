@@ -13,6 +13,8 @@ interface MainLayoutProps {
   routePoints: [number, number][];
   onDestinationSelect: (location: [number, number], address: string) => void;
   onRoadStatusChange: (status: boolean) => void;
+  isDebugMode?: boolean;
+  onDebugModeChange?: (enabled: boolean) => void;
 }
 
 const MainLayout = ({
@@ -24,6 +26,8 @@ const MainLayout = ({
   routePoints,
   onDestinationSelect,
   onRoadStatusChange,
+  isDebugMode,
+  onDebugModeChange,
 }: MainLayoutProps) => {
   const [isSearchMode, setIsSearchMode] = useState(false);
 
@@ -83,6 +87,8 @@ const MainLayout = ({
               currentSpeed={speed} 
               recommendedSpeed={recommendedSpeed}
               isOnRoad={isOnRoad}
+              isDebugMode={isDebugMode}
+              onDebugModeChange={onDebugModeChange}
             />
           </div>
         </>
