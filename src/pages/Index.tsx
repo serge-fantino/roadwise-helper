@@ -19,12 +19,12 @@ const Index = () => {
   // Calcul de la vitesse recommandée
   const recommendedSpeed = calculateRecommendedSpeed(vehicle.speed);
 
-  // Gestion du calcul d'itinéraire quand la destination change
+  // Calcul d'itinéraire uniquement lors d'un changement de destination
   useEffect(() => {
     if (destination) {
       calculateRoute(vehicle.position, destination.location);
     }
-  }, [destination, vehicle.position]);
+  }, [destination]);
 
   if (!vehicle) {
     return <LoadingScreen />;

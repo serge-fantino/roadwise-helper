@@ -74,11 +74,11 @@ export const useVehicle = (
         const currentPosition = routePoints[currentRouteIndexRef.current];
         const nextPosition = routePoints[nextIndex];
         const distance = calculateDistance(currentPosition, nextPosition);
-        const speed = distance / 10; // 10 seconds interval
+        const speed = distance / 3; // 3 seconds interval
 
         updateVehicle(nextPosition, speed);
         currentRouteIndexRef.current = nextIndex;
-      }, 10000); // 10 seconds interval
+      }, 3000); // 3 seconds interval
 
       return () => {
         if (simulationIntervalRef.current) {
