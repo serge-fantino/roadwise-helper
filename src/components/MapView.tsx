@@ -1,71 +1,48 @@
 import { MapContainer, TileLayer } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import VehicleMarker from './VehicleMarker';
 import PredictionOverlay from './PredictionOverlay';
-import RouteOverlay from './map/RouteOverlay';
-import VehicleMarker from './map/VehicleMarker';
-import DestinationMarker from './map/DestinationMarker';
-import HistoryTrail from './map/HistoryTrail';
-import MapEventHandlers from './map/MapEventHandlers';
-import { useVehicleState } from '../hooks/useVehicleState';
-
-// Fix Leaflet default icon paths
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+import RouteOverlay from './RouteOverlay';
+import HistoryTrail from './HistoryTrail';
+import MapEventHandlers from './MapEventHandlers';
 
 interface MapViewProps {
   position: [number, number];
   speed: number;
   onRoadStatusChange: (status: boolean) => void;
-  destination?: [number, number];
+  destination?: [number, number] | null;
   routePoints: [number, number][];
   onMapClick: (location: [number, number], address: string) => void;
   positionHistory: [number, number][];
 }
 
-const MapView = ({ 
-  position, 
-  speed, 
-  onRoadStatusChange, 
+const MapView = ({
+  position,
+  speed,
+  onRoadStatusChange,
   destination,
   routePoints,
   onMapClick,
   positionHistory
 }: MapViewProps) => {
-  const {
-    position: currentPosition,
-    speed: currentSpeed,
-    history: currentHistory,
-    isOnRoad,
-    handleRoadStatusChange
-  } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
-
   return (
     <MapContainer
-      center={currentPosition}
-      zoom={17}
-      className="w-full h-full"
-      zoomControl={false}
-      attributionControl={false}
+      center={position}
+      zoom={13}
+      className="h-full w-full"
     >
       <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        className="map-tiles"
       />
-      <MapEventHandlers 
-        position={currentPosition}
-        onRoadStatusChange={handleRoadStatusChange}
+      <VehicleMarker position={position} />
+      <PredictionOverlay position={position} speed={speed} routePoints={routePoints} />
+      <RouteOverlay routePoints={routePoints} />
+      {destination && <DestinationMarker position={destination} />}
+      <HistoryTrail positions={positionHistory} />
+      <MapEventHandlers
+        onRoadStatusChange={onRoadStatusChange}
         onMapClick={onMapClick}
       />
-      <HistoryTrail positions={currentHistory} />
-      <PredictionOverlay position={currentPosition} speed={currentSpeed} />
-      <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} />
-      {destination && <DestinationMarker position={destination} />}
-      <RouteOverlay routePoints={routePoints} />
     </MapContainer>
   );
 };
