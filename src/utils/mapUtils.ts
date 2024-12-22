@@ -30,29 +30,32 @@ export const calculateDistance = (point1: [number, number], point2: [number, num
            Math.sin(Δλ/2) * Math.sin(Δλ/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-  return R * c; // Returns distance in meters
+  return R * c;
 };
 
-export const calculateAngleBetweenVectors = (vector1: [number, number], vector2: [number, number]): number => {
-  // Convertir les coordonnées en vecteurs (dx, dy)
-  const dx1 = vector1[1] - vector1[0];
-  const dy1 = vector1[3] - vector1[2];
-  const dx2 = vector2[1] - vector2[0];
-  const dy2 = vector2[3] - vector2[2];
+export const calculateAngleBetweenVectors = (
+  vector1: [number, number, number, number],
+  vector2: [number, number, number, number]
+): number => {
+  // Convert coordinates to vectors (dx, dy)
+  const dx1 = vector1[2] - vector1[0];
+  const dy1 = vector1[3] - vector1[1];
+  const dx2 = vector2[2] - vector2[0];
+  const dy2 = vector2[3] - vector2[1];
   
-  // Calculer l'angle entre les vecteurs
+  // Calculate angle between vectors
   const dotProduct = dx1 * dx2 + dy1 * dy2;
   const magnitude1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
   const magnitude2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
   
-  // Éviter la division par zéro
+  // Avoid division by zero
   if (magnitude1 === 0 || magnitude2 === 0) return 0;
   
   const cosAngle = dotProduct / (magnitude1 * magnitude2);
-  // Assurer que cosAngle est dans [-1, 1] pour éviter des erreurs d'arrondi
+  // Ensure cosAngle is in [-1, 1] to avoid rounding errors
   const clampedCosAngle = Math.max(-1, Math.min(1, cosAngle));
   
-  // Convertir en degrés
+  // Convert to degrees
   return Math.acos(clampedCosAngle) * (180 / Math.PI);
 };
 
@@ -85,11 +88,11 @@ export const calculateRecommendedSpeedFromAngle = (
   angle: number,
   maxSpeed: number = 130
 ): number => {
-  // Si l'angle est supérieur à 45°, on recommande une vitesse très basse
+  // If angle is greater than 45°, recommend very low speed
   if (angle > 45) return 20;
   
-  // Sinon, on ajuste la vitesse en fonction de l'angle
-  // Plus l'angle est grand, plus on réduit la vitesse
+  // Otherwise, adjust speed based on angle
+  // The larger the angle, the more we reduce speed
   const angleRatio = 1 - (angle / 45);
   const recommendedSpeed = maxSpeed * angleRatio;
   
