@@ -24,7 +24,7 @@ const MapView = ({ position, speed }: MapViewProps) => {
     <MapContainer
       center={position}
       zoom={17}
-      className="h-screen w-screen"
+      className="w-full h-full"
       zoomControl={false}
       attributionControl={false}
     >
