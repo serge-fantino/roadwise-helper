@@ -6,12 +6,12 @@ interface HistoryTrailProps {
 }
 
 const HistoryTrail = ({ positions }: HistoryTrailProps) => {
-  // Création des segments entre chaque paire de points consécutifs
+  // Create segments between each consecutive pair of points
   const segments = positions.slice(0, -1).map((pos, index) => {
     return [pos, positions[index + 1]];
   });
 
-  // Couleurs pour le dégradé du bleu vers le rouge
+  // Colors for the gradient from blue to red
   const colors = [
     '#0EA5E9', // Ocean Blue
     '#33C3F0', // Sky Blue
@@ -21,11 +21,22 @@ const HistoryTrail = ({ positions }: HistoryTrailProps) => {
     '#ea384c'  // Red
   ];
 
-  // Calcul de la couleur pour chaque segment en fonction de sa position
+  // Calculate color for each segment based on its position in the trail
   const getSegmentColor = (index: number) => {
+    if (segments.length <= 1) return colors[0];
+    
+    // Calculate position in the gradient (0 to 1)
     const position = index / (segments.length - 1);
-    const colorIndex = Math.floor(position * (colors.length - 1));
-    return colors[Math.min(colorIndex, colors.length - 1)];
+    
+    // Calculate which color pair to use
+    const colorIndex = Math.min(
+      Math.floor(position * (colors.length - 1)),
+      colors.length - 2
+    );
+    
+    console.log(`Segment ${index}: position=${position}, color=${colors[colorIndex]}`);
+    
+    return colors[colorIndex];
   };
 
   return (
