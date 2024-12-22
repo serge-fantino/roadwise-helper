@@ -14,13 +14,13 @@ const getColorFromAngle = (angleDiff: number): string => {
   const absAngle = Math.abs(angleDiff);
   
   if (absAngle <= 45) {
-    // Interpolate between green and red (0° to 45°)
+    // Interpolate between bright green and vivid red (0° to 45°)
     const ratio = absAngle / 45;
-    return `#${Math.round((1 - ratio) * 0xF2 + ratio * 0xea).toString(16).padStart(2, '0')}${
-      Math.round((1 - ratio) * 0xFC + ratio * 0x38).toString(16).padStart(2, '0')}${
-      Math.round((1 - ratio) * 0xE2 + ratio * 0x4c).toString(16).padStart(2, '0')}`;
+    return `#${Math.round((1 - ratio) * 0x10 + ratio * 0xea).toString(16).padStart(2, '0')}${
+      Math.round((1 - ratio) * 0xB9 + ratio * 0x38).toString(16).padStart(2, '0')}${
+      Math.round((1 - ratio) * 0x81 + ratio * 0x4c).toString(16).padStart(2, '0')}`;
   } else {
-    // Interpolate between red and blue (45° to 180°)
+    // Interpolate between vivid red and ocean blue (45° to 180°)
     const ratio = (absAngle - 45) / 135;
     return `#${Math.round((1 - ratio) * 0xea + ratio * 0x0E).toString(16).padStart(2, '0')}${
       Math.round((1 - ratio) * 0x38 + ratio * 0xA5).toString(16).padStart(2, '0')}${
