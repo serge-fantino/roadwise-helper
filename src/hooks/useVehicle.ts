@@ -3,7 +3,7 @@ import { Vehicle } from '../models/Vehicle';
 import { calculateDistance } from '../utils/mapUtils';
 import { toast } from '../components/ui/use-toast';
 
-// Créer une instance unique du véhicule
+// Create a single instance of the vehicle
 const globalVehicle = new Vehicle([48.8566, 2.3522]);
 
 export const useVehicle = (
@@ -15,8 +15,10 @@ export const useVehicle = (
   const watchIdRef = useRef<number | null>(null);
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentRouteIndexRef = useRef(0);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
 
-  // Réinitialiser le véhicule si la position initiale change
+  // Reset vehicle if initial position changes
   useEffect(() => {
     globalVehicle.reset(initialPosition);
     setVehicle(globalVehicle);
@@ -27,29 +29,66 @@ export const useVehicle = (
     setVehicle(globalVehicle);
   };
 
-  // Gestion du GPS réel
-  useEffect(() => {
-    if (!isDebugMode && 'geolocation' in navigator) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (pos) => {
-          const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          console.log('GPS Update - New Position:', newPosition);
-          updateVehicle(newPosition, pos.coords.speed || 0);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
+  const startGPSTracking = () => {
+    if (!('geolocation' in navigator)) {
+      toast({
+        title: "Erreur GPS",
+        description: "La géolocalisation n'est pas supportée par votre navigateur.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        console.log('GPS Update - New Position:', newPosition);
+        updateVehicle(newPosition, pos.coords.speed || 0);
+        retryCountRef.current = 0; // Reset retry count on successful update
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        
+        if (error.code === error.TIMEOUT) {
+          if (retryCountRef.current < MAX_RETRIES) {
+            retryCountRef.current++;
+            toast({
+              title: "Tentative de reconnexion GPS",
+              description: `Nouvelle tentative ${retryCountRef.current}/${MAX_RETRIES}...`,
+            });
+            
+            // Clear existing watch and retry
+            if (watchIdRef.current !== null) {
+              navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+            setTimeout(startGPSTracking, 1000); // Retry after 1 second
+          } else {
+            toast({
+              title: "Erreur GPS",
+              description: "Impossible d'obtenir votre position. Veuillez vérifier vos paramètres de localisation.",
+              variant: "destructive"
+            });
+          }
+        } else {
           toast({
-            title: "Erreur de localisation",
+            title: "Erreur GPS",
             description: "Veuillez activer la géolocalisation pour utiliser l'assistant de conduite.",
             variant: "destructive"
           });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
         }
-      );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Increased timeout to 10 seconds
+        maximumAge: 0
+      }
+    );
+  };
+
+  // Handle GPS tracking
+  useEffect(() => {
+    if (!isDebugMode) {
+      startGPSTracking();
 
       return () => {
         if (watchIdRef.current !== null) {
@@ -59,7 +98,7 @@ export const useVehicle = (
     }
   }, [isDebugMode]);
 
-  // Gestion de la simulation
+  // Handle simulation
   useEffect(() => {
     if (isDebugMode && routePoints.length > 1) {
       // Reset simulation
@@ -86,7 +125,7 @@ export const useVehicle = (
 
         updateVehicle(nextPosition, speed);
         currentRouteIndexRef.current = nextIndex;
-      }, 3000); // 3 seconds interval
+      }, 3000);
 
       return () => {
         if (simulationIntervalRef.current) {
