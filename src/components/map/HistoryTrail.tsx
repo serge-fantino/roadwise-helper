@@ -1,50 +1,45 @@
 import { Polyline } from 'react-leaflet';
-import { useMemo } from 'react';
+import { LatLngExpression } from 'leaflet';
 
 interface HistoryTrailProps {
   positions: [number, number][];
 }
 
 const HistoryTrail = ({ positions }: HistoryTrailProps) => {
-  const validPositions = useMemo(() => {
-    // Filtrer les positions invalides et les doublons
-    const filtered = positions.filter((pos, index) => {
-      if (!Array.isArray(pos) || 
-          pos.length !== 2 || 
-          typeof pos[0] !== 'number' || 
-          typeof pos[1] !== 'number' ||
-          isNaN(pos[0]) || 
-          isNaN(pos[1])) {
-        return false;
-      }
-      
-      // Vérifier si cette position est un doublon de la précédente
-      if (index > 0) {
-        const prevPos = positions[index - 1];
-        if (pos[0] === prevPos[0] && pos[1] === prevPos[1]) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
+  // Création des segments entre chaque paire de points consécutifs
+  const segments = positions.slice(0, -1).map((pos, index) => {
+    return [pos, positions[index + 1]];
+  });
 
-    console.log('Filtered trail positions:', filtered);
-    return filtered;
-  }, [positions]);
+  // Couleurs pour le dégradé du bleu vers le rouge
+  const colors = [
+    '#0EA5E9', // Ocean Blue
+    '#33C3F0', // Sky Blue
+    '#8B5CF6', // Vivid Purple
+    '#9b87f5', // Primary Purple
+    '#D946EF', // Magenta Pink
+    '#ea384c'  // Red
+  ];
 
-  if (validPositions.length < 2) {
-    return null;
-  }
+  // Calcul de la couleur pour chaque segment en fonction de sa position
+  const getSegmentColor = (index: number) => {
+    const position = index / (segments.length - 1);
+    const colorIndex = Math.floor(position * (colors.length - 1));
+    return colors[Math.min(colorIndex, colors.length - 1)];
+  };
 
   return (
-    <Polyline
-      positions={validPositions}
-      color="#3B82F6"
-      weight={3}
-      opacity={0.7}
-      smoothFactor={1}
-    />
+    <>
+      {segments.map((segment, index) => (
+        <Polyline
+          key={`segment-${index}`}
+          positions={segment as LatLngExpression[]}
+          color={getSegmentColor(index)}
+          weight={3}
+          opacity={0.8}
+        />
+      ))}
+    </>
   );
 };
 
