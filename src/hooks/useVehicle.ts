@@ -3,8 +3,8 @@ import { Vehicle } from '../models/Vehicle';
 import { calculateDistance } from '../utils/mapUtils';
 import { toast } from '../components/ui/use-toast';
 
-// Create a single instance of the vehicle
-const globalVehicle = new Vehicle([48.8566, 2.3522]);
+// Create a single instance of the vehicle with null initial position
+const globalVehicle = new Vehicle(null);
 
 export const useVehicle = (
   isDebugMode: boolean,
@@ -17,18 +17,15 @@ export const useVehicle = (
   const currentRouteIndexRef = useRef(0);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
-
-  // Reset vehicle if initial position changes
-  useEffect(() => {
-    globalVehicle.reset(initialPosition);
-    setVehicle(globalVehicle);
-  }, [initialPosition]);
+  const hasInitializedRef = useRef(false);
 
   const updateVehicle = (position: [number, number], speed: number) => {
+    console.log('Updating vehicle position:', position);
     globalVehicle.update(position, speed);
     setVehicle(globalVehicle);
   };
 
+  // Initialize vehicle with GPS position
   const startGPSTracking = () => {
     if (!('geolocation' in navigator)) {
       toast({
@@ -39,47 +36,73 @@ export const useVehicle = (
       return;
     }
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
+    // Get initial position
+    navigator.geolocation.getCurrentPosition(
       (pos) => {
         const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        console.log('GPS Update - New Position:', newPosition);
+        console.log('Initial GPS position:', newPosition);
+        if (!hasInitializedRef.current) {
+          globalVehicle.reset(newPosition);
+          hasInitializedRef.current = true;
+        }
         updateVehicle(newPosition, pos.coords.speed || 0);
-        retryCountRef.current = 0; // Reset retry count on successful update
+
+        // Start watching position after getting initial position
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+            console.log('GPS Update - New Position:', newPosition);
+            updateVehicle(newPosition, pos.coords.speed || 0);
+            retryCountRef.current = 0;
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+            
+            if (error.code === error.TIMEOUT) {
+              if (retryCountRef.current < MAX_RETRIES) {
+                retryCountRef.current++;
+                toast({
+                  title: "Tentative de reconnexion GPS",
+                  description: `Nouvelle tentative ${retryCountRef.current}/${MAX_RETRIES}...`,
+                });
+                
+                if (watchIdRef.current !== null) {
+                  navigator.geolocation.clearWatch(watchIdRef.current);
+                }
+                setTimeout(startGPSTracking, 1000);
+              } else {
+                toast({
+                  title: "Erreur GPS",
+                  description: "Impossible d'obtenir votre position. Veuillez vérifier vos paramètres de localisation.",
+                  variant: "destructive"
+                });
+              }
+            } else {
+              toast({
+                title: "Erreur GPS",
+                description: "Veuillez activer la géolocalisation pour utiliser l'assistant de conduite.",
+                variant: "destructive"
+              });
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
       },
       (error) => {
-        console.error('Error getting location:', error);
-        
-        if (error.code === error.TIMEOUT) {
-          if (retryCountRef.current < MAX_RETRIES) {
-            retryCountRef.current++;
-            toast({
-              title: "Tentative de reconnexion GPS",
-              description: `Nouvelle tentative ${retryCountRef.current}/${MAX_RETRIES}...`,
-            });
-            
-            // Clear existing watch and retry
-            if (watchIdRef.current !== null) {
-              navigator.geolocation.clearWatch(watchIdRef.current);
-            }
-            setTimeout(startGPSTracking, 1000); // Retry after 1 second
-          } else {
-            toast({
-              title: "Erreur GPS",
-              description: "Impossible d'obtenir votre position. Veuillez vérifier vos paramètres de localisation.",
-              variant: "destructive"
-            });
-          }
-        } else {
-          toast({
-            title: "Erreur GPS",
-            description: "Veuillez activer la géolocalisation pour utiliser l'assistant de conduite.",
-            variant: "destructive"
-          });
-        }
+        console.error('Error getting initial position:', error);
+        toast({
+          title: "Erreur GPS",
+          description: "Impossible d'obtenir votre position initiale.",
+          variant: "destructive"
+        });
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000, // Increased timeout to 10 seconds
+        timeout: 10000,
         maximumAge: 0
       }
     );
@@ -89,7 +112,6 @@ export const useVehicle = (
   useEffect(() => {
     if (!isDebugMode) {
       startGPSTracking();
-
       return () => {
         if (watchIdRef.current !== null) {
           navigator.geolocation.clearWatch(watchIdRef.current);
@@ -98,12 +120,15 @@ export const useVehicle = (
     }
   }, [isDebugMode]);
 
-  // Handle simulation
+  // Handle simulation mode
   useEffect(() => {
     if (isDebugMode && routePoints.length > 1) {
+      console.log('Starting simulation with route points:', routePoints);
+      
       // Reset simulation
       currentRouteIndexRef.current = 0;
       const startPosition = routePoints[0];
+      console.log('Setting initial simulation position:', startPosition);
       globalVehicle.reset(startPosition);
       setVehicle(globalVehicle);
 
@@ -121,8 +146,9 @@ export const useVehicle = (
         const currentPosition = routePoints[currentRouteIndexRef.current];
         const nextPosition = routePoints[nextIndex];
         const distance = calculateDistance(currentPosition, nextPosition);
-        const speed = distance / 3; // 3 seconds interval
+        const speed = distance / 3;
 
+        console.log('Simulation update - New Position:', nextPosition);
         updateVehicle(nextPosition, speed);
         currentRouteIndexRef.current = nextIndex;
       }, 3000);

@@ -1,18 +1,18 @@
 import { Snake } from './Snake';
 
 export class Vehicle {
-  private _position: [number, number];
+  private _position: [number, number] | null;
   private _speed: number;
   private _snake: Snake;
 
-  constructor(initialPosition: [number, number]) {
+  constructor(initialPosition: [number, number] | null) {
     this._position = initialPosition;
     this._speed = 0;
-    this._snake = new Snake(initialPosition);
+    this._snake = new Snake(initialPosition || [0, 0]);
   }
 
   get position(): [number, number] {
-    return this._position;
+    return this._position || [0, 0];
   }
 
   get speed(): number {
