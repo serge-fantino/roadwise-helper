@@ -7,9 +7,15 @@ interface HistoryTrailProps {
 
 const HistoryTrail = ({ positions }: HistoryTrailProps) => {
   // Create segments between each consecutive pair of points
-  const segments = positions.slice(0, -1).map((pos, index) => {
-    return [pos, positions[index + 1]];
-  });
+  // Important: We reverse the positions array to start from the most recent position
+  // This ensures the color gradient starts from the vehicle's current position
+  const segments = positions
+    .slice()
+    .reverse()
+    .slice(0, -1)
+    .map((pos, index) => {
+      return [pos, positions.slice().reverse()[index + 1]];
+    });
 
   // Colors for the gradient from blue to red
   const colors = [
@@ -23,7 +29,6 @@ const HistoryTrail = ({ positions }: HistoryTrailProps) => {
 
   // Calculate color for each segment based on its position in the trail
   const getSegmentColor = (index: number) => {
-    // Si pas de segments ou un seul segment, retourner la première couleur
     if (segments.length <= 1) return colors[0];
     
     // Calculate position in the gradient (0 to 1)
