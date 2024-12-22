@@ -1,18 +1,20 @@
 import { Card } from '../components/ui/card';
+import AddressSearch from './AddressSearch';
 
 interface SpeedPanelProps {
   currentSpeed: number;
   recommendedSpeed: number;
   isOnRoad?: boolean;
+  onDestinationSelect?: (location: [number, number]) => void;
 }
 
-const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad }: SpeedPanelProps) => {
+const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad, onDestinationSelect }: SpeedPanelProps) => {
   const kmhSpeed = Math.round(currentSpeed * 3.6); // Convert m/s to km/h
   const kmhRecommended = Math.round(recommendedSpeed * 3.6);
   const isIdle = currentSpeed === 0;
   
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex flex-col gap-4">
       <Card className="bg-gray-900/90 text-white p-6 rounded-xl w-full max-w-xl mx-auto">
         <div className="grid grid-cols-4 gap-4">
           <div className="text-center">
@@ -40,6 +42,10 @@ const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad }: SpeedPanelProp
             </div>
           </div>
         </div>
+      </Card>
+      
+      <Card className="bg-gray-900/90 p-4 rounded-xl w-full max-w-xl mx-auto">
+        <AddressSearch onLocationSelect={onDestinationSelect || (() => {})} />
       </Card>
     </div>
   );
