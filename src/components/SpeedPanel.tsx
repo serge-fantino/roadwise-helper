@@ -21,9 +21,9 @@ const SpeedPanel = ({
   const isIdle = currentSpeed === 0;
   
   return (
-    <div className="bg-gray-900/90 text-white p-4 rounded-xl w-full max-w-md">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center justify-between col-span-2 mb-1">
+    <div className="bg-gray-900/90 text-white w-full">
+      <div className="grid grid-cols-2 gap-2 p-2">
+        <div className="flex items-center justify-between col-span-2">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold">{kmhSpeed}</span>
             <span className="text-sm text-gray-400">km/h</span>
@@ -36,13 +36,13 @@ const SpeedPanel = ({
           </div>
         </div>
         
-        <div className="flex flex-col items-center justify-center bg-gray-800/50 rounded-lg p-2">
+        <div className="flex flex-col items-center justify-center bg-gray-800/50 rounded-lg p-1">
           <span className={`text-lg font-semibold ${isOnRoad ? 'text-green-500' : 'text-red-500'}`}>
             {isOnRoad ? 'ON ROAD' : 'OFF ROAD'}
           </span>
         </div>
         
-        <div className="flex flex-col items-center justify-center bg-gray-800/50 rounded-lg p-2">
+        <div className="flex flex-col items-center justify-center bg-gray-800/50 rounded-lg p-1">
           <span className={`text-lg font-semibold ${isIdle ? 'text-yellow-500' : 'text-blue-500'}`}>
             {isIdle ? 'IDLE' : 'MOVING'}
           </span>
@@ -50,7 +50,7 @@ const SpeedPanel = ({
       </div>
       
       {onDebugModeChange && (
-        <div className="mt-3 flex justify-end">
+        <div className="flex justify-end p-2">
           <Toggle
             pressed={isDebugMode}
             onPressedChange={onDebugModeChange}
