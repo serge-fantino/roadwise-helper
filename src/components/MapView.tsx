@@ -1,4 +1,3 @@
-import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -8,6 +7,7 @@ import VehicleMarker from './map/VehicleMarker';
 import DestinationMarker from './map/DestinationMarker';
 import HistoryTrail from './map/HistoryTrail';
 import MapEventHandlers from './map/MapEventHandlers';
+import { useVehicleState } from '../hooks/useVehicleState';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -36,51 +36,13 @@ const MapView = ({
   onMapClick,
   positionHistory
 }: MapViewProps) => {
-  const [isOnRoad, setIsOnRoad] = useState(true);
-  const [currentPosition, setCurrentPosition] = useState(position);
-  const [currentSpeed, setCurrentSpeed] = useState(speed);
-  const [currentHistory, setCurrentHistory] = useState<[number, number][]>(positionHistory);
-
-  const handleVehicleUpdate = useCallback((newPosition: [number, number], newSpeed: number) => {
-    console.log('Vehicle update received in MapView:', newPosition, newSpeed);
-    setCurrentPosition(newPosition);
-    setCurrentSpeed(newSpeed);
-    
-    // Get the latest history from the global vehicle
-    const vehicle = (window as any).globalVehicle;
-    if (vehicle) {
-      const history = vehicle.positionHistory;
-      console.log('Current vehicle history:', history);
-      setCurrentHistory(history);
-    }
-  }, []);
-
-  // Subscribe to vehicle updates
-  useEffect(() => {
-    const vehicle = (window as any).globalVehicle;
-    if (vehicle) {
-      console.log('Subscribing to vehicle updates');
-      vehicle.addObserver(handleVehicleUpdate);
-      // Initial history
-      setCurrentHistory(vehicle.positionHistory);
-      return () => {
-        console.log('Unsubscribing from vehicle updates');
-        vehicle.removeObserver(handleVehicleUpdate);
-      };
-    }
-  }, [handleVehicleUpdate]);
-
-  // Synchronize with initial props
-  useEffect(() => {
-    setCurrentPosition(position);
-    setCurrentSpeed(speed);
-    setCurrentHistory(positionHistory);
-  }, [position, speed, positionHistory]);
-
-  const handleRoadStatusChange = (status: boolean) => {
-    setIsOnRoad(status);
-    onRoadStatusChange(status);
-  };
+  const {
+    position: currentPosition,
+    speed: currentSpeed,
+    history: currentHistory,
+    isOnRoad,
+    handleRoadStatusChange
+  } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
 
   console.log('MapView rendering with history:', currentHistory);
 
