@@ -50,12 +50,16 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen relative">
-      <MapView position={position} speed={speed} />
-      <SpeedPanel 
-        currentSpeed={speed} 
-        recommendedSpeed={recommendedSpeed}
-      />
+    <div className="h-screen flex flex-col">
+      <div className="flex-1">
+        <MapView position={position} speed={speed} />
+      </div>
+      <div className="h-32 bg-gray-900 p-4">
+        <SpeedPanel 
+          currentSpeed={speed} 
+          recommendedSpeed={recommendedSpeed}
+        />
+      </div>
     </div>
   );
 };
