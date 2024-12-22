@@ -54,13 +54,27 @@ const MapView = ({
   const [currentSpeed, setCurrentSpeed] = useState(speed);
 
   const handleVehicleUpdate = useCallback((newPosition: [number, number], newSpeed: number) => {
-    console.log('Vehicle update received in MapView:', newPosition);
+    console.log('Vehicle update received in MapView:', newPosition, newSpeed);
     setCurrentPosition(newPosition);
     setCurrentSpeed(newSpeed);
   }, []);
 
+  // Subscribe to vehicle updates
   useEffect(() => {
-    // Synchronize with initial props
+    // Get the global vehicle instance
+    const vehicle = (window as any).globalVehicle;
+    if (vehicle) {
+      console.log('Subscribing to vehicle updates');
+      vehicle.addObserver(handleVehicleUpdate);
+      return () => {
+        console.log('Unsubscribing from vehicle updates');
+        vehicle.removeObserver(handleVehicleUpdate);
+      };
+    }
+  }, [handleVehicleUpdate]);
+
+  // Synchronize with initial props
+  useEffect(() => {
     setCurrentPosition(position);
     setCurrentSpeed(speed);
   }, [position, speed]);

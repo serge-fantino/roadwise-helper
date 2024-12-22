@@ -5,6 +5,7 @@ import { toast } from '../components/ui/use-toast';
 
 // Create a single instance of the vehicle with null initial position
 const globalVehicle = new Vehicle(null);
+(window as any).globalVehicle = globalVehicle; // Make it accessible globally for debugging
 
 export const useVehicle = (
   isDebugMode: boolean,
