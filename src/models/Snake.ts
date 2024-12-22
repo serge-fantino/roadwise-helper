@@ -9,25 +9,33 @@ export class Snake {
   }
 
   get positions(): [number, number][] {
-    return [...this._positions]; // Return a copy to avoid reference issues
+    // Retourner une copie profonde pour éviter les références circulaires
+    return this._positions.map(pos => [...pos] as [number, number]);
   }
 
   addPosition(position: [number, number]) {
     console.log('Adding position to snake:', position);
     
-    // Add new position at the beginning of the array
-    this._positions.unshift(position);
+    // Vérifier si la position est valide
+    if (!Array.isArray(position) || position.length !== 2 || 
+        typeof position[0] !== 'number' || typeof position[1] !== 'number') {
+      console.error('Invalid position format:', position);
+      return;
+    }
     
-    // Keep only maxLength positions
+    // Ajouter une copie de la position
+    this._positions.unshift([...position]);
+    
+    // Garder seulement maxLength positions
     if (this._positions.length > this.maxLength) {
       this._positions = this._positions.slice(0, this.maxLength);
     }
     
-    console.log('Updated snake positions:', [...this._positions]); // Log a copy
+    console.log('Updated snake positions:', this._positions);
   }
 
   reset(position: [number, number]) {
     console.log('Resetting snake to position:', position);
-    this._positions = [position];
+    this._positions = [[...position]];
   }
 }

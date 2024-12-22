@@ -5,22 +5,23 @@ interface HistoryTrailProps {
 }
 
 const HistoryTrail = ({ positions }: HistoryTrailProps) => {
-  console.log('HistoryTrail rendering with positions:', positions);
+  console.log('HistoryTrail rendering with raw positions:', positions);
   
-  if (positions.length < 2) {
-    console.log('Not enough positions to draw trail');
-    return null;
-  }
-  
-  // Ensure we're using valid positions (filter out any potential circular references)
+  // Filtrer les positions invalides et les références circulaires
   const validPositions = positions.filter(pos => 
     Array.isArray(pos) && 
     pos.length === 2 && 
     typeof pos[0] === 'number' && 
-    typeof pos[1] === 'number'
+    typeof pos[1] === 'number' &&
+    !Object.prototype.hasOwnProperty.call(pos, 'message')  // Exclure les références circulaires
   );
 
-  console.log('Valid positions for trail:', validPositions);
+  console.log('HistoryTrail filtered positions:', validPositions);
+  
+  if (validPositions.length < 2) {
+    console.log('Not enough valid positions to draw trail');
+    return null;
+  }
   
   return (
     <Polyline
