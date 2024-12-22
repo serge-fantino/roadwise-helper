@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import PredictionOverlay from './PredictionOverlay';
 
 // Component to handle map center updates
 const MapUpdater = ({ position }: { position: [number, number] }) => {
@@ -13,7 +14,12 @@ const MapUpdater = ({ position }: { position: [number, number] }) => {
   return null;
 };
 
-const MapView = ({ position }: { position: [number, number] }) => {
+interface MapViewProps {
+  position: [number, number];
+  speed: number;
+}
+
+const MapView = ({ position, speed }: MapViewProps) => {
   return (
     <MapContainer
       center={position}
@@ -27,6 +33,7 @@ const MapView = ({ position }: { position: [number, number] }) => {
         className="map-tiles"
       />
       <MapUpdater position={position} />
+      <PredictionOverlay position={position} speed={speed} />
     </MapContainer>
   );
 };

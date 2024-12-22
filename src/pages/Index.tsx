@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import MapView from '../components/MapView';
 import SpeedPanel from '../components/SpeedPanel';
-import PredictionOverlay from '../components/PredictionOverlay';
 import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
 
@@ -52,8 +51,7 @@ const Index = () => {
 
   return (
     <div className="h-screen relative">
-      <MapView position={position} />
-      <PredictionOverlay position={position} speed={speed} />
+      <MapView position={position} speed={speed} />
       <SpeedPanel 
         currentSpeed={speed} 
         recommendedSpeed={recommendedSpeed}
