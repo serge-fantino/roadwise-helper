@@ -33,10 +33,18 @@ export const calculateDistance = (point1: [number, number], point2: [number, num
   return R * c; // Returns distance in meters
 };
 
+export const calculateAngleDifference = (angle1: number, angle2: number): number => {
+  let diff = Math.abs(angle1 - angle2);
+  if (diff > 180) {
+    diff = 360 - diff;
+  }
+  return diff;
+};
+
 export const predictRoadAhead = (position: [number, number], speed: number, heading: number = 0): [number, number][] => {
   const vehicle = (window as any).globalVehicle;
   if (!vehicle || vehicle.positionHistory.length < 2) {
-    return [position, position]; // Return same point if no history
+    return [position, position];
   }
 
   // Get the last two positions
@@ -52,6 +60,5 @@ export const predictRoadAhead = (position: [number, number], speed: number, head
   const predictedLon = currentPos[1] + (deltaLon * 3);
 
   const endPoint: [number, number] = [predictedLat, predictedLon];
-
   return [position, endPoint];
 };

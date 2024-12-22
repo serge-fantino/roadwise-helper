@@ -65,7 +65,7 @@ const MapView = ({
         onMapClick={onMapClick}
       />
       <HistoryTrail positions={currentHistory} />
-      <PredictionOverlay position={currentPosition} speed={currentSpeed} />
+      <PredictionOverlay position={currentPosition} speed={currentSpeed} routePoints={routePoints} />
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} heading={heading} />
       {destination && <DestinationMarker position={destination} />}
       <RouteOverlay routePoints={routePoints} />
