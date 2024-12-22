@@ -3,22 +3,28 @@ import { Vehicle } from '../models/Vehicle';
 import { calculateDistance } from '../utils/mapUtils';
 import { toast } from '../components/ui/use-toast';
 
+// Créer une instance unique du véhicule
+const globalVehicle = new Vehicle([48.8566, 2.3522]);
+
 export const useVehicle = (
   isDebugMode: boolean,
   routePoints: [number, number][],
   initialPosition: [number, number]
 ) => {
-  const [vehicle, setVehicle] = useState<Vehicle>(() => new Vehicle(initialPosition));
+  const [vehicle, setVehicle] = useState<Vehicle>(globalVehicle);
   const watchIdRef = useRef<number | null>(null);
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentRouteIndexRef = useRef(0);
 
+  // Réinitialiser le véhicule si la position initiale change
+  useEffect(() => {
+    globalVehicle.reset(initialPosition);
+    setVehicle(globalVehicle);
+  }, [initialPosition]);
+
   const updateVehicle = (position: [number, number], speed: number) => {
-    setVehicle(prev => {
-      const newVehicle = new Vehicle(prev.position);
-      newVehicle.update(position, speed);
-      return newVehicle;
-    });
+    globalVehicle.update(position, speed);
+    setVehicle(globalVehicle);
   };
 
   // Gestion du GPS réel
@@ -58,7 +64,8 @@ export const useVehicle = (
       // Reset simulation
       currentRouteIndexRef.current = 0;
       const startPosition = routePoints[0];
-      vehicle.reset(startPosition);
+      globalVehicle.reset(startPosition);
+      setVehicle(globalVehicle);
 
       simulationIntervalRef.current = setInterval(() => {
         const nextIndex = currentRouteIndexRef.current + 1;
