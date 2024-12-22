@@ -1,5 +1,5 @@
 import { Button } from './ui/button';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, X } from 'lucide-react';
 
 interface DestinationPanelProps {
   destination: { address: string; location: [number, number] } | null;
@@ -20,7 +20,15 @@ const DestinationPanel = ({
   if (isSearchMode) {
     return (
       <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white px-4">
-        <span className="text-lg font-semibold w-full">Search destination</span>
+        <span className="text-lg font-semibold">Search destination</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white hover:text-white hover:bg-gray-800 ml-2 flex-shrink-0"
+          onClick={() => onSearchModeChange(false)}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
     );
   }
