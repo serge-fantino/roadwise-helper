@@ -1,14 +1,12 @@
 import { Card } from '../components/ui/card';
-import AddressSearch from './AddressSearch';
 
 interface SpeedPanelProps {
   currentSpeed: number;
   recommendedSpeed: number;
   isOnRoad?: boolean;
-  onDestinationSelect?: (location: [number, number]) => void;
 }
 
-const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad, onDestinationSelect }: SpeedPanelProps) => {
+const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad }: SpeedPanelProps) => {
   const kmhSpeed = Math.round(currentSpeed * 3.6); // Convert m/s to km/h
   const kmhRecommended = Math.round(recommendedSpeed * 3.6);
   const isIdle = currentSpeed === 0;
@@ -42,10 +40,6 @@ const SpeedPanel = ({ currentSpeed, recommendedSpeed, isOnRoad, onDestinationSel
             </div>
           </div>
         </div>
-      </Card>
-      
-      <Card className="bg-gray-900/90 p-4 rounded-xl w-full max-w-xl mx-auto">
-        <AddressSearch onLocationSelect={onDestinationSelect || (() => {})} />
       </Card>
     </div>
   );
