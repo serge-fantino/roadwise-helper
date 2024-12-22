@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { isPointOnRoad } from '../../utils/osmUtils';
+import { isPointOnRoad, getSpeedLimit } from '../../utils/osmUtils';
 import { toast } from '../ui/use-toast';
 
 interface MapEventHandlersProps {
@@ -20,6 +20,15 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
       const [lat, lon] = position;
       const onRoad = await isPointOnRoad(lat, lon);
       onRoadStatusChange(onRoad);
+
+      // Récupérer et afficher la vitesse maximale
+      const speedLimit = await getSpeedLimit(lat, lon);
+      if (speedLimit) {
+        toast({
+          title: "Limite de vitesse",
+          description: `La vitesse maximale autorisée est de ${speedLimit} km/h`,
+        });
+      }
     };
 
     checkRoadPosition();
