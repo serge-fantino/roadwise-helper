@@ -1,6 +1,7 @@
 import { Toggle } from './ui/toggle';
 import { Bug } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { predictionService } from '../services/PredictionService';
 
 interface SpeedPanelProps {
   currentSpeed: number;
@@ -18,10 +19,15 @@ const SpeedPanel = ({
   onDebugModeChange 
 }: SpeedPanelProps) => {
   const [displaySpeed, setDisplaySpeed] = useState(0);
+  const [speedLimit, setSpeedLimit] = useState<number | null>(null);
   
   useEffect(() => {
-    // Mise à jour de la vitesse affichée quand currentSpeed change
-    setDisplaySpeed(currentSpeed);
+    // Observer pour les mises à jour de vitesse limite
+    const speedLimitObserver = (newSpeedLimit: number | null) => {
+      setSpeedLimit(newSpeedLimit);
+    };
+    
+    predictionService.addObserver(speedLimitObserver);
     
     // Observer pour les mises à jour de vitesse
     const vehicle = (window as any).globalVehicle;
@@ -33,12 +39,13 @@ const SpeedPanel = ({
       vehicle.addObserver(speedObserver);
       return () => {
         vehicle.removeObserver(speedObserver);
+        predictionService.removeObserver(speedLimitObserver);
       };
     }
   }, [currentSpeed]);
 
   const kmhSpeed = Math.round(displaySpeed * 3.6);
-  const kmhRecommended = Math.round(recommendedSpeed * 3.6);
+  const kmhRecommended = speedLimit || Math.round(recommendedSpeed * 3.6);
   const isIdle = displaySpeed === 0;
   
   return (
@@ -53,7 +60,9 @@ const SpeedPanel = ({
             <span className={`text-2xl font-bold ${kmhSpeed > kmhRecommended ? 'text-red-500' : 'text-green-500'}`}>
               {kmhRecommended}
             </span>
-            <span className="text-sm text-gray-400">recommandé</span>
+            <span className="text-sm text-gray-400">
+              {speedLimit ? 'limite' : 'recommandé'}
+            </span>
           </div>
         </div>
         
