@@ -1,5 +1,6 @@
 import { Toggle } from './ui/toggle';
 import { Bug } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SpeedPanelProps {
   currentSpeed: number;
@@ -16,9 +17,29 @@ const SpeedPanel = ({
   isDebugMode,
   onDebugModeChange 
 }: SpeedPanelProps) => {
-  const kmhSpeed = Math.round(currentSpeed * 3.6);
+  const [displaySpeed, setDisplaySpeed] = useState(0);
+  
+  useEffect(() => {
+    // Mise à jour de la vitesse affichée quand currentSpeed change
+    setDisplaySpeed(currentSpeed);
+    
+    // Observer pour les mises à jour de vitesse
+    const vehicle = (window as any).globalVehicle;
+    if (vehicle) {
+      const speedObserver = (_: [number, number], speed: number) => {
+        setDisplaySpeed(speed);
+      };
+      
+      vehicle.addObserver(speedObserver);
+      return () => {
+        vehicle.removeObserver(speedObserver);
+      };
+    }
+  }, [currentSpeed]);
+
+  const kmhSpeed = Math.round(displaySpeed * 3.6);
   const kmhRecommended = Math.round(recommendedSpeed * 3.6);
-  const isIdle = currentSpeed === 0;
+  const isIdle = displaySpeed === 0;
   
   return (
     <div className="bg-gray-900/90 text-white w-full">
