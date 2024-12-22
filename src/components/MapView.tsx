@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, Marker, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import PredictionOverlay from './PredictionOverlay';
 import L from 'leaflet';
@@ -60,6 +60,14 @@ const MapUpdater = ({ position, onRoadStatusChange }: { position: [number, numbe
   return null;
 };
 
+// New component to handle map clicks
+const MapClickHandler = ({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) => {
+  useMapEvents({
+    click: onMapClick,
+  });
+  return null;
+};
+
 interface MapViewProps {
   position: [number, number];
   speed: number;
@@ -115,13 +123,13 @@ const MapView = ({ position, speed, onRoadStatusChange }: MapViewProps) => {
       className="w-full h-full"
       zoomControl={false}
       attributionControl={false}
-      onClick={handleMapClick}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         className="map-tiles"
       />
       <MapUpdater position={position} onRoadStatusChange={handleRoadStatusChange} />
+      <MapClickHandler onMapClick={handleMapClick} />
       <PredictionOverlay position={position} speed={speed} />
       <Marker 
         position={position} 
