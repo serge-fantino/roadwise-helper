@@ -8,18 +8,21 @@ interface HistoryTrailProps {
 const HistoryTrail = ({ positions }: HistoryTrailProps) => {
   // Important: We reverse the positions array to start from the most recent position
   // This ensures the color gradient starts from the vehicle's current position
-  const reversedPositions = positions.slice().reverse();
+  const reversedPositions = [...positions].reverse();
   
   // Create segments between each consecutive pair of points
-  const segments = reversedPositions.reduce<Array<[[number, number], [number, number]]>>((acc, pos, index) => {
-    if (index < reversedPositions.length - 1) {
-      acc.push([pos, reversedPositions[index + 1]]);
-    }
-    return acc;
-  }, []);
+  const segments: Array<[[number, number], [number, number]]> = [];
+  
+  // We iterate through positions except the last one
+  for (let i = 0; i < reversedPositions.length - 1; i++) {
+    const currentPos = reversedPositions[i];
+    const nextPos = reversedPositions[i + 1];
+    segments.push([currentPos, nextPos]);
+  }
 
-  console.log('Creating segments from positions:', positions);
-  console.log('Number of segments created:', segments.length);
+  console.log('Original positions:', positions);
+  console.log('Reversed positions:', reversedPositions);
+  console.log('Created segments:', segments);
 
   // Colors for the gradient from blue to red
   const colors = [
