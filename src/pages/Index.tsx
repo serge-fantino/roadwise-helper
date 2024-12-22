@@ -84,21 +84,6 @@ const Index = () => {
           currentSpeed={speed} 
           recommendedSpeed={recommendedSpeed}
           isOnRoad={isOnRoad}
-          onDestinationSelect={(location) => {
-            const mapView = document.querySelector('.leaflet-container');
-            if (mapView) {
-              const event = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                clientX: 0,
-                clientY: 0,
-              });
-              Object.defineProperty(event, 'latlng', {
-                value: { lat: location[0], lng: location[1] }
-              });
-              mapView.dispatchEvent(event);
-            }
-          }}
         />
       </div>
     </div>
