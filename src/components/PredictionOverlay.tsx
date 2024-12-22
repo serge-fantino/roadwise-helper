@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Polyline, useMap } from 'react-leaflet';
-import { predictRoadAhead, calculateAngleBetweenVectors } from '../utils/mapUtils';
+import { predictRoadAhead, calculateAngleBetweenVectors, calculateRecommendedSpeedFromAngle } from '../utils/mapUtils';
 import { getCurrentRoadSegment } from '../utils/osmUtils';
 import { predictionService } from '../services/PredictionService';
 
