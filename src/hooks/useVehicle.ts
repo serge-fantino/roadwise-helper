@@ -49,7 +49,53 @@ export const useVehicle = (
     }
   }, [isDebugMode, routePoints]);
 
+  const handleGPSError = (error: GeolocationPositionError) => {
+    console.error('GPS Error:', {
+      code: error.code,
+      message: error.message,
+      PERMISSION_DENIED: error.PERMISSION_DENIED,
+      POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
+      TIMEOUT: error.TIMEOUT
+    });
+
+    let errorMessage = "Erreur de géolocalisation";
+    
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        errorMessage = "Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur";
+        break;
+      case error.POSITION_UNAVAILABLE:
+        errorMessage = "Position GPS non disponible. Vérifiez que le GPS est activé";
+        break;
+      case error.TIMEOUT:
+        if (retryCountRef.current < MAX_RETRIES) {
+          retryCountRef.current++;
+          toast({
+            title: "Tentative de reconnexion GPS",
+            description: `Nouvelle tentative ${retryCountRef.current}/${MAX_RETRIES}...`,
+          });
+          
+          if (watchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+          }
+          setTimeout(startGPSTracking, 1000);
+          return;
+        } else {
+          errorMessage = "Le GPS ne répond pas. Veuillez réessayer plus tard";
+        }
+        break;
+    }
+
+    toast({
+      title: "Erreur GPS",
+      description: errorMessage,
+      variant: "destructive"
+    });
+  };
+
   const startGPSTracking = () => {
+    console.log('Starting GPS tracking...');
+    
     if (!('geolocation' in navigator)) {
       toast({
         title: "Erreur GPS",
@@ -62,6 +108,7 @@ export const useVehicle = (
     // Get initial position
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        console.log('Initial GPS position received:', pos);
         const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         console.log('Initial GPS position:', newPosition);
         if (!hasInitializedRef.current) {
@@ -74,40 +121,11 @@ export const useVehicle = (
         watchIdRef.current = navigator.geolocation.watchPosition(
           (pos) => {
             const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-            console.log('GPS Update - New Position:', newPosition);
+            console.log('GPS Update - New Position:', newPosition, 'Speed:', pos.coords.speed);
             updateVehicle(newPosition, pos.coords.speed || 0);
             retryCountRef.current = 0;
           },
-          (error) => {
-            console.error('Error getting location:', error);
-            
-            if (error.code === error.TIMEOUT) {
-              if (retryCountRef.current < MAX_RETRIES) {
-                retryCountRef.current++;
-                toast({
-                  title: "Tentative de reconnexion GPS",
-                  description: `Nouvelle tentative ${retryCountRef.current}/${MAX_RETRIES}...`,
-                });
-                
-                if (watchIdRef.current !== null) {
-                  navigator.geolocation.clearWatch(watchIdRef.current);
-                }
-                setTimeout(startGPSTracking, 1000);
-              } else {
-                toast({
-                  title: "Erreur GPS",
-                  description: "Impossible d'obtenir votre position. Veuillez vérifier vos paramètres de localisation.",
-                  variant: "destructive"
-                });
-              }
-            } else {
-              toast({
-                title: "Erreur GPS",
-                description: "Veuillez activer la géolocalisation pour utiliser l'assistant de conduite.",
-                variant: "destructive"
-              });
-            }
-          },
+          handleGPSError,
           {
             enableHighAccuracy: true,
             timeout: 10000,
@@ -115,14 +133,7 @@ export const useVehicle = (
           }
         );
       },
-      (error) => {
-        console.error('Error getting initial position:', error);
-        toast({
-          title: "Erreur GPS",
-          description: "Impossible d'obtenir votre position initiale.",
-          variant: "destructive"
-        });
-      },
+      handleGPSError,
       {
         enableHighAccuracy: true,
         timeout: 10000,
