@@ -23,6 +23,7 @@ const HistoryTrail = ({ positions }: HistoryTrailProps) => {
 
   // Calculate color for each segment based on its position in the trail
   const getSegmentColor = (index: number) => {
+    // Si pas de segments ou un seul segment, retourner la première couleur
     if (segments.length <= 1) return colors[0];
     
     // Calculate position in the gradient (0 to 1)
@@ -31,10 +32,10 @@ const HistoryTrail = ({ positions }: HistoryTrailProps) => {
     // Calculate which color pair to use
     const colorIndex = Math.min(
       Math.floor(position * (colors.length - 1)),
-      colors.length - 2
+      colors.length - 1
     );
     
-    console.log(`Segment ${index}: position=${position}, color=${colors[colorIndex]}`);
+    console.log(`Segment ${index}/${segments.length - 1}: position=${position.toFixed(2)}, colorIndex=${colorIndex}, color=${colors[colorIndex]}`);
     
     return colors[colorIndex];
   };
