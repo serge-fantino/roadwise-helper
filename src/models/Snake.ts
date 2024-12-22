@@ -1,41 +1,55 @@
 export class Snake {
-  private _positions: [number, number][] = [];
+  private _positions: Array<[number, number]> = [];
   private readonly maxLength: number;
 
-  constructor(initialPosition: [number, number], maxLength: number = 10) {
-    this._positions = initialPosition ? [initialPosition] : [];
+  constructor(initialPosition: [number, number], maxLength: number = 20) {
+    this._positions = initialPosition ? [[...initialPosition]] : [];
     this.maxLength = maxLength;
     console.log('Snake initialized with position:', initialPosition);
   }
 
-  get positions(): [number, number][] {
-    // Retourner une copie profonde pour éviter les références circulaires
-    return this._positions.map(pos => [...pos] as [number, number]);
+  get positions(): Array<[number, number]> {
+    return this._positions.map(pos => [pos[0], pos[1]]);
   }
 
   addPosition(position: [number, number]) {
-    console.log('Adding position to snake:', position);
-    
-    // Vérifier si la position est valide
-    if (!Array.isArray(position) || position.length !== 2 || 
-        typeof position[0] !== 'number' || typeof position[1] !== 'number') {
+    if (!this.isValidPosition(position)) {
       console.error('Invalid position format:', position);
       return;
     }
+
+    // Ne pas ajouter si la position est identique à la dernière
+    if (this._positions.length > 0) {
+      const lastPos = this._positions[0];
+      if (lastPos[0] === position[0] && lastPos[1] === position[1]) {
+        return;
+      }
+    }
+
+    this._positions.unshift([position[0], position[1]]);
     
-    // Ajouter une copie de la position
-    this._positions.unshift([...position]);
-    
-    // Garder seulement maxLength positions
     if (this._positions.length > this.maxLength) {
       this._positions = this._positions.slice(0, this.maxLength);
     }
-    
-    console.log('Updated snake positions:', this._positions);
+
+    console.log('Snake positions updated:', this._positions);
   }
 
   reset(position: [number, number]) {
-    console.log('Resetting snake to position:', position);
-    this._positions = [[...position]];
+    if (!this.isValidPosition(position)) {
+      console.error('Invalid reset position:', position);
+      return;
+    }
+    this._positions = [[position[0], position[1]]];
+    console.log('Snake reset to position:', position);
+  }
+
+  private isValidPosition(position: any): position is [number, number] {
+    return Array.isArray(position) && 
+           position.length === 2 && 
+           typeof position[0] === 'number' && 
+           typeof position[1] === 'number' &&
+           !isNaN(position[0]) && 
+           !isNaN(position[1]);
   }
 }
