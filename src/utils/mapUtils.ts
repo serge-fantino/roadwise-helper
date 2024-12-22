@@ -15,3 +15,19 @@ export const calculateDistance = (point1: [number, number], point2: [number, num
 
   return R * c; // Distance in meters
 };
+
+export const predictRoadAhead = (position: [number, number], speed: number): [number, number][] => {
+  // Simple prediction: project a straight line ahead based on current position and speed
+  const [lat, lon] = position;
+  const distance = speed * 5; // Project 5 seconds ahead
+  
+  // Convert distance to rough lat/lon offset (very simplified)
+  const latOffset = distance / 111111; // 1 degree lat ≈ 111111 meters
+  const lonOffset = distance / (111111 * Math.cos(lat * Math.PI/180));
+  
+  // Return array of points forming prediction line
+  return [
+    position,
+    [lat + latOffset, lon + lonOffset]
+  ];
+};

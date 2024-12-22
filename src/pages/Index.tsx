@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
 import LoadingScreen from '../components/LoadingScreen';
