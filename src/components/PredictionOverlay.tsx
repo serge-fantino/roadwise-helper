@@ -9,11 +9,13 @@ interface PredictionOverlayProps {
 
 const PredictionOverlay = ({ position, speed }: PredictionOverlayProps) => {
   const [predictionPath, setPredictionPath] = useState<[number, number][]>([]);
+  const vehicle = (window as any).globalVehicle;
   
   useEffect(() => {
-    const path = predictRoadAhead(position, speed);
+    const heading = vehicle ? vehicle.heading : 0;
+    const path = predictRoadAhead(position, speed, heading);
     setPredictionPath(path);
-  }, [position, speed]);
+  }, [position, speed, vehicle]);
 
   return (
     <Polyline

@@ -44,8 +44,6 @@ const MapView = ({
     handleRoadStatusChange
   } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
 
-  console.log('MapView rendering with history:', currentHistory);
-
   return (
     <MapContainer
       center={currentPosition}
@@ -64,8 +62,7 @@ const MapView = ({
         onMapClick={onMapClick}
       />
       <HistoryTrail positions={currentHistory} />
-      {/* Temporarily commenting out PredictionOverlay to verify our hypothesis */}
-      {/* <PredictionOverlay position={currentPosition} speed={currentSpeed} /> */}
+      <PredictionOverlay position={currentPosition} speed={currentSpeed} />
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} />
       {destination && <DestinationMarker position={destination} />}
       <RouteOverlay routePoints={routePoints} />
