@@ -9,9 +9,29 @@ interface PredictionOverlayProps {
   routePoints?: [number, number][];
 }
 
+const getColorFromAngle = (angleDiff: number): string => {
+  // Use absolute value for color calculation
+  const absAngle = Math.abs(angleDiff);
+  
+  if (absAngle <= 45) {
+    // Interpolate between green and red (0° to 45°)
+    const ratio = absAngle / 45;
+    return `#${Math.round((1 - ratio) * 0xF2 + ratio * 0xea).toString(16).padStart(2, '0')}${
+      Math.round((1 - ratio) * 0xFC + ratio * 0x38).toString(16).padStart(2, '0')}${
+      Math.round((1 - ratio) * 0xE2 + ratio * 0x4c).toString(16).padStart(2, '0')}`;
+  } else {
+    // Interpolate between red and blue (45° to 180°)
+    const ratio = (absAngle - 45) / 135;
+    return `#${Math.round((1 - ratio) * 0xea + ratio * 0x0E).toString(16).padStart(2, '0')}${
+      Math.round((1 - ratio) * 0x38 + ratio * 0xA5).toString(16).padStart(2, '0')}${
+      Math.round((1 - ratio) * 0x4c + ratio * 0xE9).toString(16).padStart(2, '0')}`;
+  }
+};
+
 const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayProps) => {
   const [predictionPath, setPredictionPath] = useState<[number, number][]>([]);
   const [roadSegment, setRoadSegment] = useState<[number, number][]>([]);
+  const [predictionColor, setPredictionColor] = useState('#F2FCE2');
   const vehicle = (window as any).globalVehicle;
   
   useEffect(() => {
@@ -54,11 +74,16 @@ const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayPr
         // Calculer la différence d'angle
         const angleDiff = calculateAngleDifference(predictionBearing, roadBearing);
         
+        // Mettre à jour la couleur en fonction de l'angle
+        const color = getColorFromAngle(angleDiff);
+        setPredictionColor(color);
+        
         console.log('Analyse de trajectoire:', {
           predictionBearing,
           roadBearing,
           angleDifference: angleDiff,
-          isGoodTrajectory: angleDiff <= 45
+          color,
+          isGoodTrajectory: Math.abs(angleDiff) <= 45
         });
       }
     };
@@ -70,7 +95,7 @@ const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayPr
     <>
       <Polyline
         positions={predictionPath}
-        pathOptions={{ color: '#3B82F6', weight: 4, opacity: 0.6 }}
+        pathOptions={{ color: predictionColor, weight: 4, opacity: 0.6 }}
       />
       <Polyline
         positions={roadSegment}
