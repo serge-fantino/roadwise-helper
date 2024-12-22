@@ -39,11 +39,20 @@ const MapView = ({
   const [isOnRoad, setIsOnRoad] = useState(true);
   const [currentPosition, setCurrentPosition] = useState(position);
   const [currentSpeed, setCurrentSpeed] = useState(speed);
+  const [currentHistory, setCurrentHistory] = useState<[number, number][]>(positionHistory);
 
   const handleVehicleUpdate = useCallback((newPosition: [number, number], newSpeed: number) => {
     console.log('Vehicle update received in MapView:', newPosition, newSpeed);
     setCurrentPosition(newPosition);
     setCurrentSpeed(newSpeed);
+    
+    // Get the latest history from the global vehicle
+    const vehicle = (window as any).globalVehicle;
+    if (vehicle) {
+      const history = vehicle.positionHistory;
+      console.log('Current vehicle history:', history);
+      setCurrentHistory(history);
+    }
   }, []);
 
   // Subscribe to vehicle updates
@@ -52,6 +61,8 @@ const MapView = ({
     if (vehicle) {
       console.log('Subscribing to vehicle updates');
       vehicle.addObserver(handleVehicleUpdate);
+      // Initial history
+      setCurrentHistory(vehicle.positionHistory);
       return () => {
         console.log('Unsubscribing from vehicle updates');
         vehicle.removeObserver(handleVehicleUpdate);
@@ -63,12 +74,15 @@ const MapView = ({
   useEffect(() => {
     setCurrentPosition(position);
     setCurrentSpeed(speed);
-  }, [position, speed]);
+    setCurrentHistory(positionHistory);
+  }, [position, speed, positionHistory]);
 
   const handleRoadStatusChange = (status: boolean) => {
     setIsOnRoad(status);
     onRoadStatusChange(status);
   };
+
+  console.log('MapView rendering with history:', currentHistory);
 
   return (
     <MapContainer
@@ -89,7 +103,7 @@ const MapView = ({
       />
       <PredictionOverlay position={currentPosition} speed={currentSpeed} />
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} />
-      <HistoryTrail positions={positionHistory} />
+      <HistoryTrail positions={currentHistory} />
       {destination && <DestinationMarker position={destination} />}
       <RouteOverlay routePoints={routePoints} />
     </MapContainer>
