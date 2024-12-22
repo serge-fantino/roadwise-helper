@@ -30,6 +30,74 @@ const destinationIcon = L.divIcon({
   iconAnchor: [15, 30]
 });
 
+interface MapViewProps {
+  position: [number, number];
+  speed: number;
+  onRoadStatusChange: (status: boolean) => void;
+  destination?: [number, number];
+  routePoints: [number, number][];
+  onMapClick: (location: [number, number], address: string) => void;
+  positionHistory: [number, number][];
+}
+
+const MapView = ({ 
+  position, 
+  speed, 
+  onRoadStatusChange, 
+  destination,
+  routePoints,
+  onMapClick,
+  positionHistory
+}: MapViewProps) => {
+  const [isOnRoad, setIsOnRoad] = useState(true);
+
+  const handleRoadStatusChange = (status: boolean) => {
+    setIsOnRoad(status);
+    onRoadStatusChange(status);
+  };
+
+  return (
+    <MapContainer
+      center={position}
+      zoom={17}
+      className="w-full h-full"
+      zoomControl={false}
+      attributionControl={false}
+    >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        className="map-tiles"
+      />
+      <MapUpdater 
+        position={position} 
+        onRoadStatusChange={handleRoadStatusChange}
+        destination={destination}
+      />
+      <MapClickHandler onMapClick={onMapClick} />
+      <PredictionOverlay position={position} speed={speed} />
+      <Marker 
+        position={position} 
+        icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
+      />
+      {positionHistory.length > 1 && (
+        <Polyline
+          positions={positionHistory}
+          color="#3B82F6"
+          weight={3}
+          opacity={0.7}
+        />
+      )}
+      {destination && (
+        <Marker 
+          position={destination}
+          icon={destinationIcon}
+        />
+      )}
+      <RouteOverlay routePoints={routePoints} />
+    </MapContainer>
+  );
+};
+
 // Component to handle map center updates and zoom to destination
 const MapUpdater = ({ 
   position, 
@@ -122,74 +190,6 @@ const MapClickHandler = ({ onMapClick }: MapClickHandlerProps) => {
     },
   });
   return null;
-};
-
-interface MapViewProps {
-  position: [number, number];
-  speed: number;
-  onRoadStatusChange: (status: boolean) => void;
-  destination?: [number, number];
-  routePoints: [number, number][];
-  onMapClick: (location: [number, number], address: string) => void;
-  positionHistory: [number, number][];
-}
-
-const MapView = ({ 
-  position, 
-  speed, 
-  onRoadStatusChange, 
-  destination,
-  routePoints,
-  onMapClick,
-  positionHistory
-}: MapViewProps) => {
-  const [isOnRoad, setIsOnRoad] = useState(true);
-
-  const handleRoadStatusChange = (status: boolean) => {
-    setIsOnRoad(status);
-    onRoadStatusChange(status);
-  };
-
-  return (
-    <MapContainer
-      center={position}
-      zoom={17}
-      className="w-full h-full"
-      zoomControl={false}
-      attributionControl={false}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        className="map-tiles"
-      />
-      <MapUpdater 
-        position={position} 
-        onRoadStatusChange={handleRoadStatusChange}
-        destination={destination}
-      />
-      <MapClickHandler onMapClick={onMapClick} />
-      <PredictionOverlay position={position} speed={speed} />
-      <Marker 
-        position={position} 
-        icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
-      />
-      {positionHistory.length > 1 && (
-        <Polyline
-          positions={positionHistory}
-          color="#3B82F6"
-          weight={3}
-          opacity={0.7}
-        />
-      )}
-      {destination && (
-        <Marker 
-          position={destination}
-          icon={destinationIcon}
-        />
-      )}
-      <RouteOverlay routePoints={routePoints} />
-    </MapContainer>
-  );
 };
 
 export default MapView;
