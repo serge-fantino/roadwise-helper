@@ -21,10 +21,21 @@
           navigator.serviceWorker.register('/sw.js')
             .then(registration => {
               console.log('ServiceWorker registration successful');
+              // Vérifie les mises à jour toutes les heures
+              setInterval(() => {
+                registration.update();
+                console.log('Checking for SW update');
+              }, 3600000);
             })
             .catch(err => {
               console.log('ServiceWorker registration failed: ', err);
             });
+
+          // Écoute les nouveaux service workers
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('New service worker activated, reloading for fresh content');
+            window.location.reload();
+          });
         });
       }
     </script>
