@@ -1,13 +1,14 @@
+import { Snake } from './Snake';
+
 export class Vehicle {
   private _position: [number, number];
   private _speed: number;
-  private _positionHistory: [number, number][];
-  private readonly maxHistoryLength = 10;
+  private _snake: Snake;
 
   constructor(initialPosition: [number, number]) {
     this._position = initialPosition;
     this._speed = 0;
-    this._positionHistory = [initialPosition];
+    this._snake = new Snake(initialPosition);
   }
 
   get position(): [number, number] {
@@ -19,24 +20,18 @@ export class Vehicle {
   }
 
   get positionHistory(): [number, number][] {
-    return this._positionHistory;
+    return this._snake.positions;
   }
 
   update(newPosition: [number, number], newSpeed: number) {
     this._position = newPosition;
     this._speed = newSpeed;
-    
-    // Add new position to history
-    this._positionHistory.push(newPosition);
-    // Keep only the last maxHistoryLength positions
-    if (this._positionHistory.length > this.maxHistoryLength) {
-      this._positionHistory = this._positionHistory.slice(-this.maxHistoryLength);
-    }
+    this._snake.addPosition(newPosition);
   }
 
   reset(position: [number, number]) {
     this._position = position;
     this._speed = 0;
-    this._positionHistory = [position];
+    this._snake.reset(position);
   }
 }
