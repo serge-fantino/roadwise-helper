@@ -21,15 +21,7 @@ const DestinationPanel = ({
   if (isSearchMode) {
     return (
       <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white">
-        <span className="text-lg font-semibold">Search destination</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-white hover:text-white hover:bg-gray-800"
-          onClick={() => onSearchModeChange(false)}
-        >
-          <Search className="h-5 w-5" />
-        </Button>
+        <span className="text-lg font-semibold w-full">Search destination</span>
       </div>
     );
   }
