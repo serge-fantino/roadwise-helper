@@ -69,10 +69,6 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
     onLocationSelect([parseFloat(result.lat), parseFloat(result.lon)], result.display_name);
     setQuery(result.display_name);
     setResults([]);
-    toast({
-      title: "Destination définie",
-      description: "L'itinéraire a été calculé",
-    });
   };
 
   const handleSearchClick = () => {
@@ -81,14 +77,21 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && results.length > 0) {
+      handleResultClick(results[0]);
+    }
+  };
+
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="flex gap-2">
         <Input
           type="text"
           placeholder="Rechercher une adresse..."
           value={query}
           onChange={handleInputChange}
+          onKeyPress={handleKeyPress}
           className="flex-1"
         />
         <Button 
@@ -104,7 +107,7 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
       
       {results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
-          <ul className="py-1 text-sm">
+          <ul className="py-1 text-sm max-h-60 overflow-auto">
             {results.map((result, index) => (
               <li
                 key={index}
