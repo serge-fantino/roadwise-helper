@@ -131,6 +131,7 @@ interface MapViewProps {
   destination?: [number, number];
   routePoints: [number, number][];
   onMapClick: (location: [number, number], address: string) => void;
+  positionHistory: [number, number][];
 }
 
 const MapView = ({ 
@@ -139,24 +140,15 @@ const MapView = ({
   onRoadStatusChange, 
   destination,
   routePoints,
-  onMapClick 
+  onMapClick,
+  positionHistory
 }: MapViewProps) => {
   const [isOnRoad, setIsOnRoad] = useState(true);
-  const [positionHistory, setPositionHistory] = useState<[number, number][]>([]);
 
   const handleRoadStatusChange = (status: boolean) => {
     setIsOnRoad(status);
     onRoadStatusChange(status);
   };
-
-  useEffect(() => {
-    if (speed > 0) {
-      setPositionHistory(prev => {
-        const newHistory = [...prev, position];
-        return newHistory.slice(-10);
-      });
-    }
-  }, [position, speed]);
 
   return (
     <MapContainer
@@ -181,7 +173,7 @@ const MapView = ({
         position={position} 
         icon={isOnRoad ? vehicleIcon : new L.Icon.Default()}
       />
-      {speed > 0 && positionHistory.length > 1 && (
+      {positionHistory.length > 1 && (
         <Polyline
           positions={positionHistory}
           color="#3B82F6"

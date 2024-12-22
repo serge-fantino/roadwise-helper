@@ -1,0 +1,93 @@
+import { useState, useEffect, useRef } from 'react';
+import { Vehicle } from '../models/Vehicle';
+import { calculateDistance } from '../utils/mapUtils';
+import { toast } from '../components/ui/use-toast';
+
+export const useVehicle = (
+  isDebugMode: boolean,
+  routePoints: [number, number][],
+  initialPosition: [number, number]
+) => {
+  const [vehicle, setVehicle] = useState<Vehicle>(() => new Vehicle(initialPosition));
+  const watchIdRef = useRef<number | null>(null);
+  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const currentRouteIndexRef = useRef(0);
+
+  const updateVehicle = (position: [number, number], speed: number) => {
+    setVehicle(prev => {
+      const newVehicle = new Vehicle(prev.position);
+      newVehicle.update(position, speed);
+      return newVehicle;
+    });
+  };
+
+  // Gestion du GPS réel
+  useEffect(() => {
+    if (!isDebugMode && 'geolocation' in navigator) {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          updateVehicle(newPosition, pos.coords.speed || 0);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast({
+            title: "Erreur de localisation",
+            description: "Veuillez activer la géolocalisation pour utiliser l'assistant de conduite.",
+            variant: "destructive"
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+
+      return () => {
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+      };
+    }
+  }, [isDebugMode]);
+
+  // Gestion de la simulation
+  useEffect(() => {
+    if (isDebugMode && routePoints.length > 1) {
+      // Reset simulation
+      currentRouteIndexRef.current = 0;
+      const startPosition = routePoints[0];
+      vehicle.reset(startPosition);
+
+      simulationIntervalRef.current = setInterval(() => {
+        const nextIndex = currentRouteIndexRef.current + 1;
+        
+        if (nextIndex >= routePoints.length) {
+          if (simulationIntervalRef.current) {
+            clearInterval(simulationIntervalRef.current);
+            simulationIntervalRef.current = null;
+          }
+          return;
+        }
+
+        const currentPosition = routePoints[currentRouteIndexRef.current];
+        const nextPosition = routePoints[nextIndex];
+        const distance = calculateDistance(currentPosition, nextPosition);
+        const speed = distance / 10; // 10 seconds interval
+
+        updateVehicle(nextPosition, speed);
+        currentRouteIndexRef.current = nextIndex;
+      }, 10000); // 10 seconds interval
+
+      return () => {
+        if (simulationIntervalRef.current) {
+          clearInterval(simulationIntervalRef.current);
+          simulationIntervalRef.current = null;
+        }
+      };
+    }
+  }, [isDebugMode, routePoints]);
+
+  return vehicle;
+};

@@ -15,6 +15,7 @@ interface MainLayoutProps {
   onRoadStatusChange: (status: boolean) => void;
   isDebugMode?: boolean;
   onDebugModeChange?: (enabled: boolean) => void;
+  positionHistory: [number, number][];
 }
 
 const MainLayout = ({
@@ -28,6 +29,7 @@ const MainLayout = ({
   onRoadStatusChange,
   isDebugMode,
   onDebugModeChange,
+  positionHistory,
 }: MainLayoutProps) => {
   const [isSearchMode, setIsSearchMode] = useState(false);
 
@@ -80,6 +82,7 @@ const MainLayout = ({
               destination={destination?.location}
               routePoints={routePoints}
               onMapClick={handleMapClick}
+              positionHistory={positionHistory}
             />
           </div>
           <div className="h-40 bg-gray-900 p-4">
