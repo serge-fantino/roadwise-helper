@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { Search, MapPin, X } from 'lucide-react';
-import AddressSearch from './AddressSearch';
+import { Search, MapPin } from 'lucide-react';
 
 interface DestinationPanelProps {
   destination: { address: string; location: [number, number] } | null;
@@ -19,60 +18,44 @@ const DestinationPanel = ({
   isSearchMode
 }: DestinationPanelProps) => {
 
-  if (!destination) {
-    return (
-      <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-gray-400" />
-          <span className="text-gray-400">Free ride mode</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-white hover:text-white hover:bg-gray-800"
-          onClick={() => onSearchModeChange(true)}
-        >
-          <Search className="h-4 w-4 mr-2" />
-          Search destination
-        </Button>
-      </div>
-    );
-  }
-
   if (isSearchMode) {
     return (
       <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white">
         <span className="text-lg font-semibold">Search destination</span>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           className="text-white hover:text-white hover:bg-gray-800"
           onClick={() => onSearchModeChange(false)}
         >
-          <X className="h-4 w-4 mr-2" />
-          Cancel
+          <Search className="h-5 w-5" />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white">
-      <button
-        className="flex items-center gap-2 hover:text-blue-400 transition-colors"
-        onClick={onDestinationClick}
-      >
-        <MapPin className="h-5 w-5" />
-        <span className="truncate">{destination.address}</span>
-      </button>
+    <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white px-4">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <MapPin className="h-5 w-5 flex-shrink-0" />
+        {destination ? (
+          <button
+            className="hover:text-blue-400 transition-colors text-left truncate"
+            onClick={onDestinationClick}
+          >
+            {destination.address}
+          </button>
+        ) : (
+          <span className="text-gray-400 truncate">Free ride mode</span>
+        )}
+      </div>
       <Button
         variant="ghost"
-        size="sm"
-        className="text-white hover:text-white hover:bg-gray-800"
+        size="icon"
+        className="text-white hover:text-white hover:bg-gray-800 ml-2 flex-shrink-0"
         onClick={() => onSearchModeChange(true)}
       >
-        <Search className="h-4 w-4 mr-2" />
-        Change
+        <Search className="h-5 w-5" />
       </Button>
     </div>
   );
