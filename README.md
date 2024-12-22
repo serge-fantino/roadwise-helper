@@ -36,6 +36,20 @@ npm i
 npm run dev
 ```
 
+## Building the Project
+
+To build the project for production:
+
+```sh
+# Create a production build
+npm run build
+
+# Preview the production build locally
+npm run preview
+```
+
+The build output will be in the `dist` directory, ready for deployment.
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
@@ -52,13 +66,15 @@ npm run dev
 
 ## What technologies are used for this project?
 
-This project is built with .
+This project is built with:
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+- React Leaflet for map integration
+- TanStack Query for data fetching
 
 ## How can I deploy this project?
 
