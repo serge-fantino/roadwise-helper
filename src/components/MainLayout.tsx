@@ -51,7 +51,7 @@ const MainLayout = ({
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="h-16 bg-gray-900 p-4">
+      <div className="h-16 bg-gray-900 flex items-center px-4">
         <DestinationPanel 
           destination={destination} 
           onDestinationSelect={onDestinationSelect}
@@ -74,7 +74,7 @@ const MainLayout = ({
         </div>
       ) : (
         <>
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <MapView 
               position={position} 
               speed={speed} 
@@ -85,7 +85,7 @@ const MainLayout = ({
               positionHistory={positionHistory}
             />
           </div>
-          <div className="h-40 bg-gray-900 p-4">
+          <div className="h-40 bg-gray-900 flex items-center justify-center px-4">
             <SpeedPanel 
               currentSpeed={speed} 
               recommendedSpeed={recommendedSpeed}
