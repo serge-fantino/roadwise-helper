@@ -29,16 +29,29 @@ const AddressSearch = ({ onLocationSelect }: AddressSearchProps) => {
     try {
       setIsSearching(true);
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'DriverAssistant/1.0',
+          },
+        }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setResults(data);
     } catch (error) {
+      console.error('Search error:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de rechercher l'adresse",
+        description: "Impossible de rechercher l'adresse. Veuillez réessayer.",
         variant: "destructive"
       });
+      setResults([]);
     } finally {
       setIsSearching(false);
     }
