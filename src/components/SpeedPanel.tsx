@@ -17,48 +17,49 @@ const SpeedPanel = ({
   isDebugMode,
   onDebugModeChange 
 }: SpeedPanelProps) => {
-  const kmhSpeed = Math.round(currentSpeed * 3.6); // Convert m/s to km/h
+  const kmhSpeed = Math.round(currentSpeed * 3.6);
   const kmhRecommended = Math.round(recommendedSpeed * 3.6);
   const isIdle = currentSpeed === 0;
   
   return (
-    <div className="w-full h-full flex flex-col gap-4">
-      <Card className="bg-gray-900/90 text-white p-6 rounded-xl w-full max-w-xl mx-auto">
-        <div className="grid grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-sm uppercase tracking-wider text-gray-400">Current</div>
-            <div className="text-4xl font-bold">{kmhSpeed}</div>
-            <div className="text-sm text-gray-400">km/h</div>
-          </div>
-          <div className="text-center">
-            <div className="text-sm uppercase tracking-wider text-gray-400">Recommended</div>
-            <div className={`text-4xl font-bold ${kmhSpeed > kmhRecommended ? 'text-red-500' : 'text-green-500'}`}>
-              {kmhRecommended}
+    <div className="w-full h-full flex flex-col gap-2">
+      <Card className="bg-gray-900/90 text-white p-4 rounded-xl w-full max-w-md mx-auto">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between col-span-2 mb-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold">{kmhSpeed}</span>
+              <span className="text-sm text-gray-400">km/h</span>
             </div>
-            <div className="text-sm text-gray-400">km/h</div>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-2xl font-bold ${kmhSpeed > kmhRecommended ? 'text-red-500' : 'text-green-500'}`}>
+                {kmhRecommended}
+              </span>
+              <span className="text-sm text-gray-400">recommandé</span>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-sm uppercase tracking-wider text-gray-400">Status</div>
-            <div className={`text-2xl font-bold ${isOnRoad ? 'text-green-500' : 'text-red-500'}`}>
+          
+          <div className="flex flex-col items-center justify-center bg-gray-800/50 rounded-lg p-2">
+            <span className={`text-lg font-semibold ${isOnRoad ? 'text-green-500' : 'text-red-500'}`}>
               {isOnRoad ? 'ON ROAD' : 'OFF ROAD'}
-            </div>
+            </span>
           </div>
-          <div className="text-center">
-            <div className="text-sm uppercase tracking-wider text-gray-400">Movement</div>
-            <div className={`text-2xl font-bold ${isIdle ? 'text-yellow-500' : 'text-blue-500'}`}>
+          
+          <div className="flex flex-col items-center justify-center bg-gray-800/50 rounded-lg p-2">
+            <span className={`text-lg font-semibold ${isIdle ? 'text-yellow-500' : 'text-blue-500'}`}>
               {isIdle ? 'IDLE' : 'MOVING'}
-            </div>
+            </span>
           </div>
         </div>
+        
         {onDebugModeChange && (
-          <div className="mt-4 flex justify-end">
+          <div className="mt-3 flex justify-end">
             <Toggle
               pressed={isDebugMode}
               onPressedChange={onDebugModeChange}
-              className="data-[state=on]:bg-green-500"
+              className="data-[state=on]:bg-green-500 h-8"
             >
               <Bug className="h-4 w-4 mr-2" />
-              Debug Mode
+              Debug
             </Toggle>
           </div>
         )}
