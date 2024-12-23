@@ -106,9 +106,13 @@ const SpeedPanel = ({
           {kmhSpeed}/{kmhRecommended}
           <span className="text-sm ml-2 text-gray-400">km/h</span>
         </div>
-        {turnInfo && (
-          <div className={`text-sm ${turnColor}`}>
+        {turnInfo ? (
+          <div className={`text-lg ${turnColor}`}>
             virage {turnType} à {turnDirection} dans {Math.round(turnInfo.distance)}m
+          </div>
+        ) : (
+          <div className="text-lg text-green-500">
+            belle ligne droite devant
           </div>
         )}
       </div>
