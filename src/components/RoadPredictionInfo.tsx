@@ -32,7 +32,7 @@ const RoadPredictionInfo = ({ routePoints }: RoadPredictionInfoProps) => {
     <div className="absolute bottom-20 left-4 bg-gray-900/90 text-white p-2 rounded-lg shadow-lg">
       <div className="text-sm">
         <div>Distance au virage: {Math.round(prediction.distance)}m</div>
-        <div>Angle: {Math.round(prediction.angle)}°</div>
+        <div>Angle: {Math.round(prediction.angle)}° {prediction.angle > 0 ? '(droite)' : '(gauche)'}</div>
       </div>
     </div>
   );
