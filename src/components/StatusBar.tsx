@@ -15,6 +15,7 @@ const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps)
     distance: number;
     angle: number;
     position: [number, number];
+    optimalSpeed?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -42,7 +43,12 @@ const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps)
         {prediction && (
           <>
             <span>•</span>
-            <span>Virage {getTurnDirection()} dans {Math.round(prediction.distance)}m ({Math.abs(Math.round(prediction.angle))}°)</span>
+            <span>
+              Virage {getTurnDirection()} dans {Math.round(prediction.distance)}m ({Math.abs(Math.round(prediction.angle))}°)
+              {prediction.optimalSpeed && (
+                <> • {Math.round(prediction.optimalSpeed)} km/h recommandés</>
+              )}
+            </span>
           </>
         )}
       </div>

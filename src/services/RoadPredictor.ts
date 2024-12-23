@@ -6,6 +6,7 @@ interface RoadPrediction {
   angle: number;     // Angle du virage en degrés
   position: [number, number]; // Position du virage
   speedLimit?: number; // Vitesse limite en km/h
+  optimalSpeed?: number; // Vitesse optimale en km/h
 }
 
 type PredictionObserver = (prediction: RoadPrediction | null) => void;
@@ -25,6 +26,22 @@ class RoadPredictor {
 
   private notifyObservers() {
     this.observers.forEach(observer => observer(this.currentPrediction));
+  }
+
+  private calculateOptimalSpeed(angle: number, speedLimit: number | null): number {
+    // Vitesse par défaut si pas de limite
+    const baseSpeed = speedLimit || 90;
+    
+    // Angle absolu pour le calcul
+    const absAngle = Math.abs(angle);
+    
+    if (absAngle >= 90) {
+      return 30; // Vitesse minimale pour les virages serrés
+    } else {
+      // Interpolation linéaire entre la vitesse max et 30km/h
+      const ratio = absAngle / 90;
+      return baseSpeed - (ratio * (baseSpeed - 30));
+    }
   }
 
   startUpdates(routePoints: [number, number][]) {
@@ -82,10 +99,8 @@ class RoadPredictor {
       const segmentBearing = calculateBearing(routePoints[i], routePoints[i + 1]);
       const angleDiff = calculateAngleDifference(currentHeading, segmentBearing);
       
-      // Ajouter la distance du segment
       totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
 
-      // Si l'angle est supérieur à 10 degrés ou si on a dépassé 800m
       if (Math.abs(angleDiff) > 10 || totalDistance > 800) {
         curveFound = true;
         curvePosition = routePoints[i + 1];
@@ -93,25 +108,26 @@ class RoadPredictor {
       }
     }
 
-    // Obtenir la vitesse limite
-    const speedLimit = await getSpeedLimit(curvePosition[0], curvePosition[1]);
+    if (curveFound) {
+      // Obtenir la vitesse limite
+      const speedLimit = await getSpeedLimit(curvePosition[0], curvePosition[1]);
+      
+      // Calculer la vitesse optimale
+      const optimalSpeed = this.calculateOptimalSpeed(curveAngle, speedLimit);
 
-    // Mettre à jour la prédiction
-    this.currentPrediction = curveFound ? {
-      distance: totalDistance,
-      angle: curveAngle,
-      position: curvePosition,
-      speedLimit: speedLimit
-    } : null;
+      // Mettre à jour la prédiction
+      this.currentPrediction = {
+        distance: totalDistance,
+        angle: curveAngle,
+        position: curvePosition,
+        speedLimit,
+        optimalSpeed
+      };
+    } else {
+      this.currentPrediction = null;
+    }
 
-    console.log('Road prediction updated:', {
-      distance: totalDistance,
-      angle: curveAngle,
-      position: curvePosition,
-      speedLimit,
-      found: curveFound
-    });
-
+    console.log('Road prediction updated:', this.currentPrediction);
     this.notifyObservers();
   }
 }
