@@ -1,5 +1,6 @@
 import { calculateBearing, calculateDistance, calculateAngleDifference } from '../utils/mapUtils';
 import { getSpeedLimit } from '../utils/osmUtils';
+import { settingsService } from './SettingsService';
 
 interface RoadPrediction {
   distance: number;  // Distance jusqu'au prochain virage en mètres
@@ -29,18 +30,18 @@ class RoadPredictor {
   }
 
   private calculateOptimalSpeed(angle: number, speedLimit: number | null): number {
-    // Vitesse par défaut si pas de limite
-    const baseSpeed = speedLimit || 90;
+    const settings = settingsService.getSettings();
+    const baseSpeed = speedLimit || settings.defaultSpeed;
     
     // Angle absolu pour le calcul
     const absAngle = Math.abs(angle);
     
-    if (absAngle >= 90) {
-      return 30; // Vitesse minimale pour les virages serrés
+    if (absAngle >= settings.maxTurnAngle) {
+      return settings.minTurnSpeed;
     } else {
-      // Interpolation linéaire entre la vitesse max et 30km/h
-      const ratio = absAngle / 90;
-      return baseSpeed - (ratio * (baseSpeed - 30));
+      // Interpolation linéaire entre la vitesse max et la vitesse min
+      const ratio = absAngle / settings.maxTurnAngle;
+      return baseSpeed - (ratio * (baseSpeed - settings.minTurnSpeed));
     }
   }
 
@@ -76,6 +77,7 @@ class RoadPredictor {
 
     const currentPosition = vehicle.position;
     const currentHeading = vehicle.heading;
+    const settings = settingsService.getSettings();
 
     // Trouver le point le plus proche sur la route
     let closestPointIndex = 0;
@@ -101,7 +103,7 @@ class RoadPredictor {
       
       totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
 
-      if (Math.abs(angleDiff) > 10 || totalDistance > 800) {
+      if (Math.abs(angleDiff) > settings.minTurnAngle || totalDistance > 800) {
         curveFound = true;
         curvePosition = routePoints[i + 1];
         curveAngle = angleDiff;

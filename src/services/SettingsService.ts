@@ -4,6 +4,7 @@ export interface Settings {
   defaultSpeed: number;
   minTurnSpeed: number;
   maxTurnAngle: number;
+  minTurnAngle: number;
 }
 
 class SettingsService {
@@ -11,6 +12,7 @@ class SettingsService {
     defaultSpeed: 90,
     minTurnSpeed: 30,
     maxTurnAngle: 90,
+    minTurnAngle: 15, // Nouvelle valeur par défaut
   };
   
   private observers: Observer[] = [];
