@@ -1,5 +1,5 @@
 import { RoadInfoAPIService } from './types';
-import { fetchWithRetry } from '../../utils/osmUtils';
+import { fetchWithRetry } from '../../utils/api/fetchWithRetry';
 
 export class OverpassRoadInfoService implements RoadInfoAPIService {
   private static instance: OverpassRoadInfoService;
@@ -21,21 +21,19 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
     }
 
     try {
-      const response = await fetchWithRetry(this.OVERPASS_API, {
-        method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+      const response = await fetchWithRetry(
+        this.OVERPASS_API,
+        {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
         },
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          this.isQuotaExceeded = true;
-          throw new Error('Quota exceeded');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        3,
+        2000,
+        30000
+      );
 
       return await response.json();
     } catch (error) {

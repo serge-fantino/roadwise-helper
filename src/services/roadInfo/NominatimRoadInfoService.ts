@@ -1,5 +1,5 @@
 import { RoadInfoAPIService } from './types';
-import { fetchWithRetry } from '../../utils/osmUtils';
+import { fetchWithRetry } from '../../utils/api/fetchWithRetry';
 
 export class NominatimRoadInfoService implements RoadInfoAPIService {
   private static instance: NominatimRoadInfoService;
@@ -25,10 +25,6 @@ export class NominatimRoadInfoService implements RoadInfoAPIService {
           },
         }
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch from Nominatim');
-      }
 
       const data = await response.json();
       return data.address && (
