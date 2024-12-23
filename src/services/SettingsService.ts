@@ -7,15 +7,36 @@ export interface Settings {
   minTurnAngle: number;
 }
 
+const SETTINGS_STORAGE_KEY = 'app_settings';
+
 class SettingsService {
-  private settings: Settings = {
-    defaultSpeed: 90,
-    minTurnSpeed: 30,
-    maxTurnAngle: 90,
-    minTurnAngle: 15, // Nouvelle valeur par défaut
-  };
-  
+  private settings: Settings;
   private observers: Observer[] = [];
+
+  constructor() {
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const defaultSettings: Settings = {
+      defaultSpeed: 90,
+      minTurnSpeed: 30,
+      maxTurnAngle: 90,
+      minTurnAngle: 15,
+    };
+
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        // Assurons-nous que toutes les propriétés sont présentes
+        this.settings = {
+          ...defaultSettings,
+          ...parsed
+        };
+      } catch (e) {
+        this.settings = defaultSettings;
+      }
+    } else {
+      this.settings = defaultSettings;
+    }
+  }
 
   getSettings(): Settings {
     return { ...this.settings };
@@ -23,6 +44,7 @@ class SettingsService {
 
   updateSettings(newSettings: Partial<Settings>) {
     this.settings = { ...this.settings, ...newSettings };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(this.settings));
     this.notifyObservers();
   }
 
