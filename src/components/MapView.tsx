@@ -71,6 +71,15 @@ const MapView = ({
 
   const heading = (window as any).globalVehicle?.heading || 0;
 
+  // Effet pour mettre à jour la rotation de la carte
+  useEffect(() => {
+    const map = (document.querySelector('.leaflet-container') as any)?._leaflet_map;
+    if (map) {
+      map.setBearing(-heading); // On inverse le heading pour que le véhicule pointe vers le haut
+      console.log('[MapView] Map bearing updated:', -heading);
+    }
+  }, [heading]);
+
   return (
     <MapContainer
       center={currentPosition}
