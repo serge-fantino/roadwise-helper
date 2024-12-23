@@ -30,7 +30,7 @@ const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps)
 
   const getTurnDirection = () => {
     if (!prediction) return '';
-    return prediction.angle > 0 ? 'droite' : 'gauche';
+    return prediction.angle > 0 ? 'gauche' : 'droite';
   };
 
   return (
