@@ -1,5 +1,3 @@
-import { Toggle } from './ui/toggle';
-import { Bug } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { predictionService } from '../services/PredictionService';
 
@@ -8,15 +6,13 @@ interface SpeedPanelProps {
   recommendedSpeed: number;
   isOnRoad?: boolean;
   isDebugMode?: boolean;
-  onDebugModeChange?: (enabled: boolean) => void;
 }
 
 const SpeedPanel = ({ 
   currentSpeed, 
   recommendedSpeed, 
   isOnRoad,
-  isDebugMode,
-  onDebugModeChange 
+  isDebugMode
 }: SpeedPanelProps) => {
   const [displaySpeed, setDisplaySpeed] = useState(0);
   const [speedLimit, setSpeedLimit] = useState<number | null>(null);
@@ -78,19 +74,6 @@ const SpeedPanel = ({
           </span>
         </div>
       </div>
-      
-      {onDebugModeChange && (
-        <div className="flex justify-end p-1">
-          <Toggle
-            pressed={isDebugMode}
-            onPressedChange={onDebugModeChange}
-            className="data-[state=on]:bg-green-500 h-8"
-          >
-            <Bug className="h-4 w-4 mr-2" />
-            Debug
-          </Toggle>
-        </div>
-      )}
     </div>
   );
 };

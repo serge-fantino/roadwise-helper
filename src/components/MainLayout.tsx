@@ -60,7 +60,6 @@ const MainLayout = ({
           recommendedSpeed={recommendedSpeed}
           isOnRoad={isOnRoad}
           isDebugMode={isDebugMode}
-          onDebugModeChange={onDebugModeChange}
         />
       </div>
 
