@@ -4,6 +4,7 @@ export interface RoadPrediction {
   position: [number, number]; // Position du virage
   speedLimit?: number; // Vitesse limite en km/h
   optimalSpeed?: number; // Vitesse optimale en km/h
+  requiredDeceleration?: number | null; // Décélération requise en g
 }
 
 export type PredictionObserver = (prediction: RoadPrediction | null) => void;

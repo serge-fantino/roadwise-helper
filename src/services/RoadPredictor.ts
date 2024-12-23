@@ -50,6 +50,15 @@ class RoadPredictor {
     this.notifyObservers();
   }
 
+  private calculateRequiredDeceleration(currentSpeed: number, optimalSpeed: number, distance: number): number {
+    // Conversion km/h -> m/s
+    const vx = currentSpeed / 3.6;
+    const v0 = optimalSpeed / 3.6;
+    
+    // Calcul de la décélération en g
+    return (v0 * v0 - vx * vx) / (2 * distance * 9.81);
+  }
+
   private async updatePrediction(routePoints: [number, number][]) {
     const vehicle = (window as any).globalVehicle;
     if (!vehicle || !routePoints || routePoints.length < 2) {
@@ -62,6 +71,7 @@ class RoadPredictor {
     let closestPointIndex = 0;
     let minDistance = Infinity;
     const currentPosition = vehicle.position;
+    const currentSpeed = vehicle.speed * 3.6; // Conversion en km/h
     
     for (let i = 0; i < routePoints.length; i++) {
       const distance = calculateDistance(currentPosition, routePoints[i]);
@@ -78,10 +88,15 @@ class RoadPredictor {
       const speedLimit = await getSpeedLimit(turnInfo.position[0], turnInfo.position[1]);
       const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(turnInfo.angle, speedLimit, settings);
 
+      const requiredDeceleration = currentSpeed > optimalSpeed 
+        ? this.calculateRequiredDeceleration(currentSpeed, optimalSpeed, turnInfo.distance)
+        : null;
+
       this.currentPrediction = {
         ...turnInfo,
         speedLimit,
-        optimalSpeed
+        optimalSpeed,
+        requiredDeceleration
       };
     } else {
       this.currentPrediction = null;

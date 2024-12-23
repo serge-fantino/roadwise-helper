@@ -38,6 +38,7 @@ const SpeedPanel = ({
   const [turnInfo, setTurnInfo] = useState<{
     distance: number;
     angle: number;
+    requiredDeceleration?: number | null;
   } | null>(null);
   
   useEffect(() => {
@@ -66,7 +67,8 @@ const SpeedPanel = ({
         if (prediction.distance && prediction.angle) {
           setTurnInfo({
             distance: prediction.distance,
-            angle: prediction.angle
+            angle: prediction.angle,
+            requiredDeceleration: prediction.requiredDeceleration
           });
         }
       } else {
@@ -105,6 +107,11 @@ const SpeedPanel = ({
         <div className={`text-4xl font-bold ${isOverSpeed ? 'text-red-500' : 'text-green-500'}`}>
           {kmhSpeed}/{kmhRecommended}
           <span className="text-sm ml-2 text-gray-400">km/h</span>
+          {turnInfo?.requiredDeceleration && turnInfo.requiredDeceleration < 0 && (
+            <span className="text-sm ml-4 text-yellow-500">
+              {Math.abs(turnInfo.requiredDeceleration).toFixed(1)}g
+            </span>
+          )}
         </div>
         {turnInfo && turnInfo.distance <= 500 ? (
           <div className={`text-lg ${turnColor}`}>
