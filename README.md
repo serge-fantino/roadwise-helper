@@ -31,19 +31,6 @@ npm run dev
 
 The development server will start at http://localhost:8080
 
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- React Leaflet for map integration
-- TanStack Query for data fetching
-
 ## Building the Project
 
 To build the project for production:
@@ -57,6 +44,19 @@ npm run preview
 ```
 
 The build output will be in the `dist` directory, ready for deployment.
+
+
+## What technologies are used for this project?
+
+This project is built with:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+- React Leaflet for map integration
+- TanStack Query for data fetching
 
 ## Project contribution
 
