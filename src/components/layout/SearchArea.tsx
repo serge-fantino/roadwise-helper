@@ -6,7 +6,7 @@ interface SearchAreaProps {
 
 const SearchArea = ({ onLocationSelect }: SearchAreaProps) => {
   return (
-    <div className="flex-1 bg-gray-900 p-4">
+    <div className="flex-1 bg-gray-900 p-2">
       <div className="max-w-xl mx-auto">
         <AddressSearch 
           onLocationSelect={onLocationSelect}

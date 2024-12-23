@@ -26,7 +26,7 @@ const TopPanel = ({
 }: TopPanelProps) => {
   return (
     <>
-      <div className="h-28 bg-gray-900 p-4">
+      <div className="h-20 bg-gray-900 p-2">
         <SpeedPanel 
           currentSpeed={speed} 
           recommendedSpeed={recommendedSpeed}
@@ -35,7 +35,7 @@ const TopPanel = ({
         />
       </div>
 
-      <div className="h-16 bg-gray-900 p-4">
+      <div className="h-12 bg-gray-900 p-2">
         <DestinationPanel 
           destination={destination} 
           onDestinationSelect={onDestinationSelect}
