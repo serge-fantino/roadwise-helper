@@ -11,7 +11,7 @@ interface SpeedInfo {
 
 export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInfo => {
   const [speedInfo, setSpeedInfo] = useState<SpeedInfo>({
-    displaySpeed: 0,
+    displaySpeed: currentSpeed,
     speedLimit: null,
     optimalSpeed: null,
     prediction: null
@@ -36,6 +36,7 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInf
   }, []);
 
   useEffect(() => {
+    console.log('Speed updated in useSpeedInfo:', currentSpeed);
     setSpeedInfo(prev => ({
       ...prev,
       displaySpeed: currentSpeed

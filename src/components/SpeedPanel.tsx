@@ -15,9 +15,10 @@ const SpeedPanel = ({
   isOnRoad,
   isDebugMode
 }: SpeedPanelProps) => {
+  console.log('Current speed in SpeedPanel:', currentSpeed);
   const { displaySpeed, speedLimit, optimalSpeed, prediction } = useSpeedInfo(currentSpeed, isOnRoad);
 
-  const kmhSpeed = Math.round(displaySpeed * 3.6);
+  const kmhSpeed = Math.round(currentSpeed * 3.6); // Conversion m/s to km/h
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
   
   return (

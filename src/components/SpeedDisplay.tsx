@@ -5,6 +5,7 @@ interface SpeedDisplayProps {
 }
 
 const SpeedDisplay = ({ currentSpeed, recommendedSpeed, deceleration }: SpeedDisplayProps) => {
+  console.log('Speed in SpeedDisplay:', currentSpeed, recommendedSpeed);
   const isOverSpeed = currentSpeed > recommendedSpeed;
 
   return (
