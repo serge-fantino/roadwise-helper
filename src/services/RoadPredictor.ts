@@ -91,37 +91,56 @@ class RoadPredictor {
       }
     }
 
-    // Chercher le prochain virage
+    // Analyser le trajet sur la distance configurée
+    let sharpestTurn = {
+      angle: 0,
+      position: routePoints[closestPointIndex],
+      distance: 0
+    };
+    
     let totalDistance = 0;
-    let curveFound = false;
-    let curvePosition: [number, number] = routePoints[closestPointIndex];
-    let curveAngle = 0;
+    let previousBearing = calculateBearing(
+      routePoints[closestPointIndex], 
+      routePoints[closestPointIndex + 1] || routePoints[closestPointIndex]
+    );
 
-    for (let i = closestPointIndex; i < routePoints.length - 1 && !curveFound; i++) {
-      const segmentBearing = calculateBearing(routePoints[i], routePoints[i + 1]);
-      const angleDiff = calculateAngleDifference(currentHeading, segmentBearing);
-      
-      totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
+    for (let i = closestPointIndex; i < routePoints.length - 1; i++) {
+      const segmentDistance = calculateDistance(routePoints[i], routePoints[i + 1]);
+      totalDistance += segmentDistance;
 
-      if (Math.abs(angleDiff) > settings.minTurnAngle || totalDistance > 800) {
-        curveFound = true;
-        curvePosition = routePoints[i + 1];
-        curveAngle = angleDiff;
+      // Arrêter si on dépasse la distance de prédiction configurée
+      if (totalDistance > settings.predictionDistance) {
+        break;
       }
+
+      const currentBearing = calculateBearing(routePoints[i], routePoints[i + 1]);
+      const angleDiff = calculateAngleDifference(previousBearing, currentBearing);
+      
+      // Si c'est le virage le plus serré jusqu'à présent, on le garde
+      if (Math.abs(angleDiff) > Math.abs(sharpestTurn.angle)) {
+        sharpestTurn = {
+          angle: angleDiff,
+          position: routePoints[i + 1],
+          distance: totalDistance
+        };
+      }
+
+      previousBearing = currentBearing;
     }
 
-    if (curveFound) {
+    // Si on a trouvé un virage significatif
+    if (Math.abs(sharpestTurn.angle) > settings.minTurnAngle) {
       // Obtenir la vitesse limite
-      const speedLimit = await getSpeedLimit(curvePosition[0], curvePosition[1]);
+      const speedLimit = await getSpeedLimit(sharpestTurn.position[0], sharpestTurn.position[1]);
       
       // Calculer la vitesse optimale
-      const optimalSpeed = this.calculateOptimalSpeed(curveAngle, speedLimit);
+      const optimalSpeed = this.calculateOptimalSpeed(sharpestTurn.angle, speedLimit);
 
       // Mettre à jour la prédiction
       this.currentPrediction = {
-        distance: totalDistance,
-        angle: curveAngle,
-        position: curvePosition,
+        distance: sharpestTurn.distance,
+        angle: sharpestTurn.angle,
+        position: sharpestTurn.position,
         speedLimit,
         optimalSpeed
       };

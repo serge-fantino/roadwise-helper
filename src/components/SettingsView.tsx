@@ -21,7 +21,7 @@ const SettingsView = () => {
   }, []);
 
   const handleSettingChange = (key: keyof Settings, value: string | number) => {
-    if (typeof value === 'string' && ['minTurnAngle', 'minTurnSpeed', 'maxTurnAngle', 'defaultSpeed'].includes(key)) {
+    if (typeof value === 'string' && ['minTurnAngle', 'minTurnSpeed', 'maxTurnAngle', 'defaultSpeed', 'predictionDistance'].includes(key)) {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         settingsService.updateSettings({ [key]: numValue });
@@ -76,6 +76,16 @@ const SettingsView = () => {
               type="number"
               value={settings.minTurnSpeed}
               onChange={(e) => handleSettingChange('minTurnSpeed', e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="predictionDistance">Distance d'analyse des virages (mètres)</Label>
+            <Input
+              id="predictionDistance"
+              type="number"
+              value={settings.predictionDistance}
+              onChange={(e) => handleSettingChange('predictionDistance', e.target.value)}
             />
           </div>
 

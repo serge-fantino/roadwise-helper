@@ -9,6 +9,7 @@ export interface Settings {
   minTurnAngle: number;
   roadInfoProvider: RoadInfoProvider;
   mapboxToken: string;
+  predictionDistance: number; // Distance en mètres pour l'analyse des virages
 }
 
 const SETTINGS_STORAGE_KEY = 'app_settings';
@@ -26,6 +27,7 @@ class SettingsService {
       minTurnAngle: 15,
       roadInfoProvider: 'overpass',
       mapboxToken: '',
+      predictionDistance: 500,
     };
 
     if (savedSettings) {
