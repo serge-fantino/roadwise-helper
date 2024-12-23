@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PredictionOverlay from './PredictionOverlay';
 import RouteOverlay from './map/RouteOverlay';
 import VehicleMarker from './map/VehicleMarker';
@@ -40,6 +40,7 @@ const MapView = ({
   onMapClick,
   positionHistory
 }: MapViewProps) => {
+  const mapRef = useRef<L.Map | null>(null);
   const {
     position: currentPosition,
     speed: currentSpeed,
@@ -75,20 +76,20 @@ const MapView = ({
   // Effet pour mettre à jour la rotation de la carte
   useEffect(() => {
     console.log('[MapView] Heading effect triggered with heading:', heading);
-    const mapElement = document.querySelector('.leaflet-container');
-    console.log('[MapView] Map element found:', !!mapElement);
-    
-    const map = (mapElement as any)?._leaflet_map;
-    console.log('[MapView] Leaflet map instance:', !!map);
-    
-    if (map) {
+    if (mapRef.current) {
       console.log('[MapView] Setting map bearing to:', -heading);
-      map.setBearing(-heading); // On inverse le heading pour que le véhicule pointe vers le haut
+      mapRef.current.setBearing(-heading); // On inverse le heading pour que le véhicule pointe vers le haut
       console.log('[MapView] Map bearing updated:', -heading);
-    } else {
-      console.warn('[MapView] Map instance not found');
     }
   }, [heading]);
+
+  const onMapLoad = (map: L.Map) => {
+    console.log('[MapView] Map loaded and initialized');
+    mapRef.current = map;
+    if (heading) {
+      map.setBearing(-heading);
+    }
+  };
 
   return (
     <MapContainer
@@ -97,6 +98,13 @@ const MapView = ({
       className="w-full h-full"
       zoomControl={false}
       attributionControl={false}
+      ref={mapRef}
+      whenReady={() => {
+        console.log('[MapView] Map is ready');
+        if (mapRef.current) {
+          onMapLoad(mapRef.current);
+        }
+      }}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
