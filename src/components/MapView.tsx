@@ -7,6 +7,7 @@ import VehicleMarker from './map/VehicleMarker';
 import DestinationMarker from './map/DestinationMarker';
 import HistoryTrail from './map/HistoryTrail';
 import MapEventHandlers from './map/MapEventHandlers';
+import RoadPredictionInfo from './RoadPredictionInfo';
 import { useVehicleState } from '../hooks/useVehicleState';
 
 // Fix Leaflet default icon paths
@@ -44,7 +45,6 @@ const MapView = ({
     handleRoadStatusChange
   } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
 
-  // Récupérer le heading depuis le véhicule global
   const heading = (window as any).globalVehicle?.heading || 0;
 
   return (
@@ -69,6 +69,7 @@ const MapView = ({
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} heading={heading} />
       {destination && <DestinationMarker position={destination} />}
       <RouteOverlay routePoints={routePoints} />
+      <RoadPredictionInfo routePoints={routePoints} />
     </MapContainer>
   );
 };
