@@ -101,7 +101,7 @@ const SpeedPanel = ({
   
   return (
     <div className="bg-gray-900/90 text-white w-full">
-      <div className="flex flex-col items-center justify-center px-4 py-3 space-y-3">
+      <div className="flex flex-col items-center justify-center px-0 py-0 space-y-0">
         <div className={`text-4xl font-bold ${isOverSpeed ? 'text-red-500' : 'text-green-500'}`}>
           {kmhSpeed}/{kmhRecommended}
           <span className="text-sm ml-2 text-gray-400">km/h</span>
