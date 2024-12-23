@@ -96,17 +96,17 @@ const SpeedPanel = ({
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
   const isOverSpeed = kmhSpeed > kmhRecommended;
   
-  const turnDirection = turnInfo?.angle && turnInfo.angle > 0 ? "droite" : "gauche";
+  const turnDirection = turnInfo?.angle && turnInfo.angle < 0 ? "droite" : "gauche";
   const { type: turnType, color: turnColor } = turnInfo ? getTurnType(turnInfo.angle) : { type: "", color: "" };
   
   return (
     <div className="bg-gray-900/90 text-white w-full">
-      <div className="flex flex-col items-center justify-center px-4 py-2 space-y-2">
+      <div className="flex flex-col items-center justify-center px-4 py-3 space-y-3">
         <div className={`text-4xl font-bold ${isOverSpeed ? 'text-red-500' : 'text-green-500'}`}>
           {kmhSpeed}/{kmhRecommended}
           <span className="text-sm ml-2 text-gray-400">km/h</span>
         </div>
-        {turnInfo ? (
+        {turnInfo && turnInfo.distance <= 500 ? (
           <div className={`text-lg ${turnColor}`}>
             virage {turnType} à {turnDirection} dans {Math.round(turnInfo.distance)}m
           </div>
