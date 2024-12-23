@@ -4,20 +4,20 @@ import { calculateBearing } from '../utils/mapUtils';
 type VehicleObserver = (position: [number, number], speed: number) => void;
 
 export class Vehicle {
-  private _position: [number, number] | null;
+  private _position: [number, number];
   private _speed: number;
   private _snake: Snake;
   private _observers: VehicleObserver[] = [];
   private _heading: number = 0;
 
-  constructor(initialPosition: [number, number] | null) {
+  constructor(initialPosition: [number, number]) {
     this._position = initialPosition;
     this._speed = 0;
-    this._snake = new Snake(initialPosition || [0, 0]);
+    this._snake = new Snake(initialPosition);
   }
 
   get position(): [number, number] {
-    return this._position || [0, 0];
+    return this._position;
   }
 
   get speed(): number {
@@ -41,9 +41,7 @@ export class Vehicle {
   }
 
   private notifyObservers() {
-    if (this._position) {
-      this._observers.forEach(observer => observer(this._position!, this._speed));
-    }
+    this._observers.forEach(observer => observer(this._position, this._speed));
   }
 
   private updateHeading() {
