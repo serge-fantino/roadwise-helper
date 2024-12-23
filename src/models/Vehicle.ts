@@ -41,6 +41,7 @@ export class Vehicle {
   }
 
   private notifyObservers() {
+    console.log('Vehicle notifying observers with speed:', this._speed);
     this._observers.forEach(observer => observer(this._position, this._speed));
   }
 
@@ -54,6 +55,7 @@ export class Vehicle {
   }
 
   update(newPosition: [number, number], newSpeed: number) {
+    console.log('Vehicle update:', { newPosition, newSpeed });
     this._position = newPosition;
     this._speed = newSpeed;
     this._snake.addPosition(newPosition);

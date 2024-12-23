@@ -42,8 +42,8 @@ export class SimulationService {
         const currentTime = Date.now();
         const elapsedTime = (currentTime - this.lastUpdateTime) / 1000;
         
-        // Calcul de la vitesse en m/s
-        const speed = distance / elapsedTime;
+        // Calcul de la vitesse en m/s (avec un minimum de 0.1 seconde pour éviter division par 0)
+        const speed = distance / Math.max(elapsedTime, 0.1);
         
         console.log('Simulation update:', {
           distance,
@@ -68,6 +68,10 @@ export class SimulationService {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
+    }
+    // Reset speed to 0 when stopping
+    if (this.vehicle) {
+      this.vehicle.update(this.vehicle.position, 0);
     }
   }
 

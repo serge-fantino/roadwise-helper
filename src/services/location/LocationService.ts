@@ -76,7 +76,7 @@ export class LocationService {
     const handlePosition = (pos: GeolocationPosition) => {
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
-      this.notifyObservers(position, speed);
+      this.vehicle.update(position, speed);
     };
 
     const handleError = (error: GeolocationPositionError) => {
