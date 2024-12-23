@@ -1,5 +1,6 @@
 import { Bug } from 'lucide-react';
 import { Toggle } from './ui/toggle';
+import { useEffect, useState } from 'react';
 
 interface StatusBarProps {
   isOnRoad: boolean;
@@ -8,7 +9,23 @@ interface StatusBarProps {
   onDebugModeChange?: (enabled: boolean) => void;
 }
 
-const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBarProps) => {
+const StatusBar = ({ isOnRoad, speed: initialSpeed, isDebugMode, onDebugModeChange }: StatusBarProps) => {
+  const [currentSpeed, setCurrentSpeed] = useState(initialSpeed);
+
+  useEffect(() => {
+    const vehicle = (window as any).globalVehicle;
+    if (vehicle) {
+      const speedObserver = (_: [number, number], speed: number) => {
+        setCurrentSpeed(speed);
+      };
+      
+      vehicle.addObserver(speedObserver);
+      return () => {
+        vehicle.removeObserver(speedObserver);
+      };
+    }
+  }, []);
+
   return (
     <div className="h-12 bg-gray-900 p-2 flex items-center justify-between">
       {/* Left side - Status information */}
@@ -16,7 +33,7 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBa
         <span className={`w-2 h-2 rounded-full ${isOnRoad ? 'bg-green-500' : 'bg-red-500'}`}></span>
         <span>{isOnRoad ? 'On road' : 'Off road'}</span>
         <span>•</span>
-        <span>{Math.round(speed * 3.6)} km/h</span>
+        <span>{Math.round(currentSpeed * 3.6)} km/h</span>
       </div>
 
       {/* Right side - Debug toggle */}
