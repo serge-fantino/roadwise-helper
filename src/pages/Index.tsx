@@ -37,7 +37,7 @@ const Index = () => {
     if (destination) {
       calculateRoute(position, destination.location);
     }
-  }, [destination, position]);
+  }, [destination]); // Removed position from dependencies
 
   if (!vehicle) {
     return <LoadingScreen />;
