@@ -1,21 +1,20 @@
-import { calculateBearing, calculateDistance, calculateAngleDifference } from '../utils/mapUtils';
 import { getSpeedLimit } from '../utils/osmUtils';
 import { settingsService } from './SettingsService';
-
-interface RoadPrediction {
-  distance: number;  // Distance jusqu'au prochain virage en mètres
-  angle: number;     // Angle du virage en degrés
-  position: [number, number]; // Position du virage
-  speedLimit?: number; // Vitesse limite en km/h
-  optimalSpeed?: number; // Vitesse optimale en km/h
-}
-
-type PredictionObserver = (prediction: RoadPrediction | null) => void;
+import { TurnAnalyzer } from './prediction/TurnAnalyzer';
+import { SpeedCalculator } from './prediction/SpeedCalculator';
+import { RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
   private currentPrediction: RoadPrediction | null = null;
   private updateInterval: NodeJS.Timeout | null = null;
+  private turnAnalyzer: TurnAnalyzer;
+  private speedCalculator: SpeedCalculator;
+
+  constructor() {
+    this.turnAnalyzer = new TurnAnalyzer();
+    this.speedCalculator = new SpeedCalculator();
+  }
 
   addObserver(observer: PredictionObserver) {
     this.observers.push(observer);
@@ -29,22 +28,6 @@ class RoadPredictor {
     this.observers.forEach(observer => observer(this.currentPrediction));
   }
 
-  private calculateOptimalSpeed(angle: number, speedLimit: number | null): number {
-    const settings = settingsService.getSettings();
-    const baseSpeed = speedLimit || settings.defaultSpeed;
-    
-    // Angle absolu pour le calcul
-    const absAngle = Math.abs(angle);
-    
-    if (absAngle >= settings.maxTurnAngle) {
-      return settings.minTurnSpeed;
-    } else {
-      // Interpolation linéaire entre la vitesse max et la vitesse min
-      const ratio = absAngle / settings.maxTurnAngle;
-      return baseSpeed - (ratio * (baseSpeed - settings.minTurnSpeed));
-    }
-  }
-
   startUpdates(routePoints: [number, number][]) {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -54,7 +37,6 @@ class RoadPredictor {
       this.updatePrediction(routePoints);
     }, 1000);
 
-    // Initial update
     this.updatePrediction(routePoints);
   }
 
@@ -75,13 +57,10 @@ class RoadPredictor {
       return;
     }
 
-    const currentPosition = vehicle.position;
-    const currentHeading = vehicle.heading;
-    const settings = settingsService.getSettings();
-
     // Trouver le point le plus proche sur la route
     let closestPointIndex = 0;
     let minDistance = Infinity;
+    const currentPosition = vehicle.position;
     
     for (let i = 0; i < routePoints.length; i++) {
       const distance = calculateDistance(currentPosition, routePoints[i]);
@@ -91,56 +70,15 @@ class RoadPredictor {
       }
     }
 
-    // Analyser le trajet sur la distance configurée
-    let sharpestTurn = {
-      angle: 0,
-      position: routePoints[closestPointIndex],
-      distance: 0
-    };
-    
-    let totalDistance = 0;
-    let previousBearing = calculateBearing(
-      routePoints[closestPointIndex], 
-      routePoints[closestPointIndex + 1] || routePoints[closestPointIndex]
-    );
+    const settings = settingsService.getSettings();
+    const turnInfo = this.turnAnalyzer.analyze(routePoints, closestPointIndex, settings);
 
-    for (let i = closestPointIndex; i < routePoints.length - 1; i++) {
-      const segmentDistance = calculateDistance(routePoints[i], routePoints[i + 1]);
-      totalDistance += segmentDistance;
+    if (turnInfo) {
+      const speedLimit = await getSpeedLimit(turnInfo.position[0], turnInfo.position[1]);
+      const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(turnInfo.angle, speedLimit, settings);
 
-      // Arrêter si on dépasse la distance de prédiction configurée
-      if (totalDistance > settings.predictionDistance) {
-        break;
-      }
-
-      const currentBearing = calculateBearing(routePoints[i], routePoints[i + 1]);
-      const angleDiff = calculateAngleDifference(previousBearing, currentBearing);
-      
-      // Si c'est le virage le plus serré jusqu'à présent, on le garde
-      if (Math.abs(angleDiff) > Math.abs(sharpestTurn.angle)) {
-        sharpestTurn = {
-          angle: angleDiff,
-          position: routePoints[i + 1],
-          distance: totalDistance
-        };
-      }
-
-      previousBearing = currentBearing;
-    }
-
-    // Si on a trouvé un virage significatif
-    if (Math.abs(sharpestTurn.angle) > settings.minTurnAngle) {
-      // Obtenir la vitesse limite
-      const speedLimit = await getSpeedLimit(sharpestTurn.position[0], sharpestTurn.position[1]);
-      
-      // Calculer la vitesse optimale
-      const optimalSpeed = this.calculateOptimalSpeed(sharpestTurn.angle, speedLimit);
-
-      // Mettre à jour la prédiction
       this.currentPrediction = {
-        distance: sharpestTurn.distance,
-        angle: sharpestTurn.angle,
-        position: sharpestTurn.position,
+        ...turnInfo,
         speedLimit,
         optimalSpeed
       };
@@ -153,5 +91,4 @@ class RoadPredictor {
   }
 }
 
-// Créer une instance singleton
 export const roadPredictor = new RoadPredictor();
