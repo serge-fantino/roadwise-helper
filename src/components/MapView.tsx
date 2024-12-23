@@ -11,6 +11,7 @@ import MapEventHandlers from './map/MapEventHandlers';
 import RoadPredictionInfo from './RoadPredictionInfo';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
+import { useVehicleState } from '../hooks/useVehicleState';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
