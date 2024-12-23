@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Vehicle } from '../models/Vehicle';
 import { toast } from '../components/ui/use-toast';
 import { useSimulationControl } from './useSimulationControl';
+import { createSimulationService } from '../services/simulation/SimulationService';
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
@@ -13,29 +14,25 @@ export const useVehicle = (
   routePoints: [number, number][],
   initialPosition: [number, number]
 ) => {
-  const [vehicle, setVehicle] = useState<Vehicle>(globalVehicle);
+  const [vehicle] = useState<Vehicle>(() => globalVehicle);
   const watchIdRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
-  const MAX_RETRIES = 3;
   const hasInitializedRef = useRef(false);
   const previousDebugModeRef = useRef(isDebugMode);
+  const simulationService = useRef(createSimulationService(vehicle));
 
-  // Utilise notre nouveau hook de simulation
+  // Utilise notre hook de simulation
   useSimulationControl(vehicle, isDebugMode, routePoints);
 
   const updateVehicle = (position: [number, number], speed: number) => {
     console.log('Updating vehicle position:', position);
     globalVehicle.update(position, speed);
-    setVehicle(globalVehicle);
   };
 
   const handleGPSError = (error: GeolocationPositionError) => {
     console.error('GPS Error:', {
       code: error.code,
-      message: error.message,
-      PERMISSION_DENIED: error.PERMISSION_DENIED,
-      POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
-      TIMEOUT: error.TIMEOUT
+      message: error.message
     });
 
     let errorMessage = "Erreur de géolocalisation";
@@ -49,11 +46,11 @@ export const useVehicle = (
         updateVehicle(PARIS_CENTER, 0);
         break;
       case error.TIMEOUT:
-        if (retryCountRef.current < MAX_RETRIES) {
+        if (retryCountRef.current < 3) {
           retryCountRef.current++;
           toast({
             title: "Tentative de reconnexion GPS",
-            description: `Nouvelle tentative ${retryCountRef.current}/${MAX_RETRIES}...`,
+            description: `Nouvelle tentative ${retryCountRef.current}/3...`,
           });
           
           if (watchIdRef.current !== null) {
@@ -125,13 +122,27 @@ export const useVehicle = (
   useEffect(() => {
     if (!isDebugMode) {
       startGPSTracking();
-      return () => {
-        if (watchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(watchIdRef.current);
-        }
-      };
+    } else if (previousDebugModeRef.current !== isDebugMode) {
+      // Arrêter le GPS si on passe en mode debug
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      // Démarrer la simulation
+      if (routePoints.length > 0) {
+        simulationService.current.startSimulation(routePoints);
+      }
     }
-  }, [isDebugMode]);
+
+    previousDebugModeRef.current = isDebugMode;
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      simulationService.current.stopSimulation();
+    };
+  }, [isDebugMode, routePoints]);
 
   return vehicle;
 };
