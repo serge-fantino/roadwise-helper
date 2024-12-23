@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { predictionService } from '../services/PredictionService';
+import { roadPredictor } from '../services/RoadPredictor';
 
 interface SpeedPanelProps {
   currentSpeed: number;
@@ -16,6 +17,7 @@ const SpeedPanel = ({
 }: SpeedPanelProps) => {
   const [displaySpeed, setDisplaySpeed] = useState(0);
   const [speedLimit, setSpeedLimit] = useState<number | null>(null);
+  const [optimalSpeed, setOptimalSpeed] = useState<number | null>(null);
   
   useEffect(() => {
     // Observer pour les mises à jour de vitesse limite
@@ -24,6 +26,17 @@ const SpeedPanel = ({
     };
     
     predictionService.addObserver(speedLimitObserver);
+
+    // Observer pour les prédictions de virage
+    const predictionObserver = (prediction: any) => {
+      if (prediction && prediction.optimalSpeed) {
+        setOptimalSpeed(prediction.optimalSpeed);
+      } else {
+        setOptimalSpeed(null);
+      }
+    };
+
+    roadPredictor.addObserver(predictionObserver);
     
     // Observer pour les mises à jour de vitesse
     const vehicle = (window as any).globalVehicle;
@@ -36,12 +49,13 @@ const SpeedPanel = ({
       return () => {
         vehicle.removeObserver(speedObserver);
         predictionService.removeObserver(speedLimitObserver);
+        roadPredictor.removeObserver(predictionObserver);
       };
     }
   }, [currentSpeed]);
 
   const kmhSpeed = Math.round(displaySpeed * 3.6);
-  const kmhRecommended = speedLimit || Math.round(recommendedSpeed * 3.6);
+  const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
   const isIdle = displaySpeed === 0;
   
   return (
@@ -57,7 +71,7 @@ const SpeedPanel = ({
               {kmhRecommended}
             </span>
             <span className="text-sm text-gray-400">
-              {speedLimit ? 'limite' : 'recommandé'}
+              {optimalSpeed ? 'optimal' : (speedLimit ? 'limite' : 'recommandé')}
             </span>
           </div>
         </div>
