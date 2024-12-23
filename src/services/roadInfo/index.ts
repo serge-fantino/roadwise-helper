@@ -20,6 +20,7 @@ class RoadInfoService implements RoadInfoAPIService {
   }
 
   private getProviderInstance(provider: string): RoadInfoAPIService {
+    console.log('Getting provider instance for:', provider);
     switch (provider) {
       case 'mapbox':
         const settings = settingsService.getSettings();
@@ -29,9 +30,11 @@ class RoadInfoService implements RoadInfoAPIService {
         }
         return MapboxRoadInfoService.getInstance();
       case 'nominatim':
+        console.log('Returning Nominatim instance');
         return NominatimRoadInfoService.getInstance();
       case 'overpass':
       default:
+        console.log('Returning Overpass instance');
         return OverpassRoadInfoService.getInstance();
     }
   }
@@ -44,6 +47,7 @@ class RoadInfoService implements RoadInfoAPIService {
   }
 
   async isPointOnRoad(lat: number, lon: number): Promise<boolean> {
+    console.log('Using provider:', this.currentProvider.constructor.name);
     return this.currentProvider.isPointOnRoad(lat, lon);
   }
 
