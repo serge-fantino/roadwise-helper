@@ -30,7 +30,7 @@ const SpeedPanel = ({
     // Observer pour les prédictions de virage
     const predictionObserver = (prediction: any) => {
       if (prediction && prediction.optimalSpeed) {
-        setOptimalSpeed(prediction.optimalSpeed);
+        setOptimalSpeed(Math.round(prediction.optimalSpeed));
       } else {
         setOptimalSpeed(null);
       }
