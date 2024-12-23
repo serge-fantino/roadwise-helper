@@ -11,6 +11,27 @@ Note that the project run locally - no information regarding your GPS position i
 Also this is a functional WPA web site, you can easily install the app on your phone.
 
 
+## Installation
+
+Before building the project, make sure you have [Node.js](https://nodejs.org/) installed (version 18 or higher recommended).
+
+Then, follow these steps:
+
+```sh
+# Clone the repository
+git clone [repository-url]
+cd roadwise
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+
+The development server will start at http://localhost:8080
+
+
 ## What technologies are used for this project?
 
 This project is built with:
