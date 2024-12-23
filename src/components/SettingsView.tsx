@@ -94,7 +94,8 @@ const SettingsView = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="overpass">OpenStreetMap (Overpass)</SelectItem>
-                    <SelectItem value="mapbox">Mapbox</SelectItem>
+                    <SelectItem value="nominatim">OpenStreetMap (Nominatim)</SelectItem>
+                    <SelectItem value="mapbox">Mapbox (Premium)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -109,7 +110,7 @@ const SettingsView = () => {
                   placeholder="pk.eyJ1Ijoi..."
                 />
                 <p className="text-sm text-gray-500">
-                  Requis pour utiliser le service Mapbox. Obtenez votre token sur{" "}
+                  Requis uniquement pour utiliser le service Mapbox Premium. Obtenez votre token sur{" "}
                   <a 
                     href="https://account.mapbox.com/access-tokens/" 
                     target="_blank" 

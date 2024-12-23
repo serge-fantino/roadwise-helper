@@ -1,6 +1,6 @@
 type Observer = (settings: Settings) => void;
 
-export type RoadInfoProvider = 'overpass' | 'mapbox';
+export type RoadInfoProvider = 'overpass' | 'mapbox' | 'nominatim';
 
 export interface Settings {
   defaultSpeed: number;
@@ -31,7 +31,6 @@ class SettingsService {
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        // Assurons-nous que toutes les propriétés sont présentes
         this.settings = {
           ...defaultSettings,
           ...parsed
