@@ -28,11 +28,10 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
           body: `data=${encodeURIComponent(query)}`,
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'User-Agent': 'DriverAssistant/1.0',
           },
-        },
-        3,
-        2000,
-        30000
+        }
       );
 
       return await response.json();
