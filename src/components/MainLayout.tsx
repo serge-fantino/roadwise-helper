@@ -54,12 +54,13 @@ const MainLayout = ({
   return (
     <div className="h-screen flex flex-col">
       {/* Speed Panel */}
-      <div className="h-40 bg-gray-900 p-4">
+      <div className="h-28 bg-gray-900 p-4">
         <SpeedPanel 
           currentSpeed={speed} 
           recommendedSpeed={recommendedSpeed}
           isOnRoad={isOnRoad}
           isDebugMode={isDebugMode}
+          onDebugModeChange={onDebugModeChange}
         />
       </div>
 
