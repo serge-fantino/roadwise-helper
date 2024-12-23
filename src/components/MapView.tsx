@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import PredictionOverlay from './PredictionOverlay';
 import RouteOverlay from './map/RouteOverlay';
 import VehicleMarker from './map/VehicleMarker';
@@ -12,6 +12,7 @@ import RoadPredictionInfo from './RoadPredictionInfo';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
+import { useMapRotation } from '../hooks/useMapRotation';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -40,7 +41,6 @@ const MapView = ({
   onMapClick,
   positionHistory
 }: MapViewProps) => {
-  const mapRef = useRef<L.Map | null>(null);
   const {
     position: currentPosition,
     speed: currentSpeed,
@@ -73,22 +73,7 @@ const MapView = ({
   const heading = (window as any).globalVehicle?.heading || 0;
   console.log('[MapView] Current heading:', heading);
 
-  useEffect(() => {
-    console.log('[MapView] Heading effect triggered with heading:', heading);
-    if (mapRef.current) {
-      console.log('[MapView] Setting map rotation to:', -heading);
-      mapRef.current.setRotation(-heading); // Using setRotation instead of setBearing
-      console.log('[MapView] Map rotation updated:', -heading);
-    }
-  }, [heading]);
-
-  const onMapLoad = (map: L.Map) => {
-    console.log('[MapView] Map loaded and initialized');
-    mapRef.current = map;
-    if (heading) {
-      map.setRotation(-heading); // Using setRotation instead of setBearing
-    }
-  };
+  const { mapRef, initializeMap } = useMapRotation(heading);
 
   return (
     <MapContainer
@@ -98,11 +83,9 @@ const MapView = ({
       zoomControl={false}
       attributionControl={false}
       ref={mapRef}
-      whenReady={() => {
+      whenReady={(map) => {
         console.log('[MapView] Map is ready');
-        if (mapRef.current) {
-          onMapLoad(mapRef.current);
-        }
+        initializeMap(map.target);
       }}
     >
       <TileLayer
