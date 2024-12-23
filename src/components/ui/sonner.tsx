@@ -27,4 +27,4 @@ const Toaster = () => {
   )
 }
 
-export default Toaster
+export { Toaster }
