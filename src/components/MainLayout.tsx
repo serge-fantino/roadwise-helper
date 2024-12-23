@@ -1,8 +1,7 @@
-import { ReactNode, useState } from 'react';
-import MapView from './MapView';
-import SpeedPanel from './SpeedPanel';
-import DestinationPanel from './DestinationPanel';
-import AddressSearch from './AddressSearch';
+import { useState } from 'react';
+import TopPanel from './layout/TopPanel';
+import SearchArea from './layout/SearchArea';
+import MapArea from './layout/MapArea';
 import StatusBar from './StatusBar';
 
 interface MainLayoutProps {
@@ -52,57 +51,37 @@ const MainLayout = ({
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Speed Panel */}
-      <div className="h-28 bg-gray-900 p-4">
-        <SpeedPanel 
-          currentSpeed={speed} 
-          recommendedSpeed={recommendedSpeed}
-          isOnRoad={isOnRoad}
-          isDebugMode={isDebugMode}
-        />
-      </div>
-
-      {/* Address Search */}
-      <div className="h-16 bg-gray-900 p-4">
-        <DestinationPanel 
-          destination={destination} 
-          onDestinationSelect={onDestinationSelect}
-          onDestinationClick={handleDestinationClick}
-          onSearchModeChange={setIsSearchMode}
-          isSearchMode={isSearchMode}
-        />
-      </div>
+      <TopPanel 
+        speed={speed}
+        recommendedSpeed={recommendedSpeed}
+        isOnRoad={isOnRoad}
+        isDebugMode={isDebugMode}
+        destination={destination}
+        onDestinationSelect={onDestinationSelect}
+        onDestinationClick={handleDestinationClick}
+        onSearchModeChange={setIsSearchMode}
+        isSearchMode={isSearchMode}
+      />
 
       {isSearchMode ? (
-        <div className="flex-1 bg-gray-900 p-4">
-          <div className="max-w-xl mx-auto">
-            <AddressSearch 
-              onLocationSelect={(location, address) => {
-                onDestinationSelect(location, address);
-                setIsSearchMode(false);
-              }}
-              fullScreen
-            />
-          </div>
-        </div>
+        <SearchArea 
+          onLocationSelect={(location, address) => {
+            onDestinationSelect(location, address);
+            setIsSearchMode(false);
+          }}
+        />
       ) : (
-        <>
-          {/* Map View */}
-          <div className="flex-1">
-            <MapView 
-              position={position} 
-              speed={speed} 
-              onRoadStatusChange={onRoadStatusChange}
-              destination={destination?.location}
-              routePoints={routePoints}
-              onMapClick={handleMapClick}
-              positionHistory={positionHistory}
-            />
-          </div>
-        </>
+        <MapArea 
+          position={position}
+          speed={speed}
+          onRoadStatusChange={onRoadStatusChange}
+          destination={destination?.location}
+          routePoints={routePoints}
+          onMapClick={handleMapClick}
+          positionHistory={positionHistory}
+        />
       )}
 
-      {/* Status Bar */}
       <StatusBar 
         isOnRoad={isOnRoad}
         speed={speed}
