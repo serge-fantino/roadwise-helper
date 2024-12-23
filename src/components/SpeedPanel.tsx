@@ -63,7 +63,6 @@ const SpeedPanel = ({
 
   const kmhSpeed = Math.round(displaySpeed * 3.6);
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
-  const isIdle = displaySpeed === 0;
   
   return (
     <div className="bg-gray-900/90 text-white w-full">
@@ -81,18 +80,6 @@ const SpeedPanel = ({
               {optimalSpeed ? 'optimal' : (speedLimit ? 'limite' : 'recommandé')}
             </span>
           </div>
-        </div>
-        
-        <div className="flex flex-col items-center justify-center bg-gray-800/50 p-0.5">
-          <span className={`text-lg font-semibold ${isOnRoad ? 'text-green-500' : 'text-red-500'}`}>
-            {isOnRoad ? 'ON ROAD' : 'OFF ROAD'}
-          </span>
-        </div>
-        
-        <div className="flex flex-col items-center justify-center bg-gray-800/50 p-0.5">
-          <span className={`text-lg font-semibold ${isIdle ? 'text-yellow-500' : 'text-blue-500'}`}>
-            {isIdle ? 'IDLE' : 'MOVING'}
-          </span>
         </div>
       </div>
     </div>
