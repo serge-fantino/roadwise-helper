@@ -73,13 +73,12 @@ const MapView = ({
   const heading = (window as any).globalVehicle?.heading || 0;
   console.log('[MapView] Current heading:', heading);
 
-  // Effet pour mettre à jour la rotation de la carte
   useEffect(() => {
     console.log('[MapView] Heading effect triggered with heading:', heading);
     if (mapRef.current) {
-      console.log('[MapView] Setting map bearing to:', -heading);
-      mapRef.current.setBearing(-heading); // On inverse le heading pour que le véhicule pointe vers le haut
-      console.log('[MapView] Map bearing updated:', -heading);
+      console.log('[MapView] Setting map rotation to:', -heading);
+      mapRef.current.setRotation(-heading); // Using setRotation instead of setBearing
+      console.log('[MapView] Map rotation updated:', -heading);
     }
   }, [heading]);
 
@@ -87,7 +86,7 @@ const MapView = ({
     console.log('[MapView] Map loaded and initialized');
     mapRef.current = map;
     if (heading) {
-      map.setBearing(-heading);
+      map.setRotation(-heading); // Using setRotation instead of setBearing
     }
   };
 
