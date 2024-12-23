@@ -11,7 +11,7 @@ interface StatusBarProps {
   onDebugModeChange?: (enabled: boolean) => void;
 }
 
-const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps) => {
+const StatusBar = ({ isDebugMode, onDebugModeChange }: StatusBarProps) => {
   const navigate = useNavigate();
   const [prediction, setPrediction] = useState<{
     distance: number;
@@ -38,20 +38,17 @@ const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps)
 
   return (
     <div className="h-12 bg-gray-900 p-2 flex items-center justify-between">
-      {/* Left side - Status information */}
+      {/* Left side - Turn information */}
       <div className="text-white text-sm px-4 flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${isOnRoad ? 'bg-green-500' : 'bg-red-500'}`}></span>
-        <span>{isOnRoad ? 'On road' : 'Off road'}</span>
-        {prediction && (
-          <>
-            <span>•</span>
-            <span>
-              Virage {getTurnDirection()} dans {Math.round(prediction.distance)}m ({Math.abs(Math.round(prediction.angle))}°)
-              {prediction.optimalSpeed && (
-                <> • {Math.round(prediction.optimalSpeed)} km/h recommandés</>
-              )}
-            </span>
-          </>
+        {prediction ? (
+          <span>
+            Virage {getTurnDirection()} dans {Math.round(prediction.distance)}m ({Math.abs(Math.round(prediction.angle))}°)
+            {prediction.optimalSpeed && (
+              <> • {Math.round(prediction.optimalSpeed)} km/h recommandés</>
+            )}
+          </span>
+        ) : (
+          <span>Pas de virage détecté</span>
         )}
       </div>
 
