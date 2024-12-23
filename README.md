@@ -10,8 +10,11 @@ You can test the latest version online: https://roadwise-helper.lovable.app/
 Note that the project run locally - no information regarding your GPS position is shared online.
 Also this is a functional WPA web site, you can easily install the app on your phone.
 
+> ⚠️ **Warning**: This is an educational project. It is not a production ready software, nor something you can trust for driving. Be careful and drive safely, and look at the road, not at your phone.
 
 ## Installation
+
+> ⚠️ **Warning**: This project is still in development. Some features might not work as expected, and breaking changes could occur without notice.
 
 Before building the project, make sure you have [Node.js](https://nodejs.org/) installed (version 18 or higher recommended).
 
