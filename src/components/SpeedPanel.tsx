@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { predictionService } from '../services/PredictionService';
 import { roadPredictor } from '../services/RoadPredictor';
+import { roadInfoService } from '../services/roadInfo';
 
 interface SpeedPanelProps {
   currentSpeed: number;
@@ -21,11 +22,18 @@ const SpeedPanel = ({
   
   useEffect(() => {
     // Observer pour les mises à jour de vitesse limite
-    const speedLimitObserver = (newSpeedLimit: number | null) => {
-      setSpeedLimit(newSpeedLimit);
+    const updateSpeedLimit = async () => {
+      if (isOnRoad) {
+        const vehicle = (window as any).globalVehicle;
+        if (vehicle && vehicle.position) {
+          const [lat, lon] = vehicle.position;
+          const limit = await roadInfoService.getSpeedLimit(lat, lon);
+          setSpeedLimit(limit);
+        }
+      }
     };
     
-    predictionService.addObserver(speedLimitObserver);
+    updateSpeedLimit();
 
     // Observer pour les prédictions de virage
     const predictionObserver = (prediction: any) => {
@@ -48,11 +56,10 @@ const SpeedPanel = ({
       vehicle.addObserver(speedObserver);
       return () => {
         vehicle.removeObserver(speedObserver);
-        predictionService.removeObserver(speedLimitObserver);
-        roadPredictor.removeObserver(predictionObserver);
+        predictionService.removeObserver(predictionObserver);
       };
     }
-  }, [currentSpeed]);
+  }, [currentSpeed, isOnRoad]);
 
   const kmhSpeed = Math.round(displaySpeed * 3.6);
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);

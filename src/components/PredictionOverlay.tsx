@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Polyline, useMap } from 'react-leaflet';
 import { predictRoadAhead, calculateBearing, calculateAngleDifference, calculateDistance } from '../utils/mapUtils';
-import { getCurrentRoadSegment } from '../utils/osmUtils';
+import { roadInfoService } from '../services/roadInfo';
 
 interface PredictionOverlayProps {
   position: [number, number];
@@ -44,7 +44,6 @@ const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayPr
       
       // Si on a une route planifiée, on l'utilise
       if (routePoints && routePoints.length > 1) {
-        // Trouver le segment de route le plus proche de la position actuelle
         let minDistance = Infinity;
         let closestIndex = 0;
         
@@ -58,8 +57,8 @@ const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayPr
         
         referenceSegment = [routePoints[closestIndex], routePoints[closestIndex + 1]];
       } else {
-        // Sinon on utilise OSM
-        const segment = await getCurrentRoadSegment(position[0], position[1]);
+        // Sinon on utilise le service de route
+        const segment = await roadInfoService.getCurrentRoadSegment(position[0], position[1]);
         referenceSegment = segment;
         setRoadSegment(segment);
       }

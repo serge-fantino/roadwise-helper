@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { isPointOnRoad } from '../../utils/osmUtils';
 import { predictionService } from '../../services/PredictionService';
 import { toast } from '../../components/ui/use-toast';
+import { roadInfoService } from '../../services/roadInfo';
 
 interface MapEventHandlersProps {
   position: [number, number];
@@ -19,7 +19,7 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
 
     const checkRoadPosition = async () => {
       const [lat, lon] = position;
-      const onRoad = await isPointOnRoad(lat, lon);
+      const onRoad = await roadInfoService.isPointOnRoad(lat, lon);
       onRoadStatusChange(onRoad);
 
       // Démarrer les mises à jour de prédiction
@@ -33,7 +33,6 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
     };
   }, [position, map, onRoadStatusChange]);
 
-  // Handle zoom to destination events
   useEffect(() => {
     const handleZoomToDestination = (e: CustomEvent) => {
       const { location } = e.detail;
