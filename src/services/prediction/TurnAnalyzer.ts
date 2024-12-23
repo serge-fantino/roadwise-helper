@@ -23,18 +23,21 @@ export class TurnAnalyzer {
     startIndex: number
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
     let totalDistance = 0;
+    let totalAngle = 0;
     let previousBearing = calculateBearing(
       routePoints[startIndex], 
       routePoints[startIndex + 1] || routePoints[startIndex]
     );
 
-    for (let i = startIndex; i < routePoints.length - 1; i++) {
+    for (let i = startIndex; i < routePoints.length - 1 && totalDistance < 1000; i++) {
       const currentBearing = calculateBearing(routePoints[i], routePoints[i + 1]);
       const angleDiff = calculateAngleDifference(previousBearing, currentBearing);
+      totalAngle += angleDiff;
       
+      totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
+
       // Si on trouve un virage de plus de 45°, on le retourne immédiatement
-      if (Math.abs(angleDiff) > 45) {
-        totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
+      if (Math.abs(angleDiff) > 45 || Math.abs(totalAngle) > 45) {
         return {
           distance: totalDistance,
           angle: angleDiff,
@@ -42,7 +45,6 @@ export class TurnAnalyzer {
         };
       }
 
-      totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
       previousBearing = currentBearing;
     }
 
