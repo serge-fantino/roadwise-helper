@@ -3,7 +3,9 @@ import { Vehicle } from '../models/Vehicle';
 import { calculateDistance } from '../utils/mapUtils';
 import { toast } from '../components/ui/use-toast';
 
-const globalVehicle = new Vehicle(null);
+const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
+
+const globalVehicle = new Vehicle(PARIS_CENTER);
 (window as any).globalVehicle = globalVehicle;
 
 export const useVehicle = (
@@ -65,7 +67,9 @@ export const useVehicle = (
         errorMessage = "Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur";
         break;
       case error.POSITION_UNAVAILABLE:
-        errorMessage = "Position GPS non disponible. Vérifiez que le GPS est activé";
+        errorMessage = "Position GPS non disponible. Utilisation de la position par défaut (Paris)";
+        // Use default position (Paris center)
+        updateVehicle(PARIS_CENTER, 0);
         break;
       case error.TIMEOUT:
         if (retryCountRef.current < MAX_RETRIES) {
@@ -81,15 +85,17 @@ export const useVehicle = (
           setTimeout(startGPSTracking, 1000);
           return;
         } else {
-          errorMessage = "Le GPS ne répond pas. Veuillez réessayer plus tard";
+          errorMessage = "Le GPS ne répond pas. Utilisation de la position par défaut (Paris)";
+          // Use default position (Paris center) after max retries
+          updateVehicle(PARIS_CENTER, 0);
         }
         break;
     }
 
     toast({
-      title: "Erreur GPS",
+      title: "Information GPS",
       description: errorMessage,
-      variant: "destructive"
+      variant: error.code === error.PERMISSION_DENIED ? "destructive" : "default"
     });
   };
 
@@ -99,9 +105,10 @@ export const useVehicle = (
     if (!('geolocation' in navigator)) {
       toast({
         title: "Erreur GPS",
-        description: "La géolocalisation n'est pas supportée par votre navigateur.",
+        description: "La géolocalisation n'est pas supportée par votre navigateur. Utilisation de la position par défaut (Paris)",
         variant: "destructive"
       });
+      updateVehicle(PARIS_CENTER, 0);
       return;
     }
 
