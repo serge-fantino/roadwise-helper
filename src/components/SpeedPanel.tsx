@@ -16,22 +16,13 @@ const SpeedPanel = ({
   isOnRoad,
   isDebugMode
 }: SpeedPanelProps) => {
-  console.log('Current speed in SpeedPanel:', currentSpeed);
   const { displaySpeed, speedLimit, optimalSpeed, prediction } = useSpeedInfo(currentSpeed, isOnRoad);
 
-  // Observe vehicle directly
   useEffect(() => {
-    const vehicle = (window as any).globalVehicle;
-    if (vehicle) {
-      const observer = (position: [number, number], speed: number) => {
-        console.log('SpeedPanel received vehicle update:', speed);
-      };
-      vehicle.addObserver(observer);
-      return () => vehicle.removeObserver(observer);
-    }
-  }, []);
+    console.log('Current speed in SpeedPanel:', currentSpeed);
+  }, [currentSpeed]);
 
-  const kmhSpeed = Math.round(currentSpeed * 3.6); // Conversion m/s to km/h
+  const kmhSpeed = Math.round(displaySpeed * 3.6); // Conversion m/s to km/h
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
   
   return (
