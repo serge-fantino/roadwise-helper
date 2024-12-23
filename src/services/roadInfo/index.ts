@@ -14,6 +14,7 @@ class RoadInfoService implements RoadInfoAPIService {
 
     // Observer pour les changements de provider
     settingsService.addObserver((newSettings) => {
+      console.log('Switching road info provider to:', newSettings.roadInfoProvider);
       this.currentProvider = this.getProviderInstance(newSettings.roadInfoProvider);
     });
   }
@@ -21,6 +22,11 @@ class RoadInfoService implements RoadInfoAPIService {
   private getProviderInstance(provider: string): RoadInfoAPIService {
     switch (provider) {
       case 'mapbox':
+        const settings = settingsService.getSettings();
+        if (!settings.mapboxToken) {
+          console.warn('Mapbox token not configured, falling back to Nominatim');
+          return NominatimRoadInfoService.getInstance();
+        }
         return MapboxRoadInfoService.getInstance();
       case 'nominatim':
         return NominatimRoadInfoService.getInstance();
