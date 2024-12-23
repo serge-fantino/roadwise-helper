@@ -20,10 +20,6 @@ const HistoryTrail = ({ positions }: HistoryTrailProps) => {
     segments.push([currentPos, nextPos]);
   }
 
-  console.log('Original positions:', positions);
-  console.log('Reversed positions:', reversedPositions);
-  console.log('Created segments:', segments);
-
   // Colors for the gradient from blue to red
   const colors = [
     '#0EA5E9', // Ocean Blue
@@ -46,8 +42,6 @@ const HistoryTrail = ({ positions }: HistoryTrailProps) => {
       Math.floor(position * (colors.length - 1)),
       colors.length - 1
     );
-    
-    console.log(`Segment ${index}/${segments.length - 1}: position=${position.toFixed(2)}, colorIndex=${colorIndex}, color=${colors[colorIndex]}`);
     
     return colors[colorIndex];
   };
