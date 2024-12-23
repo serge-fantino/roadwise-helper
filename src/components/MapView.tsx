@@ -70,13 +70,23 @@ const MapView = ({
   }, []);
 
   const heading = (window as any).globalVehicle?.heading || 0;
+  console.log('[MapView] Current heading:', heading);
 
   // Effet pour mettre à jour la rotation de la carte
   useEffect(() => {
-    const map = (document.querySelector('.leaflet-container') as any)?._leaflet_map;
+    console.log('[MapView] Heading effect triggered with heading:', heading);
+    const mapElement = document.querySelector('.leaflet-container');
+    console.log('[MapView] Map element found:', !!mapElement);
+    
+    const map = (mapElement as any)?._leaflet_map;
+    console.log('[MapView] Leaflet map instance:', !!map);
+    
     if (map) {
+      console.log('[MapView] Setting map bearing to:', -heading);
       map.setBearing(-heading); // On inverse le heading pour que le véhicule pointe vers le haut
       console.log('[MapView] Map bearing updated:', -heading);
+    } else {
+      console.warn('[MapView] Map instance not found');
     }
   }, [heading]);
 
