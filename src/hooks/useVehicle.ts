@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Vehicle } from '../models/Vehicle';
-import { calculateDistance } from '../utils/mapUtils';
 import { toast } from '../components/ui/use-toast';
+import { useSimulationControl } from './useSimulationControl';
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
@@ -15,41 +15,19 @@ export const useVehicle = (
 ) => {
   const [vehicle, setVehicle] = useState<Vehicle>(globalVehicle);
   const watchIdRef = useRef<number | null>(null);
-  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const currentRouteIndexRef = useRef(0);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
   const hasInitializedRef = useRef(false);
   const previousDebugModeRef = useRef(isDebugMode);
+
+  // Utilise notre nouveau hook de simulation
+  useSimulationControl(vehicle, isDebugMode, routePoints);
 
   const updateVehicle = (position: [number, number], speed: number) => {
     console.log('Updating vehicle position:', position);
     globalVehicle.update(position, speed);
     setVehicle(globalVehicle);
   };
-
-  // Reset vehicle when switching modes
-  useEffect(() => {
-    if (previousDebugModeRef.current !== isDebugMode) {
-      console.log('Debug mode changed, resetting vehicle');
-      if (!isDebugMode) {
-        // Switching to GPS mode
-        startGPSTracking();
-      } else {
-        // Switching to debug mode
-        if (watchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(watchIdRef.current);
-          watchIdRef.current = null;
-        }
-        // Reset with first route point if available
-        if (routePoints.length > 0) {
-          globalVehicle.reset(routePoints[0]);
-          currentRouteIndexRef.current = 0;
-        }
-      }
-      previousDebugModeRef.current = isDebugMode;
-    }
-  }, [isDebugMode, routePoints]);
 
   const handleGPSError = (error: GeolocationPositionError) => {
     console.error('GPS Error:', {
@@ -68,7 +46,6 @@ export const useVehicle = (
         break;
       case error.POSITION_UNAVAILABLE:
         errorMessage = "Position GPS non disponible. Utilisation de la position par défaut (Paris)";
-        // Use default position (Paris center)
         updateVehicle(PARIS_CENTER, 0);
         break;
       case error.TIMEOUT:
@@ -86,7 +63,6 @@ export const useVehicle = (
           return;
         } else {
           errorMessage = "Le GPS ne répond pas. Utilisation de la position par défaut (Paris)";
-          // Use default position (Paris center) after max retries
           updateVehicle(PARIS_CENTER, 0);
         }
         break;
@@ -112,19 +88,16 @@ export const useVehicle = (
       return;
     }
 
-    // Get initial position
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         console.log('Initial GPS position received:', pos);
         const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        console.log('Initial GPS position:', newPosition);
         if (!hasInitializedRef.current) {
           globalVehicle.reset(newPosition);
           hasInitializedRef.current = true;
         }
         updateVehicle(newPosition, pos.coords.speed || 0);
 
-        // Start watching position after getting initial position
         watchIdRef.current = navigator.geolocation.watchPosition(
           (pos) => {
             const newPosition: [number, number] = [pos.coords.latitude, pos.coords.longitude];
@@ -149,7 +122,6 @@ export const useVehicle = (
     );
   };
 
-  // Handle GPS tracking
   useEffect(() => {
     if (!isDebugMode) {
       startGPSTracking();
@@ -160,48 +132,6 @@ export const useVehicle = (
       };
     }
   }, [isDebugMode]);
-
-  // Handle simulation mode
-  useEffect(() => {
-    if (isDebugMode && routePoints.length > 1) {
-      console.log('Starting simulation with route points:', routePoints);
-      
-      // Reset simulation
-      currentRouteIndexRef.current = 0;
-      const startPosition = routePoints[0];
-      console.log('Setting initial simulation position:', startPosition);
-      globalVehicle.reset(startPosition);
-      updateVehicle(startPosition, 0);
-
-      simulationIntervalRef.current = setInterval(() => {
-        const nextIndex = currentRouteIndexRef.current + 1;
-        
-        if (nextIndex >= routePoints.length) {
-          if (simulationIntervalRef.current) {
-            clearInterval(simulationIntervalRef.current);
-            simulationIntervalRef.current = null;
-          }
-          return;
-        }
-
-        const currentPosition = routePoints[currentRouteIndexRef.current];
-        const nextPosition = routePoints[nextIndex];
-        const distance = calculateDistance(currentPosition, nextPosition);
-        const speed = distance / 3;
-
-        console.log('Simulation update - New Position:', nextPosition);
-        updateVehicle(nextPosition, speed);
-        currentRouteIndexRef.current = nextIndex;
-      }, 3000);
-
-      return () => {
-        if (simulationIntervalRef.current) {
-          clearInterval(simulationIntervalRef.current);
-          simulationIntervalRef.current = null;
-        }
-      };
-    }
-  }, [isDebugMode, routePoints]);
 
   return vehicle;
 };
