@@ -38,9 +38,12 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBa
       {/* Left side - Status information */}
       <div className="text-white text-sm px-4 flex items-center gap-6">
         <div className="flex items-center gap-4">
-          <span className={`px-3 py-1 rounded text-sm font-medium ${isOnRoad ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-            {isOnRoad ? 'ON ROAD' : 'OFF ROAD'}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-medium">STATUS:</span>
+            <span className={`px-3 py-1 rounded text-sm font-medium ${isOnRoad ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+              {isOnRoad ? 'ON ROAD' : 'OFF ROAD'}
+            </span>
+          </div>
           <span className={`px-3 py-1 rounded text-sm font-medium ${isIdle ? 'bg-yellow-500/20 text-yellow-500' : 'bg-blue-500/20 text-blue-500'}`}>
             {isIdle ? 'IDLE' : 'MOVING'}
           </span>
