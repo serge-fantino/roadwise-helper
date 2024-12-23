@@ -34,15 +34,20 @@ export class Vehicle {
 
   addObserver(observer: VehicleObserver) {
     this._observers.push(observer);
+    console.log('[Vehicle] Observer added, total observers:', this._observers.length);
   }
 
   removeObserver(observer: VehicleObserver) {
     this._observers = this._observers.filter(obs => obs !== observer);
+    console.log('[Vehicle] Observer removed, remaining observers:', this._observers.length);
   }
 
   private notifyObservers() {
-    console.log('Vehicle notifying observers with speed:', this._speed);
-    this._observers.forEach(observer => observer(this._position, this._speed));
+    console.log('[Vehicle] Notifying observers - Current speed:', this._speed);
+    this._observers.forEach(observer => {
+      console.log('[Vehicle] Notifying observer with speed:', this._speed);
+      observer(this._position, this._speed);
+    });
   }
 
   private updateHeading() {
@@ -51,11 +56,12 @@ export class Vehicle {
       const lastPos = positions[0];
       const prevPos = positions[1];
       this._heading = calculateBearing(prevPos, lastPos);
+      console.log('[Vehicle] Heading updated:', this._heading);
     }
   }
 
   update(newPosition: [number, number], newSpeed: number) {
-    console.log('Vehicle update:', { newPosition, newSpeed });
+    console.log('[Vehicle] Updating vehicle:', { newPosition, newSpeed, currentSpeed: this._speed });
     this._position = newPosition;
     this._speed = newSpeed;
     this._snake.addPosition(newPosition);
@@ -64,6 +70,7 @@ export class Vehicle {
   }
 
   reset(position: [number, number]) {
+    console.log('[Vehicle] Resetting vehicle to position:', position);
     this._position = position;
     this._speed = 0;
     this._snake.reset(position);

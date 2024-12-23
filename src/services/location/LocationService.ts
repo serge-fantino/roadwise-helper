@@ -34,14 +34,14 @@ export class LocationService {
   }
 
   private notifyObservers(position: [number, number], speed: number) {
-    console.log('Location update:', { position, speed, mode: this.mode });
+    console.log('[LocationService] Speed update:', { position, speed, mode: this.mode });
     this.observers.forEach(observer => observer(position, speed));
   }
 
   public setMode(mode: LocationMode) {
     if (this.mode === mode) return;
     
-    console.log('Switching location mode to:', mode);
+    console.log('[LocationService] Switching location mode to:', mode);
     this.stopUpdates();
     this.mode = mode;
     this.startUpdates();
@@ -69,18 +69,19 @@ export class LocationService {
 
   private startGPSUpdates() {
     if (!('geolocation' in navigator)) {
-      console.error('Geolocation is not supported');
+      console.error('[LocationService] Geolocation is not supported');
       return;
     }
 
     const handlePosition = (pos: GeolocationPosition) => {
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
+      console.log('[LocationService] GPS update:', { position, speed });
       this.vehicle.update(position, speed);
     };
 
     const handleError = (error: GeolocationPositionError) => {
-      console.error('GPS Error:', error.message);
+      console.error('[LocationService] GPS Error:', error.message);
     };
 
     this.watchId = navigator.geolocation.watchPosition(
@@ -96,7 +97,7 @@ export class LocationService {
 
   private startSimulationUpdates(routePoints?: [number, number][]) {
     if (!routePoints || routePoints.length < 2) {
-      console.error('Cannot start simulation without route points');
+      console.error('[LocationService] Cannot start simulation without route points');
       return;
     }
 
