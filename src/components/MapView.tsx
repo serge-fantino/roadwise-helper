@@ -83,10 +83,7 @@ const MapView = ({
       zoomControl={false}
       attributionControl={false}
       ref={mapRef}
-      whenReady={(map) => {
-        console.log('[MapView] Map is ready');
-        initializeMap(map.target);
-      }}
+      whenReady={initializeMap}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
