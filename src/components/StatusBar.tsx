@@ -11,15 +11,21 @@ interface StatusBarProps {
 const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBarProps) => {
   return (
     <div className="h-12 bg-gray-900 p-2 flex items-center justify-between">
-      <div className="text-white text-sm px-4">
-        {isOnRoad ? 'On road' : 'Off road'} • {Math.round(speed * 3.6)} km/h
+      {/* Left side - Status information */}
+      <div className="text-white text-sm px-4 flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full ${isOnRoad ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        <span>{isOnRoad ? 'On road' : 'Off road'}</span>
+        <span>•</span>
+        <span>{Math.round(speed * 3.6)} km/h</span>
       </div>
+
+      {/* Right side - Debug toggle */}
       {onDebugModeChange && (
-        <div className="px-4 z-10">
+        <div className="px-4">
           <Toggle
             pressed={isDebugMode}
             onPressedChange={onDebugModeChange}
-            className="data-[state=on]:bg-green-500 h-8 relative"
+            className="bg-gray-800 hover:bg-gray-700 text-white data-[state=on]:bg-green-600 data-[state=on]:text-white h-8"
           >
             <Bug className="h-4 w-4 mr-2" />
             Debug
