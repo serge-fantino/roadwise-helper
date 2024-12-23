@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useEffect, useState } from 'react';
 import PredictionOverlay from './PredictionOverlay';
 import RouteOverlay from './map/RouteOverlay';
 import VehicleMarker from './map/VehicleMarker';
@@ -8,7 +9,8 @@ import DestinationMarker from './map/DestinationMarker';
 import HistoryTrail from './map/HistoryTrail';
 import MapEventHandlers from './map/MapEventHandlers';
 import RoadPredictionInfo from './RoadPredictionInfo';
-import { useVehicleState } from '../hooks/useVehicleState';
+import TurnWarningMarker from './map/TurnWarningMarker';
+import { roadPredictor } from '../services/RoadPredictor';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -45,6 +47,27 @@ const MapView = ({
     handleRoadStatusChange
   } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
 
+  const [nextTurn, setNextTurn] = useState<{
+    position: [number, number];
+    angle: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const observer = (prediction: any) => {
+      if (prediction && prediction.position) {
+        setNextTurn({
+          position: prediction.position,
+          angle: prediction.angle
+        });
+      } else {
+        setNextTurn(null);
+      }
+    };
+
+    roadPredictor.addObserver(observer);
+    return () => roadPredictor.removeObserver(observer);
+  }, []);
+
   const heading = (window as any).globalVehicle?.heading || 0;
 
   return (
@@ -68,6 +91,7 @@ const MapView = ({
       <PredictionOverlay position={currentPosition} speed={currentSpeed} routePoints={routePoints} />
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} heading={heading} />
       {destination && <DestinationMarker position={destination} />}
+      {nextTurn && <TurnWarningMarker position={nextTurn.position} angle={nextTurn.angle} />}
       <RouteOverlay routePoints={routePoints} />
       <RoadPredictionInfo routePoints={routePoints} />
     </MapContainer>
