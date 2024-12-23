@@ -3,8 +3,7 @@ import MapView from './MapView';
 import SpeedPanel from './SpeedPanel';
 import DestinationPanel from './DestinationPanel';
 import AddressSearch from './AddressSearch';
-import { Toggle } from './ui/toggle';
-import { Bug } from 'lucide-react';
+import StatusBar from './StatusBar';
 
 interface MainLayoutProps {
   position: [number, number];
@@ -104,23 +103,12 @@ const MainLayout = ({
       )}
 
       {/* Status Bar */}
-      <div className="h-12 bg-gray-900 p-2 flex items-center justify-between">
-        <div className="text-white text-sm px-4">
-          {isOnRoad ? 'On road' : 'Off road'} • {Math.round(speed * 3.6)} km/h
-        </div>
-        {onDebugModeChange && (
-          <div className="px-4">
-            <Toggle
-              pressed={isDebugMode}
-              onPressedChange={onDebugModeChange}
-              className="data-[state=on]:bg-green-500 h-8"
-            >
-              <Bug className="h-4 w-4 mr-2" />
-              Debug
-            </Toggle>
-          </div>
-        )}
-      </div>
+      <StatusBar 
+        isOnRoad={isOnRoad}
+        speed={speed}
+        isDebugMode={isDebugMode}
+        onDebugModeChange={onDebugModeChange}
+      />
     </div>
   );
 };
