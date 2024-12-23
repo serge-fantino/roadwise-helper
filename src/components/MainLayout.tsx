@@ -3,6 +3,8 @@ import MapView from './MapView';
 import SpeedPanel from './SpeedPanel';
 import DestinationPanel from './DestinationPanel';
 import AddressSearch from './AddressSearch';
+import { Toggle } from './ui/toggle';
+import { Bug } from 'lucide-react';
 
 interface MainLayoutProps {
   position: [number, number];
@@ -51,6 +53,17 @@ const MainLayout = ({
 
   return (
     <div className="h-screen flex flex-col">
+      {/* Speed Panel */}
+      <div className="h-40 bg-gray-900 p-4">
+        <SpeedPanel 
+          currentSpeed={speed} 
+          recommendedSpeed={recommendedSpeed}
+          isOnRoad={isOnRoad}
+          isDebugMode={isDebugMode}
+        />
+      </div>
+
+      {/* Address Search */}
       <div className="h-16 bg-gray-900 p-4">
         <DestinationPanel 
           destination={destination} 
@@ -60,6 +73,7 @@ const MainLayout = ({
           isSearchMode={isSearchMode}
         />
       </div>
+
       {isSearchMode ? (
         <div className="flex-1 bg-gray-900 p-4">
           <div className="max-w-xl mx-auto">
@@ -74,6 +88,7 @@ const MainLayout = ({
         </div>
       ) : (
         <>
+          {/* Map View */}
           <div className="flex-1">
             <MapView 
               position={position} 
@@ -85,17 +100,27 @@ const MainLayout = ({
               positionHistory={positionHistory}
             />
           </div>
-          <div className="h-40 bg-gray-900 p-4">
-            <SpeedPanel 
-              currentSpeed={speed} 
-              recommendedSpeed={recommendedSpeed}
-              isOnRoad={isOnRoad}
-              isDebugMode={isDebugMode}
-              onDebugModeChange={onDebugModeChange}
-            />
-          </div>
         </>
       )}
+
+      {/* Status Bar */}
+      <div className="h-12 bg-gray-900 p-2 flex items-center justify-between">
+        <div className="text-white text-sm px-4">
+          {isOnRoad ? 'On road' : 'Off road'} • {Math.round(speed * 3.6)} km/h
+        </div>
+        {onDebugModeChange && (
+          <div className="px-4">
+            <Toggle
+              pressed={isDebugMode}
+              onPressedChange={onDebugModeChange}
+              className="data-[state=on]:bg-green-500 h-8"
+            >
+              <Bug className="h-4 w-4 mr-2" />
+              Debug
+            </Toggle>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
