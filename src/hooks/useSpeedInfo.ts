@@ -60,7 +60,7 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean) => {
       vehicle.addObserver(speedObserver);
       return () => {
         vehicle.removeObserver(speedObserver);
-        predictionService.removeObserver(predictionObserver);
+        roadPredictor.removeObserver(predictionObserver);
       };
     }
   }, [currentSpeed, isOnRoad]);
