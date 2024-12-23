@@ -6,6 +6,7 @@ export class SimulationService {
   private currentRouteIndex = 0;
   private routePoints: [number, number][] = [];
   private vehicle: Vehicle;
+  private lastUpdateTime: number = 0;
 
   constructor(vehicle: Vehicle) {
     this.vehicle = vehicle;
@@ -15,6 +16,7 @@ export class SimulationService {
     this.stopSimulation();
     this.routePoints = routePoints;
     this.currentRouteIndex = 0;
+    this.lastUpdateTime = Date.now();
 
     if (routePoints.length > 0) {
       this.vehicle.reset(routePoints[0]);
@@ -29,9 +31,25 @@ export class SimulationService {
 
         const currentPosition = this.routePoints[this.currentRouteIndex];
         const nextPosition = this.routePoints[nextIndex];
+        
+        // Calcul de la distance en mètres
         const distance = calculateDistance(currentPosition, nextPosition);
-        // Vitesse en m/s, ajustée pour l'intervalle d'1 seconde
-        const speed = distance;
+        
+        // Calcul du temps écoulé en secondes
+        const currentTime = Date.now();
+        const elapsedTime = (currentTime - this.lastUpdateTime) / 1000;
+        this.lastUpdateTime = currentTime;
+
+        // Calcul de la vitesse en m/s
+        const speed = distance / elapsedTime;
+        
+        console.log('Simulation update:', {
+          distance,
+          elapsedTime,
+          speed,
+          currentPosition,
+          nextPosition
+        });
 
         this.vehicle.update(nextPosition, speed);
         this.currentRouteIndex = nextIndex;
