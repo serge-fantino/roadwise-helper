@@ -12,7 +12,6 @@ import RoadPredictionInfo from './RoadPredictionInfo';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
-import { useMapRotation } from '../hooks/useMapRotation';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -71,9 +70,6 @@ const MapView = ({
   }, []);
 
   const heading = (window as any).globalVehicle?.heading || 0;
-  console.log('[MapView] Current heading:', heading);
-
-  const { mapRef, initializeMap } = useMapRotation(heading);
 
   return (
     <MapContainer
@@ -82,8 +78,6 @@ const MapView = ({
       className="w-full h-full"
       zoomControl={false}
       attributionControl={false}
-      ref={mapRef}
-      whenReady={initializeMap}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
