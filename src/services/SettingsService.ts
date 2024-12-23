@@ -1,10 +1,14 @@
 type Observer = (settings: Settings) => void;
 
+export type RoadInfoProvider = 'overpass' | 'mapbox';
+
 export interface Settings {
   defaultSpeed: number;
   minTurnSpeed: number;
   maxTurnAngle: number;
   minTurnAngle: number;
+  roadInfoProvider: RoadInfoProvider;
+  mapboxToken: string;
 }
 
 const SETTINGS_STORAGE_KEY = 'app_settings';
@@ -20,6 +24,8 @@ class SettingsService {
       minTurnSpeed: 30,
       maxTurnAngle: 90,
       minTurnAngle: 15,
+      roadInfoProvider: 'overpass',
+      mapboxToken: '',
     };
 
     if (savedSettings) {

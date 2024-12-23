@@ -1,14 +1,11 @@
 import { RoadInfoAPIService } from './types';
+import { settingsService } from '../SettingsService';
 
 export class MapboxRoadInfoService implements RoadInfoAPIService {
   private static instance: MapboxRoadInfoService;
   private readonly MAPBOX_API = 'https://api.mapbox.com/v4';
-  private readonly accessToken: string;
 
-  private constructor() {
-    // À remplacer par la vraie clé d'API
-    this.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHF5ZXJwOWwwMXZqMmtvNXZ4Z2t1NXZsIn0.Fk7UqOHH2yP7bA';
-  }
+  private constructor() {}
 
   public static getInstance(): MapboxRoadInfoService {
     if (!MapboxRoadInfoService.instance) {
@@ -17,7 +14,15 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
     return MapboxRoadInfoService.instance;
   }
 
+  private get accessToken(): string {
+    return settingsService.getSettings().mapboxToken;
+  }
+
   async isPointOnRoad(lat: number, lon: number): Promise<boolean> {
+    if (!this.accessToken) {
+      throw new Error('Mapbox token not configured');
+    }
+
     try {
       const response = await fetch(
         `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
@@ -38,6 +43,10 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
   }
 
   async getSpeedLimit(lat: number, lon: number): Promise<number | null> {
+    if (!this.accessToken) {
+      throw new Error('Mapbox token not configured');
+    }
+
     try {
       const response = await fetch(
         `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
@@ -53,11 +62,9 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
       const data = await response.json();
       if (data.features.length === 0) return null;
 
-      // Récupérer la vitesse maximale depuis les propriétés de la route
       const speedLimit = data.features[0].properties.maxspeed;
       if (!speedLimit) return null;
 
-      // Convertir mph en km/h si nécessaire
       return speedLimit.includes('mph') 
         ? Math.round(parseInt(speedLimit) * 1.60934) 
         : parseInt(speedLimit);
@@ -67,6 +74,10 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
   }
 
   async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
+    if (!this.accessToken) {
+      throw new Error('Mapbox token not configured');
+    }
+
     try {
       const response = await fetch(
         `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=20&access_token=${this.accessToken}`
@@ -82,11 +93,9 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
       const data = await response.json();
       if (data.features.length === 0) return [];
 
-      // Récupérer la géométrie de la route
       const geometry = data.features[0].geometry;
       if (!geometry || !geometry.coordinates) return [];
 
-      // Convertir les coordonnées [lon, lat] en [lat, lon]
       return geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]]);
     } catch (error) {
       throw error;
