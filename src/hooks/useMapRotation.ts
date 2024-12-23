@@ -11,11 +11,11 @@ export const useMapRotation = (heading: number) => {
     }
   };
 
-  const initializeMap = (map: L.Map) => {
+  const initializeMap = (e: L.LeafletEvent) => {
     console.log('[useMapRotation] Map initialized');
-    mapRef.current = map;
+    mapRef.current = e.target;
     if (heading) {
-      rotateMap(map, -heading);
+      rotateMap(e.target, -heading);
     }
   };
 
