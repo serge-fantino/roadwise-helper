@@ -3,6 +3,7 @@ import { settingsService } from './SettingsService';
 import { TurnAnalyzer } from './prediction/TurnAnalyzer';
 import { SpeedCalculator } from './prediction/SpeedCalculator';
 import { RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';
+import { calculateDistance } from '../utils/mapUtils';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
