@@ -1,9 +1,11 @@
 import { calculateBearing, calculateDistance, calculateAngleDifference } from '../utils/mapUtils';
+import { getSpeedLimit } from '../utils/osmUtils';
 
 interface RoadPrediction {
   distance: number;  // Distance jusqu'au prochain virage en mètres
   angle: number;     // Angle du virage en degrés
   position: [number, number]; // Position du virage
+  speedLimit?: number; // Vitesse limite en km/h
 }
 
 type PredictionObserver = (prediction: RoadPrediction | null) => void;
@@ -47,7 +49,7 @@ class RoadPredictor {
     this.notifyObservers();
   }
 
-  private updatePrediction(routePoints: [number, number][]) {
+  private async updatePrediction(routePoints: [number, number][]) {
     const vehicle = (window as any).globalVehicle;
     if (!vehicle || !routePoints || routePoints.length < 2) {
       this.currentPrediction = null;
@@ -91,17 +93,22 @@ class RoadPredictor {
       }
     }
 
+    // Obtenir la vitesse limite
+    const speedLimit = await getSpeedLimit(curvePosition[0], curvePosition[1]);
+
     // Mettre à jour la prédiction
     this.currentPrediction = curveFound ? {
       distance: totalDistance,
       angle: curveAngle,
-      position: curvePosition
+      position: curvePosition,
+      speedLimit: speedLimit
     } : null;
 
     console.log('Road prediction updated:', {
       distance: totalDistance,
       angle: curveAngle,
       position: curvePosition,
+      speedLimit,
       found: curveFound
     });
 
