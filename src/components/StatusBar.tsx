@@ -1,6 +1,7 @@
 import { Bug } from 'lucide-react';
 import { Toggle } from './ui/toggle';
 import { useEffect, useState } from 'react';
+import { roadPredictor } from '../services/RoadPredictor';
 
 interface StatusBarProps {
   isOnRoad: boolean;
@@ -9,22 +10,28 @@ interface StatusBarProps {
   onDebugModeChange?: (enabled: boolean) => void;
 }
 
-const StatusBar = ({ isOnRoad, speed: initialSpeed, isDebugMode, onDebugModeChange }: StatusBarProps) => {
-  const [currentSpeed, setCurrentSpeed] = useState(initialSpeed);
+const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps) => {
+  const [prediction, setPrediction] = useState<{
+    distance: number;
+    angle: number;
+    position: [number, number];
+  } | null>(null);
 
   useEffect(() => {
-    const vehicle = (window as any).globalVehicle;
-    if (vehicle) {
-      const speedObserver = (_: [number, number], speed: number) => {
-        setCurrentSpeed(speed);
-      };
-      
-      vehicle.addObserver(speedObserver);
-      return () => {
-        vehicle.removeObserver(speedObserver);
-      };
-    }
+    const observer = (newPrediction: typeof prediction) => {
+      setPrediction(newPrediction);
+    };
+
+    roadPredictor.addObserver(observer);
+    return () => {
+      roadPredictor.removeObserver(observer);
+    };
   }, []);
+
+  const getTurnDirection = () => {
+    if (!prediction) return '';
+    return prediction.angle > 0 ? 'droite' : 'gauche';
+  };
 
   return (
     <div className="h-12 bg-gray-900 p-2 flex items-center justify-between">
@@ -32,8 +39,12 @@ const StatusBar = ({ isOnRoad, speed: initialSpeed, isDebugMode, onDebugModeChan
       <div className="text-white text-sm px-4 flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full ${isOnRoad ? 'bg-green-500' : 'bg-red-500'}`}></span>
         <span>{isOnRoad ? 'On road' : 'Off road'}</span>
-        <span>•</span>
-        <span>{Math.round(currentSpeed * 3.6)} km/h</span>
+        {prediction && (
+          <>
+            <span>•</span>
+            <span>Virage {getTurnDirection()} dans {Math.round(prediction.distance)}m ({Math.abs(Math.round(prediction.angle))}°)</span>
+          </>
+        )}
       </div>
 
       {/* Right side - Debug toggle */}
