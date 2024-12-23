@@ -1,7 +1,8 @@
-import { Bug } from 'lucide-react';
+import { Bug, Settings } from 'lucide-react';
 import { Toggle } from './ui/toggle';
 import { useEffect, useState } from 'react';
 import { roadPredictor } from '../services/RoadPredictor';
+import { useNavigate } from 'react-router-dom';
 
 interface StatusBarProps {
   isOnRoad: boolean;
@@ -11,6 +12,7 @@ interface StatusBarProps {
 }
 
 const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps) => {
+  const navigate = useNavigate();
   const [prediction, setPrediction] = useState<{
     distance: number;
     angle: number;
@@ -53,9 +55,9 @@ const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps)
         )}
       </div>
 
-      {/* Right side - Debug toggle */}
-      {onDebugModeChange && (
-        <div className="px-4">
+      {/* Right side - Debug toggle and Settings */}
+      <div className="px-4 flex items-center gap-2">
+        {onDebugModeChange && (
           <Toggle
             pressed={isDebugMode}
             onPressedChange={onDebugModeChange}
@@ -64,8 +66,14 @@ const StatusBar = ({ isOnRoad, isDebugMode, onDebugModeChange }: StatusBarProps)
             <Bug className="h-4 w-4 mr-2" />
             Debug
           </Toggle>
-        </div>
-      )}
+        )}
+        <Toggle
+          onPressedChange={() => navigate('/settings')}
+          className="bg-gray-800 hover:bg-gray-700 text-white h-8"
+        >
+          <Settings className="h-4 w-4" />
+        </Toggle>
+      </div>
     </div>
   );
 };
