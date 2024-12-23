@@ -13,7 +13,7 @@ const getCacheKey = (lat: number, lon: number, queryType: string) => {
 };
 
 // Fonction pour faire une requête avec retry
-const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, initialDelay = 1000) => {
+export const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, initialDelay = 1000) => {
   try {
     const response = await fetch(url, options);
     
