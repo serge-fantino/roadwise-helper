@@ -10,7 +10,7 @@ class RoadInfoService {
 
   private constructor() {
     // Par défaut on utilise le service Nominatim
-    this.currentService = new NominatimRoadInfoService();
+    this.currentService = NominatimRoadInfoService.getInstance();
   }
 
   public static getInstance(): RoadInfoService {
@@ -23,18 +23,18 @@ class RoadInfoService {
   public setMapboxToken(token: string) {
     this.mapboxToken = token;
     if (token) {
-      this.currentService = new MapboxRoadInfoService(token);
+      this.currentService = MapboxRoadInfoService.getInstance();
     } else {
-      this.currentService = new NominatimRoadInfoService();
+      this.currentService = NominatimRoadInfoService.getInstance();
     }
   }
 
   public useNominatim() {
-    this.currentService = new NominatimRoadInfoService();
+    this.currentService = NominatimRoadInfoService.getInstance();
   }
 
   public useOverpass() {
-    this.currentService = new OverpassRoadInfoService();
+    this.currentService = OverpassRoadInfoService.getInstance();
   }
 
   public async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
