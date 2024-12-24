@@ -8,7 +8,6 @@ import VehicleMarker from './map/VehicleMarker';
 import DestinationMarker from './map/DestinationMarker';
 import HistoryTrail from './map/HistoryTrail';
 import MapEventHandlers from './map/MapEventHandlers';
-import RoadPredictionInfo from './RoadPredictionInfo';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
@@ -94,7 +93,6 @@ const MapView = ({
         />
       ))}
       <RouteOverlay routePoints={routePoints} />
-      <RoadPredictionInfo routePoints={routePoints} />
     </MapContainer>
   );
 };
