@@ -45,6 +45,38 @@ export class SimulationServiceV2 {
     return direction;
   }
 
+  private calculateNextPosition(currentPosition: [number, number], heading: [number, number], distance: number): [number, number] {
+    // Conversion de la distance en degrés
+    const deltaLat = (heading[0] * distance) / METERS_PER_DEGREE_LAT;
+    const deltaLon = (heading[1] * distance) / (METERS_PER_DEGREE_LAT * Math.cos(currentPosition[0] * Math.PI / 180));
+    
+    return [
+      currentPosition[0] + deltaLat,
+      currentPosition[1] + deltaLon
+    ];
+  }
+
+  private findNextValidTarget(currentPosition: [number, number], distanceToTravel: number): number {
+    let accumulatedDistance = 0;
+    let targetIndex = this.currentRouteIndex + 1;
+
+    while (targetIndex < this.routePoints.length) {
+      const nextPoint = this.routePoints[targetIndex];
+      accumulatedDistance += calculateDistance(
+        targetIndex === this.currentRouteIndex + 1 ? currentPosition : this.routePoints[targetIndex - 1],
+        nextPoint
+      );
+
+      if (accumulatedDistance > distanceToTravel) {
+        break;
+      }
+      targetIndex++;
+    }
+
+    // S'assurer qu'on ne dépasse pas la fin du trajet
+    return Math.min(targetIndex, this.routePoints.length - 1);
+  }
+
   private updateVehicleState() {
     // Si le véhicule est idle et la vitesse est nulle, on ne fait rien
     if (this.isIdle && this.currentSpeed === 0) {
@@ -58,13 +90,19 @@ export class SimulationServiceV2 {
     }
 
     const currentPosition = this.vehicle.position;
-    const nextPosition = this.routePoints[this.currentRouteIndex + 1];
+    const distanceToTravel = this.currentSpeed * TIME_STEP;
+    
+    // Trouver le prochain point cible valide en fonction de la distance à parcourir
+    const targetIndex = this.findNextValidTarget(currentPosition, distanceToTravel);
+    const nextPosition = this.routePoints[targetIndex];
     
     console.log('[SimulationV2] Current state:', {
       currentRouteIndex: this.currentRouteIndex,
+      targetIndex,
       currentPosition,
       nextPosition,
-      currentSpeed: this.currentSpeed
+      currentSpeed: this.currentSpeed,
+      distanceToTravel
     });
 
     const heading = this.calculateHeading(currentPosition, nextPosition);
@@ -98,24 +136,20 @@ export class SimulationServiceV2 {
     this.currentSpeed = Math.max(0, this.currentSpeed + acceleration * TIME_STEP);
 
     // Calculer la nouvelle position
-    // Conversion des mètres en degrés pour la latitude et longitude
-    const distanceM = this.currentSpeed * TIME_STEP;
-    const newLat = currentPosition[0] + (heading[0] * distanceM) / METERS_PER_DEGREE_LAT;
-    const newLon = currentPosition[1] + (heading[1] * distanceM) / (METERS_PER_DEGREE_LAT * Math.cos(currentPosition[0] * Math.PI / 180));
-    const newPosition: [number, number] = [newLat, newLon];
+    const newPosition = this.calculateNextPosition(currentPosition, heading, distanceToTravel);
 
     console.log('[SimulationV2] Movement update:', {
       heading,
       acceleration,
-      distanceM,
+      distanceToTravel,
       newPosition,
       newSpeed: this.currentSpeed
     });
 
-    // Vérifier si on a dépassé le prochain point
-    if (calculateDistance(newPosition, nextPosition) < 10) { // 10 mètres de tolérance
-      console.log('[SimulationV2] Reached next route point, incrementing index');
-      this.currentRouteIndex++;
+    // Mettre à jour l'index de route si nécessaire
+    if (targetIndex > this.currentRouteIndex) {
+      console.log('[SimulationV2] Skipping points, updating route index from', this.currentRouteIndex, 'to', targetIndex);
+      this.currentRouteIndex = targetIndex;
     }
 
     // Mettre à jour le véhicule
