@@ -19,7 +19,6 @@ class RoadPredictor {
     this.turnPredictionManager = new TurnPredictionManager();
     this.decelerationCalculator = new DecelerationCalculator();
 
-    // S'abonner aux mises à jour des informations routières
     roadInfoManager.addObserver((roadInfo) => {
       if (this.currentPrediction) {
         this.currentPrediction.speedLimit = roadInfo.speedLimit;
@@ -51,7 +50,6 @@ class RoadPredictor {
     const currentSpeed = vehicle.speed * 3.6;
     const settings = settingsService.getSettings();
 
-    // Utiliser les informations routières du manager
     const roadInfo = roadInfoManager.getCurrentInfo();
     const speedLimit = roadInfo?.speedLimit ?? null;
 
@@ -69,16 +67,10 @@ class RoadPredictor {
       return;
     }
 
-    // Mise à jour des informations routières
     await roadInfoManager.updateRoadInfo(currentPosition);
-
-    // Mise à jour des distances pour les virages existants
     await this.turnPredictionManager.updateTurnDistances(currentPosition);
-
-    // Suppression des virages dépassés
     this.turnPredictionManager.removePastTurns();
 
-    // Recherche de nouveaux virages si nécessaire
     const turns = this.turnPredictionManager.getTurns();
     const lastTurnIndex = turns.length > 0 
       ? Math.max(...turns.map(t => t.index))
@@ -89,15 +81,18 @@ class RoadPredictor {
       lastTurnIndex,
       currentPosition,
       settings,
-      speedLimit // Passer la limite de vitesse au gestionnaire de virages
+      speedLimit
     );
 
-    // Tri des virages par distance
     this.turnPredictionManager.sortTurns();
 
-    // Mise à jour de la prédiction courante avec le virage le plus proche
+    // Mise à jour de la prédiction courante
     const nextTurn = this.turnPredictionManager.getNextTurn();
-    if (nextTurn) {
+    
+    // Si pas de prochain virage, on envoie explicitement une prédiction nulle
+    if (!nextTurn) {
+      this.currentPrediction = null;
+    } else {
       const requiredDeceleration = currentSpeed > (nextTurn.optimalSpeed || 0)
         ? this.decelerationCalculator.calculateRequiredDeceleration(
             currentSpeed,
@@ -110,8 +105,6 @@ class RoadPredictor {
         ...nextTurn,
         requiredDeceleration
       };
-    } else {
-      this.currentPrediction = null;
     }
 
     console.log('Road prediction updated:', { 
@@ -119,6 +112,8 @@ class RoadPredictor {
       allTurns: this.turnPredictionManager.getTurns(),
       speedLimit
     });
+    
+    // On notifie même quand il n'y a pas de virage pour mettre à jour l'interface
     this.notifyObservers();
   }
 
