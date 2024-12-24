@@ -21,7 +21,7 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
     }
 
     try {
-      console.log('Sending Overpass query:', query);
+      console.log('[OverpassRoadInfoService] Sending query:', query);
       const response = await fetchWithRetry(
         this.OVERPASS_API,
         {
@@ -36,26 +36,24 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
       );
 
       const data = await response.json();
-      console.log('Overpass response:', data);
+      console.log('[OverpassRoadInfoService] Response:', JSON.stringify(data, null, 2));
       return data;
     } catch (error) {
       if (error instanceof Error && error.message.includes('429')) {
         this.isQuotaExceeded = true;
       }
-      console.error('Overpass query error:', error);
+      console.error('[OverpassRoadInfoService] Query error:', error);
       throw error;
     }
   }
 
   private async isInCity(lat: number, lon: number): Promise<boolean> {
+    console.log('[OverpassRoadInfoService] Checking if location is in city:', { lat, lon });
     const query = `
       [out:json];
       (
-        // Recherche des panneaux d'entrée d'agglomération
         node(around:1000,${lat},${lon})["traffic_sign"="city_limit"];
-        // Recherche des zones résidentielles
         way(around:100,${lat},${lon})["landuse"="residential"];
-        // Recherche des limites de ville
         way(around:100,${lat},${lon})["place"~"city|town|village"];
         relation(around:100,${lat},${lon})["place"~"city|town|village"];
       );
@@ -64,42 +62,65 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
 
     try {
       const data = await this.query(query);
-      console.log('City check response:', data);
-      return data.elements.length > 0;
+      const isInCity = data.elements.length > 0;
+      console.log('[OverpassRoadInfoService] City check result:', {
+        isInCity,
+        elementsFound: data.elements.length,
+        elements: data.elements
+      });
+      return isInCity;
     } catch (error) {
-      console.error('Error checking city status:', error);
+      console.error('[OverpassRoadInfoService] Error checking city status:', error);
       return false;
     }
   }
 
   private async estimateSpeedLimit(tags: Record<string, string>, lat: number, lon: number): Promise<number | null> {
+    console.log('[OverpassRoadInfoService] Estimating speed limit with tags:', tags);
     const highway = tags.highway;
     const isInCity = await this.isInCity(lat, lon);
-    console.log('Is in city:', isInCity, 'for position:', lat, lon);
+    console.log('[OverpassRoadInfoService] Location check:', { isInCity, highway });
 
     // Estimation basée sur les règles françaises
+    let estimatedLimit: number | null = null;
+    
     switch (highway) {
       case 'motorway':
-        return 130;
+        estimatedLimit = 130;
+        break;
       case 'trunk':
-        return 110;
+        estimatedLimit = 110;
+        break;
       case 'primary':
       case 'secondary':
       case 'tertiary':
         // Si c'est une route départementale (présence de ref commençant par D)
         if (tags.ref?.startsWith('D')) {
-          return isInCity ? 50 : 80;
+          estimatedLimit = isInCity ? 50 : 80;
+        } else {
+          estimatedLimit = isInCity ? 50 : 80;
         }
-        return isInCity ? 50 : 80;
+        break;
       case 'residential':
       case 'living_street':
-        return 30;
+        estimatedLimit = 30;
+        break;
       default:
-        return null;
+        estimatedLimit = null;
     }
+
+    console.log('[OverpassRoadInfoService] Estimated speed limit:', {
+      estimatedLimit,
+      isInCity,
+      highway,
+      ref: tags.ref
+    });
+
+    return estimatedLimit;
   }
 
   async isPointOnRoad(lat: number, lon: number): Promise<boolean> {
+    console.log('[OverpassRoadInfoService] Checking if point is on road:', { lat, lon });
     const query = `
       [out:json];
       way(around:10,${lat},${lon})["highway"];
@@ -108,13 +129,20 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
 
     try {
       const data = await this.query(query);
-      return data.elements.length > 0;
+      const isOnRoad = data.elements.length > 0;
+      console.log('[OverpassRoadInfoService] Point on road check result:', {
+        isOnRoad,
+        elementsFound: data.elements.length
+      });
+      return isOnRoad;
     } catch (error) {
+      console.error('[OverpassRoadInfoService] Error checking point on road:', error);
       throw error;
     }
   }
 
   async getSpeedLimit(lat: number, lon: number): Promise<number | null> {
+    console.log('[OverpassRoadInfoService] Getting speed limit for:', { lat, lon });
     const query = `
       [out:json];
       (
@@ -127,14 +155,17 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
 
     try {
       const data = await this.query(query);
-      console.log('Speed limit data:', data);
+      console.log('[OverpassRoadInfoService] Speed limit data:', data);
       
-      if (data.elements.length === 0) return null;
+      if (data.elements.length === 0) {
+        console.log('[OverpassRoadInfoService] No road elements found');
+        return null;
+      }
 
       // Chercher d'abord une limite de vitesse explicite
       for (const element of data.elements) {
         if (element.tags?.maxspeed) {
-          console.log('Found explicit maxspeed:', element.tags.maxspeed);
+          console.log('[OverpassRoadInfoService] Found explicit maxspeed:', element.tags.maxspeed);
           const speedNumber = parseInt(element.tags.maxspeed.replace(/[^0-9]/g, ''));
           if (!isNaN(speedNumber)) {
             return speedNumber;
@@ -145,7 +176,7 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
       // Si pas de limite explicite, estimer basé sur le type de route
       for (const element of data.elements) {
         if (element.tags?.highway) {
-          console.log('Estimating speed limit from road type:', element.tags);
+          console.log('[OverpassRoadInfoService] No explicit speed limit found, estimating from road type');
           const estimatedLimit = await this.estimateSpeedLimit(element.tags, lat, lon);
           if (estimatedLimit) {
             return estimatedLimit;
@@ -153,14 +184,16 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
         }
       }
       
+      console.log('[OverpassRoadInfoService] No speed limit could be determined');
       return null;
     } catch (error) {
-      console.error('Error getting speed limit:', error);
+      console.error('[OverpassRoadInfoService] Error getting speed limit:', error);
       return null;
     }
   }
 
   async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
+    console.log('[OverpassRoadInfoService] Getting current road segment:', { lat, lon });
     const query = `
       [out:json];
       way(around:20,${lat},${lon})["highway"];
@@ -169,13 +202,22 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
 
     try {
       const data = await this.query(query);
-      if (data.elements.length === 0) return [];
+      if (data.elements.length === 0) {
+        console.log('[OverpassRoadInfoService] No road segment found');
+        return [];
+      }
 
       const way = data.elements[0];
-      if (!way.geometry) return [];
+      if (!way.geometry) {
+        console.log('[OverpassRoadInfoService] Road segment has no geometry');
+        return [];
+      }
 
-      return way.geometry.map((node: { lat: number; lon: number }) => [node.lat, node.lon]);
+      const segment = way.geometry.map((node: { lat: number; lon: number }) => [node.lat, node.lon]);
+      console.log('[OverpassRoadInfoService] Found road segment with points:', segment.length);
+      return segment;
     } catch (error) {
+      console.error('[OverpassRoadInfoService] Error getting road segment:', error);
       throw error;
     }
   }
