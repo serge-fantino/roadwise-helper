@@ -9,8 +9,9 @@ export interface Settings {
   minTurnAngle: number;
   roadInfoProvider: RoadInfoProvider;
   mapboxToken: string;
-  predictionDistance: number; // Distance en mètres pour l'analyse des virages
-  maxRouteDeviation: number; // Distance maximale en mètres avant recalcul
+  predictionDistance: number;
+  maxRouteDeviation: number;
+  disableOverpass: boolean; // New setting
 }
 
 const SETTINGS_STORAGE_KEY = 'app_settings';
@@ -30,6 +31,7 @@ class SettingsService {
       mapboxToken: '',
       predictionDistance: 500,
       maxRouteDeviation: 50,
+      disableOverpass: false, // Default value
     };
 
     if (savedSettings) {

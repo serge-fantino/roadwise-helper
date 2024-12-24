@@ -1,5 +1,6 @@
 import { roadInfoService } from './index';
 import { calculateDistance } from '../../utils/mapUtils';
+import { settingsService } from '../SettingsService';
 
 export interface RoadInfo {
   isOnRoad: boolean;
@@ -15,8 +16,8 @@ class RoadInfoManager {
   private static instance: RoadInfoManager;
   private observers: RoadInfoObserver[] = [];
   private currentInfo: RoadInfo | null = null;
-  private readonly MIN_UPDATE_DISTANCE = 10; // Distance minimale en mètres avant mise à jour
-  private readonly MIN_UPDATE_INTERVAL = 5000; // Intervalle minimal entre les mises à jour (5 secondes)
+  private readonly MIN_UPDATE_DISTANCE = 10;
+  private readonly MIN_UPDATE_INTERVAL = 5000;
   private lastUpdateTime: number = 0;
   private updateTimeout: NodeJS.Timeout | null = null;
 
@@ -44,24 +45,26 @@ class RoadInfoManager {
   }
 
   private shouldUpdate(newPosition: [number, number]): boolean {
+    // Check if Overpass is disabled
+    if (settingsService.getSettings().disableOverpass) {
+      console.log('Skipping road info update - Overpass API is disabled');
+      return false;
+    }
+
     const now = Date.now();
     const timeSinceLastUpdate = now - this.lastUpdateTime;
 
-    // Vérifier l'intervalle minimal
     if (timeSinceLastUpdate < this.MIN_UPDATE_INTERVAL) {
       console.log('Skipping road info update - too soon since last update:', 
         timeSinceLastUpdate, 'ms');
       return false;
     }
 
-    // Si pas d'info courante, on doit mettre à jour
     if (!this.currentInfo) return true;
 
-    // Calculer la distance depuis la dernière position
     const distance = calculateDistance(newPosition, this.currentInfo.lastPosition);
     console.log('Distance since last road info update:', distance, 'm');
 
-    // Mettre à jour seulement si on a bougé suffisamment
     return distance >= this.MIN_UPDATE_DISTANCE;
   }
 

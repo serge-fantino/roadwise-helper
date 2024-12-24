@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Settings, settingsService, RoadInfoProvider } from "../services/SettingsService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "./ui/use-toast";
+import { Switch } from "./ui/switch";
 
 const SettingsView = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const SettingsView = () => {
     return () => settingsService.removeObserver(observer);
   }, []);
 
-  const handleSettingChange = (key: keyof Settings, value: string | number) => {
+  const handleSettingChange = (key: keyof Settings, value: string | number | boolean) => {
     if (typeof value === 'string' && ['minTurnAngle', 'minTurnSpeed', 'maxTurnAngle', 'defaultSpeed', 'predictionDistance'].includes(key)) {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
@@ -108,6 +109,15 @@ const SettingsView = () => {
                     <SelectItem value="mapbox">Mapbox (Premium)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="disable-overpass"
+                  checked={settings.disableOverpass}
+                  onCheckedChange={(checked) => handleSettingChange('disableOverpass', checked)}
+                />
+                <Label htmlFor="disable-overpass">Désactiver les appels à Overpass API</Label>
               </div>
 
               <div className="space-y-2">
