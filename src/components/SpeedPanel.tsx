@@ -24,15 +24,39 @@ const SpeedPanel = ({
       displaySpeed,
       recommendedSpeed,
       speedLimit,
-      optimalSpeed
+      optimalSpeed,
+      prediction
     });
-  }, [currentSpeed, displaySpeed, recommendedSpeed, speedLimit, optimalSpeed]);
+  }, [currentSpeed, displaySpeed, recommendedSpeed, speedLimit, optimalSpeed, prediction]);
 
   const kmhSpeed = Math.round(displaySpeed * 3.6); // Conversion m/s to km/h
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
+
+  // Calcul du pourcentage de remplissage de la barre de progression
+  const getProgressStyle = () => {
+    if (!prediction || prediction.angle === null) {
+      return {};
+    }
+
+    const distance = prediction.distance;
+    const maxDistance = 200; // Distance maximale en mètres pour commencer à afficher la progression
+    const progress = Math.max(0, Math.min(100, (1 - distance / maxDistance) * 100));
+    
+    // Détermine si le virage est à gauche ou à droite
+    const isLeftTurn = prediction.angle < 0;
+    
+    return {
+      background: `linear-gradient(to ${isLeftTurn ? 'right' : 'left'}, 
+        #8E9196 ${progress}%, 
+        #222222 ${progress}%)`
+    };
+  };
   
   return (
-    <div className="bg-gray-900/90 text-white w-full">
+    <div 
+      className="bg-gray-900/90 text-white w-full transition-all duration-300 ease-in-out"
+      style={getProgressStyle()}
+    >
       <div className="flex flex-col items-center justify-center px-0 py-0 space-y-0">
         <SpeedDisplay 
           currentSpeed={kmhSpeed}
