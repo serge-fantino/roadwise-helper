@@ -1,6 +1,7 @@
 import { RoadPrediction, TurnPrediction } from '../PredictionTypes';
 import { TurnPredictionManager } from '../TurnPredictionManager';
 import { DecelerationCalculator } from '../DecelerationCalculator';
+import { Settings } from '../../SettingsService';
 
 export class PredictionStateManager {
   private currentPrediction: RoadPrediction | null = null;
