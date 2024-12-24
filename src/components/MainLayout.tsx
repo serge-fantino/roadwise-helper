@@ -2,6 +2,7 @@ import TopPanel from './layout/TopPanel';
 import MapArea from './layout/MapArea';
 import StatusBar from './StatusBar';
 import SearchArea from './layout/SearchArea';
+import { useState } from 'react';
 
 interface MainLayoutProps {
   position: [number, number];
@@ -30,6 +31,8 @@ const MainLayout = ({
   onDebugModeChange,
   positionHistory
 }: MainLayoutProps) => {
+  const [isSearchMode, setIsSearchMode] = useState(false);
+
   return (
     <div className="flex flex-col h-screen">
       <TopPanel
@@ -39,20 +42,27 @@ const MainLayout = ({
         isDebugMode={isDebugMode}
         destination={destination}
         onDestinationSelect={onDestinationSelect}
-        onDestinationClick={() => {}}
-        onSearchModeChange={() => {}}
-        isSearchMode={false}
+        onDestinationClick={() => setIsSearchMode(true)}
+        onSearchModeChange={setIsSearchMode}
+        isSearchMode={isSearchMode}
       />
       <div className="flex-1 relative">
-        <MapArea
-          position={position}
-          speed={speed}
-          onRoadStatusChange={onRoadStatusChange}
-          destination={destination?.location}
-          routePoints={routePoints}
-          onMapClick={onDestinationSelect}
-          positionHistory={positionHistory}
-        />
+        {isSearchMode ? (
+          <SearchArea onLocationSelect={(location, address) => {
+            onDestinationSelect(location, address);
+            setIsSearchMode(false);
+          }} />
+        ) : (
+          <MapArea
+            position={position}
+            speed={speed}
+            onRoadStatusChange={onRoadStatusChange}
+            destination={destination?.location}
+            routePoints={routePoints}
+            onMapClick={onDestinationSelect}
+            positionHistory={positionHistory}
+          />
+        )}
       </div>
       <StatusBar 
         isOnRoad={isOnRoad} 
