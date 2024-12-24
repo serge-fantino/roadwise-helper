@@ -1,42 +1,16 @@
 import { RoadInfoAPIService } from './types';
-import { OverpassRoadInfoService } from './overpass/OverpassRoadInfoService';
-import { MapboxRoadInfoService } from './MapboxRoadInfoService';
 import { NominatimRoadInfoService } from './NominatimRoadInfoService';
-import { settingsService } from '../SettingsService';
+import { MapboxRoadInfoService } from './MapboxRoadInfoService';
+import { OverpassRoadInfoService } from './overpass/OverpassRoadInfoService';
 
-class RoadInfoService implements RoadInfoAPIService {
+class RoadInfoService {
   private static instance: RoadInfoService;
-  private currentProvider: RoadInfoAPIService;
+  private currentService: RoadInfoAPIService;
+  private mapboxToken?: string;
 
   private constructor() {
-    const settings = settingsService.getSettings();
-    this.currentProvider = this.getProviderInstance(settings.roadInfoProvider);
-
-    // Observer pour les changements de provider
-    settingsService.addObserver((newSettings) => {
-      console.log('Switching road info provider to:', newSettings.roadInfoProvider);
-      this.currentProvider = this.getProviderInstance(newSettings.roadInfoProvider);
-    });
-  }
-
-  private getProviderInstance(provider: string): RoadInfoAPIService {
-    console.log('Getting provider instance for:', provider);
-    switch (provider) {
-      case 'mapbox':
-        const settings = settingsService.getSettings();
-        if (!settings.mapboxToken) {
-          console.warn('Mapbox token not configured, falling back to Nominatim');
-          return NominatimRoadInfoService.getInstance();
-        }
-        return MapboxRoadInfoService.getInstance();
-      case 'nominatim':
-        console.log('Returning Nominatim instance');
-        return NominatimRoadInfoService.getInstance();
-      case 'overpass':
-      default:
-        console.log('Returning Overpass instance');
-        return OverpassRoadInfoService.getInstance();
-    }
+    // Par défaut on utilise le service Nominatim
+    this.currentService = new NominatimRoadInfoService();
   }
 
   public static getInstance(): RoadInfoService {
@@ -46,21 +20,29 @@ class RoadInfoService implements RoadInfoAPIService {
     return RoadInfoService.instance;
   }
 
-  async isPointOnRoad(lat: number, lon: number): Promise<boolean> {
-    console.log('Using provider:', this.currentProvider.constructor.name);
-    return this.currentProvider.isPointOnRoad(lat, lon);
+  public setMapboxToken(token: string) {
+    this.mapboxToken = token;
+    if (token) {
+      this.currentService = new MapboxRoadInfoService(token);
+    } else {
+      this.currentService = new NominatimRoadInfoService();
+    }
   }
 
-  async getSpeedLimit(lat: number, lon: number): Promise<number | null> {
-    return this.currentProvider.getSpeedLimit(lat, lon);
+  public useNominatim() {
+    this.currentService = new NominatimRoadInfoService();
   }
 
-  async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
-    return this.currentProvider.getCurrentRoadSegment(lat, lon);
+  public useOverpass() {
+    this.currentService = new OverpassRoadInfoService();
   }
 
-  async getRoadData(lat: number, lon: number): Promise<any> {
-    return this.currentProvider.getRoadData(lat, lon);
+  public async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
+    return this.currentService.getCurrentRoadSegment(lat, lon);
+  }
+
+  public async getRoadData(lat: number, lon: number): Promise<any> {
+    return this.currentService.getRoadData(lat, lon);
   }
 }
 
