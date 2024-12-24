@@ -13,6 +13,8 @@ class RoadPredictor {
   private turnPredictionManager: TurnPredictionManager;
   private decelerationCalculator: DecelerationCalculator;
   private destination: [number, number] | null = null;
+  private lastRecalculationTime: number = 0;
+  private static RECALCULATION_COOLDOWN = 5000; // 5 secondes minimum entre les recalculs
 
   constructor() {
     this.routeTracker = new RouteTracker();
@@ -52,16 +54,24 @@ class RoadPredictor {
 
     const roadInfo = roadInfoManager.getCurrentInfo();
     const speedLimit = roadInfo?.speedLimit ?? null;
+    const isOnRoad = roadInfo?.isOnRoad ?? false;
 
     const { index: closestPointIndex, distance: deviationDistance } = 
       this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
 
     // Vérifier si le véhicule est trop loin de la route
-    if (this.routeTracker.isOffRoute(deviationDistance, settings) && this.destination) {
+    if (this.routeTracker.isOffRoute(deviationDistance, settings) && 
+        this.destination && 
+        isOnRoad && // Ne recalculer que si on est sur une route
+        currentSpeed > 0 && // Ne pas recalculer si le véhicule est à l'arrêt
+        Date.now() - this.lastRecalculationTime > RoadPredictor.RECALCULATION_COOLDOWN) { // Respecter le cooldown
+      
       console.log('Vehicle is off route, recalculating...', {
         currentPosition,
         destination: this.destination,
-        deviationDistance
+        deviationDistance,
+        isOnRoad,
+        currentSpeed
       });
       
       // Déclencher l'événement de recalcul d'itinéraire
@@ -72,6 +82,7 @@ class RoadPredictor {
         }
       });
       window.dispatchEvent(event);
+      this.lastRecalculationTime = Date.now();
       return;
     }
 
@@ -127,6 +138,7 @@ class RoadPredictor {
     // Reset the turns when starting updates with new route points
     this.turnPredictionManager = new TurnPredictionManager();
     this.currentPrediction = null;
+    this.lastRecalculationTime = 0;
     
     // Mettre à jour la destination si elle est fournie
     if (destination) {
