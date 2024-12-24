@@ -1,5 +1,5 @@
 import { RoadInfoAPIService } from './types';
-import { OverpassRoadInfoService } from './OverpassRoadInfoService';
+import { OverpassRoadInfoService } from './overpass/OverpassRoadInfoService';
 import { MapboxRoadInfoService } from './MapboxRoadInfoService';
 import { NominatimRoadInfoService } from './NominatimRoadInfoService';
 import { settingsService } from '../SettingsService';
