@@ -45,11 +45,12 @@ export class PredictionStateManager {
 
     this.turnPredictionManager.sortTurns();
     
-    // S'il n'y a plus de virages devant, on réinitialise la prédiction
+    // Réinitialiser complètement si aucun virage n'est devant
     const remainingTurns = this.getTurns();
     if (remainingTurns.length === 0) {
       console.log('No more turns ahead, resetting current prediction');
       this.currentPrediction = null;
+      this.turnPredictionManager = new TurnPredictionManager();
     } else {
       this.updateCurrentPrediction(currentSpeed);
     }
