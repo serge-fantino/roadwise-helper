@@ -6,6 +6,7 @@ const ACCELERATION_FACTOR = 0.2; // 0.2g
 const DECELERATION_FACTOR = 0.1; // 0.1g
 const TIME_STEP = 1; // 1 seconde
 const METERS_PER_DEGREE_LAT = 111111; // Approximation à l'équateur
+const MAX_POINTS_AHEAD = 3; // Maximum de points qu'on peut sauter
 
 export class SimulationServiceV2 {
   private intervalId: NodeJS.Timeout | null = null;
@@ -59,13 +60,23 @@ export class SimulationServiceV2 {
   private findNextValidTarget(currentPosition: [number, number], distanceToTravel: number): number {
     let accumulatedDistance = 0;
     let targetIndex = this.currentRouteIndex + 1;
+    const startIndex = targetIndex;
 
-    while (targetIndex < this.routePoints.length) {
+    while (targetIndex < this.routePoints.length && 
+           (targetIndex - startIndex) < MAX_POINTS_AHEAD) { // Limite le nombre de points à sauter
       const nextPoint = this.routePoints[targetIndex];
-      accumulatedDistance += calculateDistance(
-        targetIndex === this.currentRouteIndex + 1 ? currentPosition : this.routePoints[targetIndex - 1],
-        nextPoint
-      );
+      const prevPoint = targetIndex === startIndex ? currentPosition : this.routePoints[targetIndex - 1];
+      
+      const segmentDistance = calculateDistance(prevPoint, nextPoint);
+      accumulatedDistance += segmentDistance;
+
+      console.log('[SimulationV2] Target search:', {
+        targetIndex,
+        segmentDistance,
+        accumulatedDistance,
+        distanceToTravel,
+        pointsAhead: targetIndex - startIndex
+      });
 
       if (accumulatedDistance > distanceToTravel) {
         break;
@@ -199,6 +210,7 @@ export class SimulationServiceV2 {
     }
     console.log('[SimulationV2] Simulation reset');
   }
+
 }
 
 export const createSimulationServiceV2 = (vehicle: Vehicle) => {
