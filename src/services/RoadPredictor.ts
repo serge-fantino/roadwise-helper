@@ -94,11 +94,12 @@ class RoadPredictor {
 
     this.turnPredictionManager.sortTurns();
 
+    // Important: On réinitialise toujours la prédiction actuelle
+    this.currentPrediction = null;
+
     const nextTurn = this.turnPredictionManager.getNextTurn();
     
-    if (!nextTurn) {
-      this.currentPrediction = null;
-    } else {
+    if (nextTurn) {
       const requiredDeceleration = currentSpeed > (nextTurn.optimalSpeed || 0)
         ? this.decelerationCalculator.calculateRequiredDeceleration(
             currentSpeed,
