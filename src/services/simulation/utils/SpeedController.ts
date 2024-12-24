@@ -5,9 +5,14 @@ const MAX_DECELERATION = 0.5; // 0.5g maximum
 
 export class SpeedController {
   private currentSpeed: number = 0;
+  private currentAcceleration: number = 0;
 
   getCurrentSpeed(): number {
     return this.currentSpeed;
+  }
+
+  getCurrentAcceleration(): number {
+    return this.currentAcceleration;
   }
 
   setCurrentSpeed(speed: number) {
@@ -18,7 +23,7 @@ export class SpeedController {
     timeStep: number, 
     optimalSpeed: number, 
     requiredDeceleration: number | null
-  ): number {
+  ): { speed: number; acceleration: number } {
     // Convertir la vitesse optimale de km/h en m/s
     const optimalSpeedMS = optimalSpeed / 3.6;
     let acceleration = 0;
@@ -57,9 +62,14 @@ export class SpeedController {
     
     // Ne pas dépasser la vitesse optimale lors de l'accélération
     this.currentSpeed = Math.min(newSpeed, optimalSpeedMS);
+    this.currentAcceleration = acceleration / GRAVITY; // Store acceleration in g
 
     console.log('New speed:', this.currentSpeed * 3.6, 'km/h');
+    console.log('Acceleration:', this.currentAcceleration, 'g');
     
-    return this.currentSpeed;
+    return { 
+      speed: this.currentSpeed,
+      acceleration: this.currentAcceleration
+    };
   }
 }

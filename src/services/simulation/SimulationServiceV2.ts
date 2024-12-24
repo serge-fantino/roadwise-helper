@@ -32,7 +32,13 @@ export class SimulationServiceV2 {
     }
 
     const currentPosition = this.vehicle.position;
-    const distanceToTravel = this.speedController.getCurrentSpeed() * TIME_STEP;
+    const { speed: newSpeed, acceleration } = this.speedController.updateSpeed(
+      TIME_STEP,
+      90, // Default optimal speed if no prediction
+      null
+    );
+    
+    const distanceToTravel = newSpeed * TIME_STEP;
     
     const targetIndex = this.routeManager.findNextValidTarget(currentPosition, distanceToTravel);
     const nextPosition = this.routeManager.getRoutePoint(targetIndex);
@@ -47,7 +53,8 @@ export class SimulationServiceV2 {
       targetIndex,
       currentPosition,
       nextPosition,
-      currentSpeed: this.speedController.getCurrentSpeed(),
+      currentSpeed: newSpeed,
+      acceleration,
       distanceToTravel
     });
 
@@ -63,9 +70,6 @@ export class SimulationServiceV2 {
       requiredDeceleration = prediction?.requiredDeceleration || null;
     }
 
-    // Mettre à jour la vitesse
-    const newSpeed = this.speedController.updateSpeed(TIME_STEP, optimalSpeed, requiredDeceleration);
-
     // Calculer la nouvelle position
     const newPosition = this.navigationCalculator.calculateNextPosition(currentPosition, heading, distanceToTravel);
 
@@ -75,8 +79,8 @@ export class SimulationServiceV2 {
       this.routeManager.updateCurrentIndex(targetIndex);
     }
 
-    // Mettre à jour le véhicule
-    this.vehicle.update(newPosition, newSpeed);
+    // Mettre à jour le véhicule avec la nouvelle accélération
+    this.vehicle.update(newPosition, newSpeed, acceleration);
   }
 
   startSimulation(routePoints: [number, number][]) {
@@ -102,7 +106,7 @@ export class SimulationServiceV2 {
       this.intervalId = null;
     }
     if (this.vehicle) {
-      this.vehicle.update(this.vehicle.position, 0);
+      this.vehicle.update(this.vehicle.position, 0, 0);
     }
     this.isIdle = true;
     console.log('[SimulationV2] Simulation stopped');

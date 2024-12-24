@@ -3,10 +3,41 @@ interface SpeedDisplayProps {
   recommendedSpeed: number;
   speedLimit?: number | null;
   deceleration?: number | null;
+  acceleration?: number;
 }
 
-const SpeedDisplay = ({ currentSpeed, recommendedSpeed, speedLimit, deceleration }: SpeedDisplayProps) => {
+const SpeedDisplay = ({ 
+  currentSpeed, 
+  recommendedSpeed, 
+  speedLimit, 
+  deceleration,
+  acceleration = 0 
+}: SpeedDisplayProps) => {
   const isOverSpeed = speedLimit ? currentSpeed > speedLimit : currentSpeed > recommendedSpeed;
+  
+  const getAccelerationDisplay = () => {
+    if (Math.abs(acceleration) < 0.01) {
+      return (
+        <span className="text-sm text-gray-400 ml-4 px-2 py-1 rounded">
+          STEADY
+        </span>
+      );
+    }
+    
+    if (acceleration > 0) {
+      return (
+        <span className="text-sm text-white ml-4 px-2 py-1 rounded bg-green-600">
+          ACCEL ({acceleration.toFixed(2)}g)
+        </span>
+      );
+    }
+    
+    return (
+      <span className="text-sm text-white ml-4 px-2 py-1 rounded bg-red-600">
+        BRAKE ({Math.abs(acceleration).toFixed(2)}g)
+      </span>
+    );
+  };
   
   return (
     <div className="flex items-center space-x-2">
@@ -28,10 +59,13 @@ const SpeedDisplay = ({ currentSpeed, recommendedSpeed, speedLimit, deceleration
         km/h {speedLimit ? `(${speedLimit} km/h)` : ''}
       </span>
 
-      {/* Décélération */}
+      {/* Indicateur d'accélération */}
+      {getAccelerationDisplay()}
+
+      {/* Décélération requise */}
       {deceleration && deceleration < 0 && (
         <span className="text-sm text-yellow-500 ml-4">
-          {Math.abs(deceleration).toFixed(1)}g
+          {Math.abs(deceleration).toFixed(1)}g req
         </span>
       )}
     </div>

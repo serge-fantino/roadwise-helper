@@ -6,6 +6,7 @@ import TurnWarning from './TurnWarning';
 interface SpeedPanelProps {
   currentSpeed: number;
   recommendedSpeed: number;
+  currentAcceleration?: number;
   isOnRoad?: boolean;
   isDebugMode?: boolean;
 }
@@ -13,6 +14,7 @@ interface SpeedPanelProps {
 const SpeedPanel = ({ 
   currentSpeed, 
   recommendedSpeed, 
+  currentAcceleration = 0,
   isOnRoad,
   isDebugMode
 }: SpeedPanelProps) => {
@@ -25,9 +27,10 @@ const SpeedPanel = ({
       recommendedSpeed,
       speedLimit,
       optimalSpeed,
-      prediction
+      prediction,
+      currentAcceleration
     });
-  }, [currentSpeed, displaySpeed, recommendedSpeed, speedLimit, optimalSpeed, prediction]);
+  }, [currentSpeed, displaySpeed, recommendedSpeed, speedLimit, optimalSpeed, prediction, currentAcceleration]);
 
   const kmhSpeed = Math.round(displaySpeed * 3.6); // Conversion m/s to km/h
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
@@ -63,6 +66,7 @@ const SpeedPanel = ({
           recommendedSpeed={kmhRecommended}
           speedLimit={speedLimit}
           deceleration={prediction?.requiredDeceleration}
+          acceleration={currentAcceleration}
         />
         {prediction && (
           <TurnWarning 
