@@ -37,6 +37,7 @@ const SpeedPanel = ({
         <SpeedDisplay 
           currentSpeed={kmhSpeed}
           recommendedSpeed={kmhRecommended}
+          speedLimit={speedLimit}
           deceleration={prediction?.requiredDeceleration}
         />
         {prediction && (
