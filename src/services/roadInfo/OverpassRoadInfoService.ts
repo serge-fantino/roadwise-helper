@@ -221,4 +221,22 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
       throw error;
     }
   }
+
+  async getRoadData(lat: number, lon: number): Promise<any> {
+    console.log('[OverpassRoadInfoService] Getting road data for:', { lat, lon });
+    const query = `
+      [out:json];
+      way(around:10,${lat},${lon})["highway"];
+      out geom;
+    `;
+
+    try {
+      const data = await this.query(query);
+      console.log('[OverpassRoadInfoService] Road data:', data);
+      return data;
+    } catch (error) {
+      console.error('[OverpassRoadInfoService] Error getting road data:', error);
+      throw error;
+    }
+  }
 }

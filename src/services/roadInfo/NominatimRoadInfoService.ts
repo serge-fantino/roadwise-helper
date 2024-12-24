@@ -78,4 +78,40 @@ export class NominatimRoadInfoService implements RoadInfoAPIService {
     // On retourne juste le point actuel comme segment
     return [[lat, lon]];
   }
+
+  async getRoadData(lat: number, lon: number): Promise<any> {
+    try {
+      const response = await fetchWithRetry(
+        `${this.NOMINATIM_API}/reverse?format=json&lat=${lat}&lon=${lon}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'DriverAssistant/1.0',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Nominatim');
+      }
+
+      const data = await response.json();
+      
+      return {
+        elements: data.address ? [{
+          tags: {
+            highway: data.address.highway || data.address.road_type,
+            maxspeed: null
+          },
+          geometry: [{
+            lat: lat,
+            lon: lon
+          }]
+        }] : []
+      };
+    } catch (error) {
+      console.error('Nominatim error:', error);
+      return { elements: [] };
+    }
+  }
 }

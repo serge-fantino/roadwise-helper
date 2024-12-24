@@ -101,4 +101,39 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
       throw error;
     }
   }
+
+  async getRoadData(lat: number, lon: number): Promise<any> {
+    if (!this.accessToken) {
+      throw new Error('Mapbox token not configured');
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
+      );
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Quota exceeded');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        elements: data.features.map((feature: any) => ({
+          tags: {
+            highway: feature.properties.class,
+            maxspeed: feature.properties.maxspeed
+          },
+          geometry: feature.geometry.coordinates.map((coord: [number, number]) => ({
+            lat: coord[1],
+            lon: coord[0]
+          }))
+        }))
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
