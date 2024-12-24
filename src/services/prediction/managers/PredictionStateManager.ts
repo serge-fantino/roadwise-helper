@@ -44,7 +44,15 @@ export class PredictionStateManager {
     );
 
     this.turnPredictionManager.sortTurns();
-    this.updateCurrentPrediction(currentSpeed);
+    
+    // S'il n'y a plus de virages devant, on réinitialise la prédiction
+    const remainingTurns = this.getTurns();
+    if (remainingTurns.length === 0) {
+      console.log('No more turns ahead, resetting current prediction');
+      this.currentPrediction = null;
+    } else {
+      this.updateCurrentPrediction(currentSpeed);
+    }
   }
 
   private findClosestRouteIndex(position: [number, number], routePoints: [number, number][]): number {
@@ -80,7 +88,6 @@ export class PredictionStateManager {
   }
 
   private updateCurrentPrediction(currentSpeed: number) {
-    this.currentPrediction = null;
     const nextTurn = this.turnPredictionManager.getNextTurn();
     
     if (nextTurn) {
