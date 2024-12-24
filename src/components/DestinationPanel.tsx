@@ -17,6 +17,16 @@ const DestinationPanel = ({
   isSearchMode
 }: DestinationPanelProps) => {
 
+  const handleSearchClick = () => {
+    console.log('Search mode activated');
+    onSearchModeChange(true);
+  };
+
+  const handleCloseClick = () => {
+    console.log('Search mode deactivated');
+    onSearchModeChange(false);
+  };
+
   if (isSearchMode) {
     return (
       <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white px-4">
@@ -25,7 +35,7 @@ const DestinationPanel = ({
           variant="ghost"
           size="icon"
           className="text-white hover:text-white hover:bg-gray-800 ml-2 flex-shrink-0"
-          onClick={() => onSearchModeChange(false)}
+          onClick={handleCloseClick}
         >
           <X className="h-5 w-5" />
         </Button>
@@ -52,7 +62,7 @@ const DestinationPanel = ({
         variant="ghost"
         size="icon"
         className="text-white hover:text-white hover:bg-gray-800 ml-2 flex-shrink-0"
-        onClick={() => onSearchModeChange(true)}
+        onClick={handleSearchClick}
       >
         <Search className="h-5 w-5" />
       </Button>
