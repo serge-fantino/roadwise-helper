@@ -3,6 +3,7 @@ import { TurnPrediction, RoadPrediction, PredictionObserver } from './prediction
 import { RouteTracker } from './RouteTracker';
 import { TurnPredictionManager } from './prediction/TurnPredictionManager';
 import { DecelerationCalculator } from './prediction/DecelerationCalculator';
+import { roadInfoService } from './roadInfo';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
@@ -69,6 +70,15 @@ class RoadPredictor {
     const currentSpeed = vehicle.speed * 3.6;
     const settings = settingsService.getSettings();
 
+    // Récupérer la limite de vitesse actuelle
+    let speedLimit = null;
+    try {
+      speedLimit = await roadInfoService.getSpeedLimit(currentPosition[0], currentPosition[1]);
+      console.log('Speed limit for prediction:', speedLimit);
+    } catch (error) {
+      console.error('Error getting speed limit for prediction:', error);
+    }
+
     const { index: closestPointIndex, distance: deviationDistance } = 
       this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
 
@@ -99,7 +109,8 @@ class RoadPredictor {
       routePoints,
       lastTurnIndex,
       currentPosition,
-      settings
+      settings,
+      speedLimit // Passer la limite de vitesse au gestionnaire de virages
     );
 
     // Tri des virages par distance
@@ -126,7 +137,8 @@ class RoadPredictor {
 
     console.log('Road prediction updated:', { 
       currentPrediction: this.currentPrediction,
-      allTurns: this.turnPredictionManager.getTurns()
+      allTurns: this.turnPredictionManager.getTurns(),
+      speedLimit
     });
     this.notifyObservers();
   }

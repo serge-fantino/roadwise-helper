@@ -34,17 +34,26 @@ export class TurnPredictionManager {
     routePoints: [number, number][],
     startIndex: number,
     currentPosition: [number, number],
-    settings: Settings
+    settings: Settings,
+    currentSpeedLimit: number | null = null
   ): Promise<void> {
     const turnInfo = this.turnAnalyzer.analyze(routePoints, startIndex, settings);
     if (!turnInfo) return;
 
     const distance = calculateDistance(currentPosition, turnInfo.position);
     if (distance <= settings.predictionDistance) {
-      const speedLimit = await this.speedLimitCache.getSpeedLimit(
+      // Utiliser la limite de vitesse fournie si disponible
+      const speedLimit = currentSpeedLimit || await this.speedLimitCache.getSpeedLimit(
         turnInfo.position[0],
         turnInfo.position[1]
       );
+      
+      console.log('Turn speed calculation:', {
+        turnAngle: turnInfo.angle,
+        speedLimit,
+        position: turnInfo.position
+      });
+
       const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(
         turnInfo.angle,
         speedLimit,
