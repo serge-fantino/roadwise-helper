@@ -36,4 +36,12 @@ export class RoadInfoService implements RoadInfoAPIService {
     }
     return this.provider.getCurrentRoadSegment(lat, lon);
   }
+
+  async getRoadData(lat: number, lon: number): Promise<any> {
+    if (this.isDisabled()) {
+      console.log('Road info API calls are disabled');
+      return { elements: [] };
+    }
+    return this.provider.getRoadData(lat, lon);
+  }
 }

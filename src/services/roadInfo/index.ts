@@ -58,6 +58,10 @@ class RoadInfoService implements RoadInfoAPIService {
   async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
     return this.currentProvider.getCurrentRoadSegment(lat, lon);
   }
+
+  async getRoadData(lat: number, lon: number): Promise<any> {
+    return this.currentProvider.getRoadData(lat, lon);
+  }
 }
 
 export const roadInfoService = RoadInfoService.getInstance();
