@@ -14,6 +14,7 @@ export class SimulationServiceV2 {
   private vehicle: Vehicle;
   private lastUpdateTime: number = 0;
   private currentSpeed: number = 0; // m/s
+  private isIdle: boolean = true;
 
   constructor(vehicle: Vehicle) {
     this.vehicle = vehicle;
@@ -45,6 +46,11 @@ export class SimulationServiceV2 {
   }
 
   private updateVehicleState() {
+    // Si le véhicule est idle et la vitesse est nulle, on ne fait rien
+    if (this.isIdle && this.currentSpeed === 0) {
+      return;
+    }
+
     if (this.currentRouteIndex >= this.routePoints.length - 1) {
       console.log('[SimulationV2] End of route reached');
       this.stopSimulation();
@@ -63,10 +69,15 @@ export class SimulationServiceV2 {
 
     const heading = this.calculateHeading(currentPosition, nextPosition);
 
-    // Obtenir la vitesse optimale et la décélération requise du RoadPredictor
-    const prediction = (window as any).roadPredictor?.getCurrentPrediction();
-    const optimalSpeed = prediction?.optimalSpeed || 90; // 90 km/h par défaut
-    const requiredDeceleration = prediction?.requiredDeceleration || null;
+    // Obtenir la vitesse optimale et la décélération requise du RoadPredictor seulement si on n'est pas idle
+    let optimalSpeed = 90; // 90 km/h par défaut
+    let requiredDeceleration = null;
+
+    if (!this.isIdle) {
+      const prediction = (window as any).roadPredictor?.getCurrentPrediction();
+      optimalSpeed = prediction?.optimalSpeed || 90;
+      requiredDeceleration = prediction?.requiredDeceleration || null;
+    }
 
     // Convertir la vitesse optimale de km/h en m/s
     const optimalSpeedMS = optimalSpeed / 3.6;
@@ -117,6 +128,7 @@ export class SimulationServiceV2 {
     this.currentRouteIndex = 0;
     this.lastUpdateTime = Date.now();
     this.currentSpeed = 0;
+    this.isIdle = false;
 
     console.log('[SimulationV2] Starting simulation with route points:', routePoints);
 
@@ -139,6 +151,7 @@ export class SimulationServiceV2 {
     if (this.vehicle) {
       this.vehicle.update(this.vehicle.position, 0);
     }
+    this.isIdle = true;
     console.log('[SimulationV2] Simulation stopped');
   }
 
@@ -146,6 +159,7 @@ export class SimulationServiceV2 {
     this.stopSimulation();
     this.currentRouteIndex = 0;
     this.currentSpeed = 0;
+    this.isIdle = true;
     if (this.routePoints.length > 0) {
       this.vehicle.reset(this.routePoints[0]);
     }
