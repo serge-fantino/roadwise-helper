@@ -53,6 +53,7 @@ const MapView = ({
 
   useEffect(() => {
     const observer = (prediction: TurnPrediction | null, turns: TurnPrediction[]) => {
+      console.log('Road prediction updated:', { prediction, turns });
       setNextTurn(prediction);
       setAllTurns(turns);
     };
@@ -60,6 +61,19 @@ const MapView = ({
     roadPredictor.addObserver(observer);
     return () => roadPredictor.removeObserver(observer);
   }, []);
+
+  // Effet pour démarrer/arrêter les mises à jour du roadPredictor
+  useEffect(() => {
+    if (routePoints && routePoints.length > 0) {
+      console.log('Starting road predictor updates with route points:', routePoints);
+      roadPredictor.startUpdates(routePoints);
+    } else {
+      console.log('Stopping road predictor updates - no route points');
+      roadPredictor.stopUpdates();
+    }
+
+    return () => roadPredictor.stopUpdates();
+  }, [routePoints]);
 
   const heading = (window as any).globalVehicle?.heading || 0;
 
