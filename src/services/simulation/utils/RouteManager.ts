@@ -22,20 +22,61 @@ export class RouteManager {
     currentPosition: [number, number],
     distanceToTravel: number
   ): number {
-    let targetIndex = this.currentRouteIndex + 1;
+    let targetIndex = this.currentRouteIndex;
+    let remainingDistance = distanceToTravel;
+    let accumulatedDistance = 0;
 
-    if (targetIndex >= this.routePoints.length) {
-      return this.currentRouteIndex;
+    console.log('[RouteManager] Finding next target:', {
+      currentPosition,
+      distanceToTravel,
+      currentIndex: this.currentRouteIndex,
+      totalPoints: this.routePoints.length
+    });
+
+    while (targetIndex < this.routePoints.length - 1) {
+      const currentTarget = this.routePoints[targetIndex];
+      const nextTarget = this.routePoints[targetIndex + 1];
+      
+      // Calculate distance to next point
+      const nextDistance = this.navigationCalculator.calculateDistance(
+        currentPosition,
+        nextTarget
+      );
+
+      console.log('[RouteManager] Checking point:', {
+        targetIndex,
+        nextDistance,
+        remainingDistance,
+        currentTarget,
+        nextTarget
+      });
+
+      // If we can't reach the next point, this is our target
+      if (nextDistance > remainingDistance) {
+        console.log('[RouteManager] Found target point:', {
+          targetIndex,
+          distance: nextDistance,
+          remainingDistance
+        });
+        return targetIndex;
+      }
+
+      // Move to next point
+      targetIndex++;
+      remainingDistance -= nextDistance;
+      accumulatedDistance += nextDistance;
+
+      // Safety check to prevent infinite loops
+      if (accumulatedDistance > distanceToTravel * 2) {
+        console.warn('[RouteManager] Safety break: accumulated distance exceeds twice the target distance');
+        break;
+      }
     }
 
-    let accumulatedDistance = 0;
-    let nextPoint = this.routePoints[targetIndex];
-    let nextDistance = this.navigationCalculator.calculateDistance(currentPosition, nextPoint);
-
-    while (nextDistance < distanceToTravel && targetIndex < this.routePoints.length - 1) {
-      targetIndex++;
-      nextPoint = this.routePoints[targetIndex];
-      nextDistance = this.navigationCalculator.calculateDistance(currentPosition, nextPoint);
+    // If we've reached the end of the route
+    if (targetIndex >= this.routePoints.length - 1) {
+      console.log('[RouteManager] Reached end of route');
+      return this.routePoints.length - 1;
     }
 
     return targetIndex;
