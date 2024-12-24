@@ -143,6 +143,25 @@ const SettingsView = () => {
               </div>
             </div>
           </div>
+
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold mb-4">Simulation</h2>
+            <div className="space-y-2">
+              <Label>Version du simulateur</Label>
+              <Select 
+                value={settings.simulatorVersion} 
+                onValueChange={(value: 'v1' | 'v2') => handleSettingChange('simulatorVersion', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="v1">Version 1 (Simple)</SelectItem>
+                  <SelectItem value="v2">Version 2 (Physique)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
     </div>

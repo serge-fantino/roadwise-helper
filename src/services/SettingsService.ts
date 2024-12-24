@@ -1,6 +1,7 @@
 type Observer = (settings: Settings) => void;
 
 export type RoadInfoProvider = 'overpass' | 'mapbox' | 'nominatim';
+export type SimulatorVersion = 'v1' | 'v2';
 
 export interface Settings {
   defaultSpeed: number;
@@ -11,7 +12,8 @@ export interface Settings {
   mapboxToken: string;
   predictionDistance: number;
   maxRouteDeviation: number;
-  disableOverpass: boolean; // New setting
+  disableOverpass: boolean;
+  simulatorVersion: SimulatorVersion;
 }
 
 const SETTINGS_STORAGE_KEY = 'app_settings';
@@ -31,7 +33,8 @@ class SettingsService {
       mapboxToken: '',
       predictionDistance: 500,
       maxRouteDeviation: 50,
-      disableOverpass: false, // Default value
+      disableOverpass: false,
+      simulatorVersion: 'v1',
     };
 
     if (savedSettings) {

@@ -1,5 +1,7 @@
 import { Vehicle } from '../../models/Vehicle';
 import { createSimulationService } from '../simulation/SimulationService';
+import { createSimulationServiceV2 } from '../simulation/SimulationServiceV2';
+import { settingsService } from '../SettingsService';
 
 type LocationMode = 'gps' | 'simulation';
 type LocationObserver = (position: [number, number], speed: number) => void;
@@ -11,11 +13,13 @@ export class LocationService {
   private watchId: number | null = null;
   private updateInterval: NodeJS.Timeout | null = null;
   private simulationService: ReturnType<typeof createSimulationService>;
+  private simulationServiceV2: ReturnType<typeof createSimulationServiceV2>;
   private vehicle: Vehicle;
 
   private constructor(vehicle: Vehicle) {
     this.vehicle = vehicle;
     this.simulationService = createSimulationService(vehicle);
+    this.simulationServiceV2 = createSimulationServiceV2(vehicle);
   }
 
   public static getInstance(vehicle?: Vehicle): LocationService {
@@ -65,6 +69,21 @@ export class LocationService {
       this.updateInterval = null;
     }
     this.simulationService.stopSimulation();
+    this.simulationServiceV2.stopSimulation();
+  }
+
+  private startSimulationUpdates(routePoints?: [number, number][]) {
+    if (!routePoints || routePoints.length < 2) {
+      console.error('[LocationService] Cannot start simulation without route points');
+      return;
+    }
+
+    const settings = settingsService.getSettings();
+    if (settings.simulatorVersion === 'v2') {
+      this.simulationServiceV2.startSimulation(routePoints);
+    } else {
+      this.simulationService.startSimulation(routePoints);
+    }
   }
 
   private startGPSUpdates() {
@@ -78,6 +97,7 @@ export class LocationService {
       const speed = pos.coords.speed || 0;
       console.log('[LocationService] GPS update:', { position, speed });
       this.vehicle.update(position, speed);
+      this.notifyObservers(position, speed);
     };
 
     const handleError = (error: GeolocationPositionError) => {
@@ -93,14 +113,5 @@ export class LocationService {
         maximumAge: 0
       }
     );
-  }
-
-  private startSimulationUpdates(routePoints?: [number, number][]) {
-    if (!routePoints || routePoints.length < 2) {
-      console.error('[LocationService] Cannot start simulation without route points');
-      return;
-    }
-
-    this.simulationService.startSimulation(routePoints);
   }
 }
