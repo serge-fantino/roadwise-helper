@@ -47,9 +47,35 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
     }
   }
 
-  private estimateSpeedLimit(tags: Record<string, string>): number | null {
+  private async isInCity(lat: number, lon: number): Promise<boolean> {
+    const query = `
+      [out:json];
+      (
+        // Recherche des panneaux d'entrée d'agglomération
+        node(around:1000,${lat},${lon})["traffic_sign"="city_limit"];
+        // Recherche des zones résidentielles
+        way(around:100,${lat},${lon})["landuse"="residential"];
+        // Recherche des limites de ville
+        way(around:100,${lat},${lon})["place"~"city|town|village"];
+        relation(around:100,${lat},${lon})["place"~"city|town|village"];
+      );
+      out body;
+    `;
+
+    try {
+      const data = await this.query(query);
+      console.log('City check response:', data);
+      return data.elements.length > 0;
+    } catch (error) {
+      console.error('Error checking city status:', error);
+      return false;
+    }
+  }
+
+  private async estimateSpeedLimit(tags: Record<string, string>, lat: number, lon: number): Promise<number | null> {
     const highway = tags.highway;
-    const isInCity = tags.place === 'city' || tags.place === 'town' || tags.place === 'village';
+    const isInCity = await this.isInCity(lat, lon);
+    console.log('Is in city:', isInCity, 'for position:', lat, lon);
 
     // Estimation basée sur les règles françaises
     switch (highway) {
@@ -120,7 +146,7 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
       for (const element of data.elements) {
         if (element.tags?.highway) {
           console.log('Estimating speed limit from road type:', element.tags);
-          const estimatedLimit = this.estimateSpeedLimit(element.tags);
+          const estimatedLimit = await this.estimateSpeedLimit(element.tags, lat, lon);
           if (estimatedLimit) {
             return estimatedLimit;
           }
