@@ -23,7 +23,11 @@ export class RouteTracker {
     };
   }
 
+  calculateDistance(point1: [number, number], point2: [number, number]): number {
+    return calculateDistance(point1, point2);
+  }
+
   isOffRoute(distance: number, settings: Settings): boolean {
     return distance > settings.maxRouteDeviation;
   }
-} 
+}

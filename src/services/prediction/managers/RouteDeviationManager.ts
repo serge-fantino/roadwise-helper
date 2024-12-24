@@ -22,13 +22,47 @@ export class RouteDeviationManager {
       return false;
     }
 
-    const { distance: deviationDistance } = 
+    // Vérifier si assez de temps s'est écoulé depuis le dernier recalcul
+    const cooldownElapsed = Date.now() - this.lastRecalculationTime > RouteDeviationManager.RECALCULATION_COOLDOWN;
+    if (!cooldownElapsed) {
+      return false;
+    }
+
+    // Trouver le point le plus proche sur la route
+    const { index: closestIndex, distance: deviationDistance } = 
       this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
 
-    const isOffRoute = this.routeTracker.isOffRoute(deviationDistance, settings);
-    const cooldownElapsed = Date.now() - this.lastRecalculationTime > RouteDeviationManager.RECALCULATION_COOLDOWN;
+    console.log('[RouteDeviationManager] Checking deviation:', {
+      deviationDistance,
+      maxDeviation: settings.maxRouteDeviation,
+      closestIndex,
+      totalPoints: routePoints.length
+    });
 
-    return isOffRoute && cooldownElapsed;
+    // Si la distance au point le plus proche est inférieure à la limite, pas besoin de recalculer
+    if (deviationDistance <= settings.maxRouteDeviation) {
+      return false;
+    }
+
+    // Vérifier le point suivant s'il existe
+    if (closestIndex < routePoints.length - 1) {
+      const nextPoint = routePoints[closestIndex + 1];
+      const distanceToNextPoint = this.routeTracker.calculateDistance(currentPosition, nextPoint);
+
+      console.log('[RouteDeviationManager] Checking next point:', {
+        distanceToNextPoint,
+        maxDeviation: settings.maxRouteDeviation
+      });
+
+      // Si la distance au point suivant est inférieure à la limite, pas besoin de recalculer
+      if (distanceToNextPoint <= settings.maxRouteDeviation) {
+        return false;
+      }
+    }
+
+    // Si on arrive ici, c'est qu'on est trop loin des deux points
+    console.log('[RouteDeviationManager] Route deviation detected, should recalculate');
+    return true;
   }
 
   markRecalculationTime() {
