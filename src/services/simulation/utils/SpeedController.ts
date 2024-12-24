@@ -1,6 +1,8 @@
 export class SpeedController {
   private currentSpeed: number = 0;
   private currentAcceleration: number = 0;
+  private readonly MAX_SPEED = 25; // 90 km/h en m/s
+  private readonly MIN_SPEED = 0;
 
   getCurrentSpeed(): number {
     return this.currentSpeed;
@@ -27,44 +29,49 @@ export class SpeedController {
     const MAX_DECELERATION = 0.5;
     
     let acceleration = 0;
+    const speedDiff = optimalSpeedMS - this.currentSpeed;
 
     console.log('SpeedController update:', {
       currentSpeed: this.currentSpeed * 3.6,
       optimalSpeed,
-      requiredDeceleration
+      requiredDeceleration,
+      speedDiff: speedDiff * 3.6
     });
 
-    if (this.currentSpeed < optimalSpeedMS) {
-      // Accélération normale
-      acceleration = GRAVITY * ACCELERATION_FACTOR;
-      console.log('Accelerating:', acceleration);
-    } else if (this.currentSpeed > optimalSpeedMS) {
-      // Calcul de la décélération
-      let deceleration;
-      
-      if (requiredDeceleration !== null) {
-        // Utiliser la décélération requise si elle est fournie
-        deceleration = Math.min(Math.abs(requiredDeceleration), MAX_DECELERATION);
-        console.log('Using required deceleration:', deceleration);
+    // Si une décélération est requise, l'appliquer en priorité
+    if (requiredDeceleration !== null) {
+      acceleration = -GRAVITY * Math.min(Math.abs(requiredDeceleration), MAX_DECELERATION);
+      console.log('Applying required deceleration:', acceleration);
+    }
+    // Sinon, ajuster la vitesse en fonction de la vitesse optimale
+    else if (Math.abs(speedDiff) > 0.5) { // Seuil de 0.5 m/s pour éviter les oscillations
+      if (speedDiff > 0) {
+        acceleration = GRAVITY * ACCELERATION_FACTOR;
+        console.log('Accelerating to reach optimal speed:', acceleration);
       } else {
-        // Utiliser la décélération par défaut
-        deceleration = DECELERATION_FACTOR;
-        console.log('Using default deceleration:', deceleration);
+        acceleration = -GRAVITY * DECELERATION_FACTOR;
+        console.log('Decelerating to reach optimal speed:', acceleration);
       }
-
-      acceleration = -GRAVITY * deceleration;
     }
 
     // Mise à jour de la vitesse avec le pas de temps
-    const newSpeed = Math.max(0, this.currentSpeed + acceleration * timeStep);
+    let newSpeed = this.currentSpeed + acceleration * timeStep;
+
+    // Limites de vitesse
+    newSpeed = Math.max(this.MIN_SPEED, Math.min(newSpeed, this.MAX_SPEED));
     
     // Ne pas dépasser la vitesse optimale lors de l'accélération
-    this.currentSpeed = Math.min(newSpeed, optimalSpeedMS);
+    if (acceleration > 0) {
+      newSpeed = Math.min(newSpeed, optimalSpeedMS);
+    }
+
+    this.currentSpeed = newSpeed;
     this.currentAcceleration = acceleration / GRAVITY; // Stockage en g
 
     console.log('Speed updated:', {
       newSpeed: this.currentSpeed * 3.6,
-      acceleration: this.currentAcceleration
+      acceleration: this.currentAcceleration,
+      optimalSpeedMS: optimalSpeedMS * 3.6
     });
     
     return { 
