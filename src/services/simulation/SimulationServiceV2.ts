@@ -58,34 +58,39 @@ export class SimulationServiceV2 {
   }
 
   private findNextValidTarget(currentPosition: [number, number], distanceToTravel: number): number {
-    let accumulatedDistance = 0;
     let targetIndex = this.currentRouteIndex + 1;
     const startIndex = targetIndex;
 
-    while (targetIndex < this.routePoints.length && 
-           (targetIndex - startIndex) < MAX_POINTS_AHEAD) { // Limite le nombre de points à sauter
-      const nextPoint = this.routePoints[targetIndex];
-      const prevPoint = targetIndex === startIndex ? currentPosition : this.routePoints[targetIndex - 1];
-      
-      const segmentDistance = calculateDistance(prevPoint, nextPoint);
-      accumulatedDistance += segmentDistance;
+    // Si on est à la fin de la route, on reste sur le dernier point
+    if (targetIndex >= this.routePoints.length) {
+      return this.currentRouteIndex;
+    }
 
-      console.log('[SimulationV2] Target search:', {
+    while (targetIndex < this.routePoints.length && 
+           (targetIndex - startIndex) < MAX_POINTS_AHEAD) {
+      
+      // Calculer la distance directe entre la position courante et le point cible
+      const nextPoint = this.routePoints[targetIndex];
+      const distanceToTarget = calculateDistance(currentPosition, nextPoint);
+
+      console.log('[SimulationV2] Target evaluation:', {
         targetIndex,
-        segmentDistance,
-        accumulatedDistance,
+        distanceToTarget,
         distanceToTravel,
         pointsAhead: targetIndex - startIndex
       });
 
-      if (accumulatedDistance > distanceToTravel) {
+      // Si la distance au point cible est supérieure à la distance à parcourir
+      // ou si on a atteint le dernier point, c'est notre cible
+      if (distanceToTarget > distanceToTravel || targetIndex === this.routePoints.length - 1) {
         break;
       }
+
+      // Sinon on regarde le point suivant
       targetIndex++;
     }
 
-    // S'assurer qu'on ne dépasse pas la fin du trajet
-    return Math.min(targetIndex, this.routePoints.length - 1);
+    return targetIndex;
   }
 
   private updateVehicleState() {
