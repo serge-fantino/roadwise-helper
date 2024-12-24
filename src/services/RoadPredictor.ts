@@ -56,7 +56,15 @@ class RoadPredictor {
     const { index: closestPointIndex, distance: deviationDistance } = 
       this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
 
+    // Vérifier si le véhicule est trop loin de la route
     if (this.routeTracker.isOffRoute(deviationDistance, settings) && this.destination) {
+      console.log('Vehicle is off route, recalculating...', {
+        currentPosition,
+        destination: this.destination,
+        deviationDistance
+      });
+      
+      // Déclencher l'événement de recalcul d'itinéraire
       const event = new CustomEvent('recalculateRoute', {
         detail: {
           from: currentPosition,
@@ -114,10 +122,15 @@ class RoadPredictor {
     this.notifyObservers();
   }
 
-  public startUpdates(routePoints: [number, number][]) {
+  public startUpdates(routePoints: [number, number][], destination?: [number, number]) {
     // Reset the turns when starting updates with new route points
     this.turnPredictionManager = new TurnPredictionManager();
     this.currentPrediction = null;
+    
+    // Mettre à jour la destination si elle est fournie
+    if (destination) {
+      this.destination = destination;
+    }
     
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -137,6 +150,7 @@ class RoadPredictor {
       this.updateInterval = null;
     }
     this.currentPrediction = null;
+    this.destination = null;
     this.notifyObservers();
   }
 }

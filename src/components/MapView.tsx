@@ -12,6 +12,8 @@ import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
 import { TurnPrediction } from '../services/prediction/PredictionTypes';
+import { getRoute } from '../utils/routingUtils';
+import { toast } from './ui/use-toast';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -62,18 +64,55 @@ const MapView = ({
     return () => roadPredictor.removeObserver(observer);
   }, []);
 
-  // Effet pour démarrer/arrêter les mises à jour du roadPredictor
   useEffect(() => {
     if (routePoints && routePoints.length > 0) {
       console.log('Starting road predictor updates with route points:', routePoints);
-      roadPredictor.startUpdates(routePoints);
+      roadPredictor.startUpdates(routePoints, destination);
     } else {
       console.log('Stopping road predictor updates - no route points');
       roadPredictor.stopUpdates();
     }
 
     return () => roadPredictor.stopUpdates();
-  }, [routePoints]);
+  }, [routePoints, destination]);
+
+  // Gérer l'événement de recalcul d'itinéraire
+  useEffect(() => {
+    const handleRouteRecalculation = async (event: CustomEvent) => {
+      const { from, to } = event.detail;
+      console.log('Recalculating route:', { from, to });
+      
+      try {
+        const newRoutePoints = await getRoute(from, to);
+        if (newRoutePoints.length > 0) {
+          // Créer un événement personnalisé pour mettre à jour l'itinéraire
+          const updateEvent = new CustomEvent('updateRoute', {
+            detail: {
+              routePoints: newRoutePoints
+            }
+          });
+          window.dispatchEvent(updateEvent);
+          
+          toast({
+            title: "Itinéraire recalculé",
+            description: "Un nouvel itinéraire a été calculé pour vous ramener à destination",
+          });
+        }
+      } catch (error) {
+        console.error('Failed to recalculate route:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de recalculer l'itinéraire",
+          variant: "destructive"
+        });
+      }
+    };
+
+    window.addEventListener('recalculateRoute', handleRouteRecalculation as EventListener);
+    return () => {
+      window.removeEventListener('recalculateRoute', handleRouteRecalculation as EventListener);
+    };
+  }, []);
 
   const heading = (window as any).globalVehicle?.heading || 0;
 
