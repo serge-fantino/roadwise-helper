@@ -1,6 +1,5 @@
 import { roadInfoService } from './index';
 import { calculateDistance } from '../../utils/mapUtils';
-import { settingsService } from '../SettingsService';
 
 export interface RoadInfo {
   isOnRoad: boolean;
@@ -45,12 +44,6 @@ class RoadInfoManager {
   }
 
   private shouldUpdate(newPosition: [number, number]): boolean {
-    // Check if Overpass is disabled
-    if (settingsService.getSettings().disableOverpass) {
-      console.log('Skipping road info update - Overpass API is disabled');
-      return false;
-    }
-
     const now = Date.now();
     const timeSinceLastUpdate = now - this.lastUpdateTime;
 
@@ -69,12 +62,10 @@ class RoadInfoManager {
   }
 
   public async updateRoadInfo(position: [number, number]) {
-    // Annuler tout timeout en cours
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);
     }
 
-    // Utiliser un debounce pour éviter les appels trop fréquents
     this.updateTimeout = setTimeout(async () => {
       if (!this.shouldUpdate(position)) {
         return;
@@ -83,14 +74,12 @@ class RoadInfoManager {
       console.log('Updating road info for position:', position);
 
       try {
-        // Faire toutes les requêtes en parallèle
         const [isOnRoad, speedLimit, currentSegment] = await Promise.all([
           roadInfoService.isPointOnRoad(position[0], position[1]),
           roadInfoService.getSpeedLimit(position[0], position[1]),
           roadInfoService.getCurrentRoadSegment(position[0], position[1])
         ]);
 
-        // Déterminer si on est en ville à partir des tags de la route
         const isInCity = speedLimit ? speedLimit <= 50 : false;
 
         this.currentInfo = {
@@ -106,9 +95,8 @@ class RoadInfoManager {
         this.notifyObservers();
       } catch (error) {
         console.error('Error updating road info:', error);
-        // En cas d'erreur, on garde les anciennes informations
       }
-    }, 100); // Petit délai pour le debounce
+    }, 100);
   }
 
   public getCurrentInfo(): RoadInfo | null {

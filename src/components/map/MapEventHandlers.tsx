@@ -17,21 +17,36 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
   useEffect(() => {
     map.setView(position, map.getZoom());
 
-    const checkRoadPosition = async () => {
-      const [lat, lon] = position;
-      const onRoad = await roadInfoService.isPointOnRoad(lat, lon);
-      onRoadStatusChange(onRoad);
+    // Démarrer les mises à jour de prédiction
+    predictionService.startUpdates(position);
 
-      // Démarrer les mises à jour de prédiction
-      predictionService.startUpdates(position);
+    return () => {
+      predictionService.stopUpdates();
+    };
+  }, [position, map]);
+
+  // Vérification de la position sur la route avec un effet séparé
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkRoadPosition = async () => {
+      try {
+        const [lat, lon] = position;
+        const onRoad = await roadInfoService.isPointOnRoad(lat, lon);
+        if (isMounted) {
+          onRoadStatusChange(onRoad);
+        }
+      } catch (error) {
+        console.error('Error checking road position:', error);
+      }
     };
 
     checkRoadPosition();
 
     return () => {
-      predictionService.stopUpdates();
+      isMounted = false;
     };
-  }, [position, map, onRoadStatusChange]);
+  }, [position, onRoadStatusChange]);
 
   useEffect(() => {
     const handleZoomToDestination = (e: CustomEvent) => {
