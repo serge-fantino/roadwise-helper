@@ -7,6 +7,7 @@ export interface RoadInfo {
   currentSegment: [number, number][];
   isInCity: boolean;
   lastPosition: [number, number];
+  roadType: string;
 }
 
 type RoadInfoObserver = (info: RoadInfo) => void;
@@ -61,25 +62,52 @@ class RoadInfoManager {
     return distance >= this.MIN_UPDATE_DISTANCE;
   }
 
-  public async updateRoadInfo(position: [number, number]) {
+  private getRoadType(tags: any): string {
+    if (!tags || !tags.highway) return 'unknown';
+    
+    switch (tags.highway) {
+      case 'motorway':
+      case 'motorway_link':
+        return 'highway';
+      case 'trunk':
+      case 'trunk_link':
+      case 'primary':
+        return 'speed_road';
+      case 'secondary':
+      case 'tertiary':
+        return 'road';
+      case 'residential':
+      case 'living_street':
+        return 'city';
+      default:
+        return 'road';
+    }
+  }
+
+  public async forceUpdate(position: [number, number]) {
+    console.log('Forcing road info update for position:', position);
+    await this.updateRoadInfo(position, true);
+  }
+
+  public async updateRoadInfo(position: [number, number], force: boolean = false) {
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);
     }
 
     this.updateTimeout = setTimeout(async () => {
-      if (!this.shouldUpdate(position)) {
+      if (!force && !this.shouldUpdate(position)) {
         return;
       }
 
       console.log('Updating road info for position:', position);
 
       try {
-        const [isOnRoad, speedLimit, currentSegment] = await Promise.all([
-          roadInfoService.isPointOnRoad(position[0], position[1]),
-          roadInfoService.getSpeedLimit(position[0], position[1]),
-          roadInfoService.getCurrentRoadSegment(position[0], position[1])
-        ]);
-
+        const roadData = await roadInfoService.getRoadData(position[0], position[1]);
+        const isOnRoad = roadData.elements.length > 0;
+        const tags = roadData.elements[0]?.tags || {};
+        const roadType = this.getRoadType(tags);
+        const speedLimit = tags.maxspeed ? parseInt(tags.maxspeed) : null;
+        const currentSegment = roadData.elements[0]?.geometry?.map((node: any) => [node.lat, node.lon]) || [];
         const isInCity = speedLimit ? speedLimit <= 50 : false;
 
         this.currentInfo = {
@@ -87,7 +115,8 @@ class RoadInfoManager {
           speedLimit,
           currentSegment,
           isInCity,
-          lastPosition: position
+          lastPosition: position,
+          roadType
         };
 
         this.lastUpdateTime = Date.now();

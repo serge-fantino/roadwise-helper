@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import TopPanel from './layout/TopPanel';
-import SearchArea from './layout/SearchArea';
 import MapArea from './layout/MapArea';
 import StatusBar from './StatusBar';
+import SearchArea from './layout/SearchArea';
 
 interface MainLayoutProps {
   position: [number, number];
@@ -29,64 +28,38 @@ const MainLayout = ({
   onRoadStatusChange,
   isDebugMode,
   onDebugModeChange,
-  positionHistory,
+  positionHistory
 }: MainLayoutProps) => {
-  const [isSearchMode, setIsSearchMode] = useState(false);
-
-  const handleDestinationClick = () => {
-    if (destination) {
-      const mapView = document.querySelector('.leaflet-container');
-      if (mapView) {
-        const event = new CustomEvent('zoomToDestination', {
-          detail: { location: destination.location }
-        });
-        mapView.dispatchEvent(event);
-      }
-    }
-  };
-
-  const handleMapClick = (location: [number, number], address: string) => {
-    onDestinationSelect(location, address);
-  };
-
   return (
-    <div className="h-screen flex flex-col">
-      <TopPanel 
+    <div className="flex flex-col h-screen">
+      <TopPanel
         speed={speed}
         recommendedSpeed={recommendedSpeed}
         isOnRoad={isOnRoad}
         isDebugMode={isDebugMode}
         destination={destination}
         onDestinationSelect={onDestinationSelect}
-        onDestinationClick={handleDestinationClick}
-        onSearchModeChange={setIsSearchMode}
-        isSearchMode={isSearchMode}
+        onDestinationClick={() => {}}
+        onSearchModeChange={() => {}}
+        isSearchMode={false}
       />
-
-      {isSearchMode ? (
-        <SearchArea 
-          onLocationSelect={(location, address) => {
-            onDestinationSelect(location, address);
-            setIsSearchMode(false);
-          }}
-        />
-      ) : (
-        <MapArea 
+      <div className="flex-1 relative">
+        <MapArea
           position={position}
           speed={speed}
           onRoadStatusChange={onRoadStatusChange}
           destination={destination?.location}
           routePoints={routePoints}
-          onMapClick={handleMapClick}
+          onMapClick={onDestinationSelect}
           positionHistory={positionHistory}
         />
-      )}
-
+      </div>
       <StatusBar 
-        isOnRoad={isOnRoad}
-        speed={speed}
-        isDebugMode={isDebugMode}
+        isOnRoad={isOnRoad} 
+        speed={speed} 
+        isDebugMode={isDebugMode} 
         onDebugModeChange={onDebugModeChange}
+        position={position}
       />
     </div>
   );

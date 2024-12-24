@@ -1,17 +1,20 @@
-import { Bug, Settings } from 'lucide-react';
+import { Bug, Settings, RefreshCw, Road, City, Highway } from 'lucide-react';
 import { Toggle } from './ui/toggle';
 import { useEffect, useState } from 'react';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useNavigate } from 'react-router-dom';
+import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
+import { Badge } from './ui/badge';
 
 interface StatusBarProps {
   isOnRoad: boolean;
   speed: number;
   isDebugMode?: boolean;
   onDebugModeChange?: (enabled: boolean) => void;
+  position: [number, number];
 }
 
-const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBarProps) => {
+const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }: StatusBarProps) => {
   const navigate = useNavigate();
   const [prediction, setPrediction] = useState<{
     distance: number;
@@ -19,6 +22,8 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBa
     position: [number, number];
     optimalSpeed?: number;
   } | null>(null);
+  const [roadType, setRoadType] = useState<string>('unknown');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const observer = (newPrediction: typeof prediction) => {
@@ -30,6 +35,49 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBa
       roadPredictor.removeObserver(observer);
     };
   }, []);
+
+  useEffect(() => {
+    const handleRoadInfo = (info: { roadType: string }) => {
+      setRoadType(info.roadType);
+    };
+
+    roadInfoManager.addObserver(handleRoadInfo);
+    return () => {
+      roadInfoManager.removeObserver(handleRoadInfo);
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await roadInfoManager.forceUpdate(position);
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  const getRoadTypeIcon = () => {
+    switch (roadType) {
+      case 'highway':
+        return <Highway className="h-4 w-4" />;
+      case 'city':
+        return <City className="h-4 w-4" />;
+      default:
+        return <Road className="h-4 w-4" />;
+    }
+  };
+
+  const getRoadTypeColor = () => {
+    switch (roadType) {
+      case 'highway':
+        return 'bg-purple-500/20 text-purple-500';
+      case 'speed_road':
+        return 'bg-orange-500/20 text-orange-500';
+      case 'city':
+        return 'bg-yellow-500/20 text-yellow-500';
+      case 'road':
+        return 'bg-blue-500/20 text-blue-500';
+      default:
+        return 'bg-gray-500/20 text-gray-500';
+    }
+  };
 
   const isIdle = speed === 0;
 
@@ -44,6 +92,17 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange }: StatusBa
           <span className={`px-3 py-1 rounded text-sm font-medium ${isIdle ? 'bg-yellow-500/20 text-yellow-500' : 'bg-blue-500/20 text-blue-500'}`}>
             {isIdle ? 'IDLE' : 'MOVING'}
           </span>
+          <Badge variant="outline" className={`gap-1 ${getRoadTypeColor()}`}>
+            {getRoadTypeIcon()}
+            {roadType.replace('_', ' ').toUpperCase()}
+          </Badge>
+          <button
+            onClick={handleRefresh}
+            className="p-1 rounded hover:bg-gray-800 transition-colors"
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
