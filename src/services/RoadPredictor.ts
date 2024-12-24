@@ -26,6 +26,10 @@ class RoadPredictor {
     });
   }
 
+  public getCurrentPrediction(): RoadPrediction | null {
+    return this.predictionManager.getCurrentPrediction();
+  }
+
   public addObserver(observer: PredictionObserver) {
     this.observers.push(observer);
   }
