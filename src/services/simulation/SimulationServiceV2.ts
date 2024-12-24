@@ -5,6 +5,7 @@ const GRAVITY = 9.81; // m/s²
 const ACCELERATION_FACTOR = 0.2; // 0.2g
 const DECELERATION_FACTOR = 0.1; // 0.1g
 const TIME_STEP = 1; // 1 seconde
+const METERS_PER_DEGREE_LAT = 111111; // Approximation à l'équateur
 
 export class SimulationServiceV2 {
   private intervalId: NodeJS.Timeout | null = null;
@@ -19,20 +20,47 @@ export class SimulationServiceV2 {
   }
 
   private calculateHeading(from: [number, number], to: [number, number]): [number, number] {
-    const bearing = calculateBearing(from, to);
-    const radians = (bearing * Math.PI) / 180;
-    // Retourne un vecteur unitaire dans la direction du cap
-    return [Math.sin(radians), Math.cos(radians)];
+    // Conversion approximative en mètres (système cartésien local)
+    const deltaLat = (to[0] - from[0]) * METERS_PER_DEGREE_LAT;
+    const deltaLon = (to[1] - from[1]) * METERS_PER_DEGREE_LAT * Math.cos(from[0] * Math.PI / 180);
+    
+    // Calcul de la distance totale pour normaliser
+    const distance = Math.sqrt(deltaLat * deltaLat + deltaLon * deltaLon);
+    
+    if (distance === 0) return [0, 0];
+    
+    // Vecteur direction normalisé
+    const direction: [number, number] = [deltaLat / distance, deltaLon / distance];
+    
+    console.log('[SimulationV2] Heading calculation:', {
+      from,
+      to,
+      deltaLat,
+      deltaLon,
+      distance,
+      direction
+    });
+    
+    return direction;
   }
 
   private updateVehicleState() {
     if (this.currentRouteIndex >= this.routePoints.length - 1) {
+      console.log('[SimulationV2] End of route reached');
       this.stopSimulation();
       return;
     }
 
     const currentPosition = this.vehicle.position;
     const nextPosition = this.routePoints[this.currentRouteIndex + 1];
+    
+    console.log('[SimulationV2] Current state:', {
+      currentRouteIndex: this.currentRouteIndex,
+      currentPosition,
+      nextPosition,
+      currentSpeed: this.currentSpeed
+    });
+
     const heading = this.calculateHeading(currentPosition, nextPosition);
 
     // Obtenir la vitesse optimale et la décélération requise du RoadPredictor
@@ -59,13 +87,23 @@ export class SimulationServiceV2 {
     this.currentSpeed = Math.max(0, this.currentSpeed + acceleration * TIME_STEP);
 
     // Calculer la nouvelle position
-    const distance = this.currentSpeed * TIME_STEP;
-    const newLat = currentPosition[0] + heading[0] * distance / 111111; // Conversion approximative en degrés
-    const newLon = currentPosition[1] + heading[1] * distance / (111111 * Math.cos(currentPosition[0] * Math.PI / 180));
+    // Conversion des mètres en degrés pour la latitude et longitude
+    const distanceM = this.currentSpeed * TIME_STEP;
+    const newLat = currentPosition[0] + (heading[0] * distanceM) / METERS_PER_DEGREE_LAT;
+    const newLon = currentPosition[1] + (heading[1] * distanceM) / (METERS_PER_DEGREE_LAT * Math.cos(currentPosition[0] * Math.PI / 180));
     const newPosition: [number, number] = [newLat, newLon];
+
+    console.log('[SimulationV2] Movement update:', {
+      heading,
+      acceleration,
+      distanceM,
+      newPosition,
+      newSpeed: this.currentSpeed
+    });
 
     // Vérifier si on a dépassé le prochain point
     if (calculateDistance(newPosition, nextPosition) < 10) { // 10 mètres de tolérance
+      console.log('[SimulationV2] Reached next route point, incrementing index');
       this.currentRouteIndex++;
     }
 
@@ -79,6 +117,8 @@ export class SimulationServiceV2 {
     this.currentRouteIndex = 0;
     this.lastUpdateTime = Date.now();
     this.currentSpeed = 0;
+
+    console.log('[SimulationV2] Starting simulation with route points:', routePoints);
 
     if (routePoints.length > 0) {
       // Initialisation avec la première position
@@ -99,6 +139,7 @@ export class SimulationServiceV2 {
     if (this.vehicle) {
       this.vehicle.update(this.vehicle.position, 0);
     }
+    console.log('[SimulationV2] Simulation stopped');
   }
 
   reset() {
@@ -108,6 +149,7 @@ export class SimulationServiceV2 {
     if (this.routePoints.length > 0) {
       this.vehicle.reset(this.routePoints[0]);
     }
+    console.log('[SimulationV2] Simulation reset');
   }
 }
 
