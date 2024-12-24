@@ -23,7 +23,6 @@ export class RouteManager {
     distanceToTravel: number
   ): number {
     let targetIndex = this.currentRouteIndex;
-    let remainingDistance = distanceToTravel;
     let accumulatedDistance = 0;
 
     console.log('[RouteManager] Finding next target:', {
@@ -33,44 +32,34 @@ export class RouteManager {
       totalPoints: this.routePoints.length
     });
 
-    while (targetIndex < this.routePoints.length - 1) {
+    while (targetIndex < this.routePoints.length - 1 && targetIndex < this.currentRouteIndex +3) {
       const currentTarget = this.routePoints[targetIndex];
-      const nextTarget = this.routePoints[targetIndex + 1];
       
       // Calculate distance to next point
       const nextDistance = this.navigationCalculator.calculateDistance(
         currentPosition,
-        nextTarget
+        currentTarget
       );
 
       console.log('[RouteManager] Checking point:', {
+        distanceToTravel, 
         targetIndex,
         nextDistance,
-        remainingDistance,
-        currentTarget,
-        nextTarget
+        currentTarget
       });
 
       // If we can't reach the next point, this is our target
-      if (nextDistance > remainingDistance) {
+      if (nextDistance > distanceToTravel) {
         console.log('[RouteManager] Found target point:', {
           targetIndex,
           distance: nextDistance,
-          remainingDistance
+          distanceToTravel
         });
         return targetIndex;
       }
 
       // Move to next point
       targetIndex++;
-      remainingDistance -= nextDistance;
-      accumulatedDistance += nextDistance;
-
-      // Safety check to prevent infinite loops
-      if (accumulatedDistance > distanceToTravel * 2) {
-        console.warn('[RouteManager] Safety break: accumulated distance exceeds twice the target distance');
-        break;
-      }
     }
 
     // If we've reached the end of the route

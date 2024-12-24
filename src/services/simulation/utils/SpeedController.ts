@@ -1,7 +1,7 @@
 export class SpeedController {
   private currentSpeed: number = 0;
   private currentAcceleration: number = 0;
-  private readonly MAX_SPEED = 25; // 90 km/h en m/s
+  private readonly MAX_SPEED = 36.11; // 130 km/h en m/s
   private readonly MIN_SPEED = 0;
 
   getCurrentSpeed(): number {
