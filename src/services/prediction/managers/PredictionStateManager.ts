@@ -7,6 +7,7 @@ export class PredictionStateManager {
   private currentPrediction: RoadPrediction | null = null;
   private turnPredictionManager: TurnPredictionManager;
   private decelerationCalculator: DecelerationCalculator;
+  private currentRouteIndex: number = 0;
 
   constructor() {
     this.turnPredictionManager = new TurnPredictionManager();
@@ -20,13 +21,19 @@ export class PredictionStateManager {
     settings: Settings,
     speedLimit: number | null
   ) {
+    // Trouver l'index actuel sur la route
+    this.currentRouteIndex = this.findClosestRouteIndex(currentPosition, routePoints);
+    console.log('Current route index:', this.currentRouteIndex);
+
     await this.turnPredictionManager.updateTurnDistances(currentPosition);
-    this.turnPredictionManager.removePastTurns();
+    
+    // Supprimer les virages passés en utilisant l'index
+    this.turnPredictionManager.removePastTurns(this.currentRouteIndex);
 
     const turns = this.turnPredictionManager.getTurns();
     const lastTurnIndex = turns.length > 0 
       ? Math.max(...turns.map(t => t.index))
-      : 0;
+      : this.currentRouteIndex;
 
     await this.turnPredictionManager.findNewTurns(
       routePoints,
@@ -38,6 +45,38 @@ export class PredictionStateManager {
 
     this.turnPredictionManager.sortTurns();
     this.updateCurrentPrediction(currentSpeed);
+  }
+
+  private findClosestRouteIndex(position: [number, number], routePoints: [number, number][]): number {
+    let minDistance = Infinity;
+    let closestIndex = 0;
+
+    routePoints.forEach((point, index) => {
+      const distance = this.calculateDistance(position, point);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    return closestIndex;
+  }
+
+  private calculateDistance(point1: [number, number], point2: [number, number]): number {
+    const [lat1, lon1] = point1;
+    const [lat2, lon2] = point2;
+    const R = 6371e3; // Rayon de la terre en mètres
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
   }
 
   private updateCurrentPrediction(currentSpeed: number) {
@@ -65,11 +104,14 @@ export class PredictionStateManager {
   }
 
   getTurns(): TurnPrediction[] {
-    return this.turnPredictionManager.getTurns();
+    // Ne retourner que les virages dont l'index est supérieur à l'index actuel
+    return this.turnPredictionManager.getTurns()
+      .filter(turn => turn.index > this.currentRouteIndex);
   }
 
   reset() {
     this.turnPredictionManager = new TurnPredictionManager();
     this.currentPrediction = null;
+    this.currentRouteIndex = 0;
   }
 }

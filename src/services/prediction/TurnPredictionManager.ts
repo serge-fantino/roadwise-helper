@@ -26,8 +26,10 @@ export class TurnPredictionManager {
     );
   }
 
-  removePastTurns(): void {
-    this.turns = this.turns.filter(turn => turn.distance > 0);
+  removePastTurns(currentIndex: number): void {
+    // Filtrer les virages dont l'index est inférieur ou égal à l'index actuel
+    this.turns = this.turns.filter(turn => turn.index > currentIndex);
+    console.log('Turns after removing past turns:', this.turns.length);
   }
 
   async findNewTurns(
@@ -42,17 +44,10 @@ export class TurnPredictionManager {
 
     const distance = calculateDistance(currentPosition, turnInfo.position);
     if (distance <= settings.predictionDistance) {
-      // Utiliser la limite de vitesse fournie si disponible
       const speedLimit = currentSpeedLimit || await this.speedLimitCache.getSpeedLimit(
         turnInfo.position[0],
         turnInfo.position[1]
       );
-      
-      console.log('Turn speed calculation:', {
-        turnAngle: turnInfo.angle,
-        speedLimit,
-        position: turnInfo.position
-      });
 
       const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(
         turnInfo.angle,
