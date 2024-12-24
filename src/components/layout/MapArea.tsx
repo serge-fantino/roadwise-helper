@@ -20,7 +20,7 @@ const MapArea = ({
   positionHistory
 }: MapAreaProps) => {
   return (
-    <div className="flex-1">
+    <div className="flex-1 w-full h-full relative">
       <MapView 
         position={position} 
         speed={speed} 
