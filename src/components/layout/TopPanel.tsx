@@ -24,12 +24,6 @@ const TopPanel = ({
   onSearchModeChange,
   isSearchMode
 }: TopPanelProps) => {
-  // Récupérer l'accélération directement depuis l'objet vehicle global
-  const vehicle = (window as any).globalVehicle;
-  const currentAcceleration = vehicle ? vehicle.acceleration : 0;
-
-  console.log('[TopPanel] Current acceleration:', currentAcceleration);
-
   return (
     <>
       <div className="h-20 bg-gray-900 p-2">
@@ -38,7 +32,6 @@ const TopPanel = ({
           recommendedSpeed={recommendedSpeed}
           isOnRoad={isOnRoad}
           isDebugMode={isDebugMode}
-          currentAcceleration={currentAcceleration}
         />
       </div>
 

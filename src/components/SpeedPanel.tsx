@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSpeedInfo } from '../hooks/useSpeedInfo';
 import SpeedDisplay from './SpeedDisplay';
 import TurnWarning from './TurnWarning';
@@ -6,19 +6,30 @@ import TurnWarning from './TurnWarning';
 interface SpeedPanelProps {
   currentSpeed: number;
   recommendedSpeed: number;
-  currentAcceleration?: number;
   isOnRoad?: boolean;
   isDebugMode?: boolean;
 }
 
 const SpeedPanel = ({ 
   currentSpeed, 
-  recommendedSpeed, 
-  currentAcceleration = 0,
+  recommendedSpeed,
   isOnRoad,
   isDebugMode
 }: SpeedPanelProps) => {
+  const [acceleration, setAcceleration] = useState(0);
   const { displaySpeed, speedLimit, optimalSpeed, prediction } = useSpeedInfo(currentSpeed, isOnRoad);
+
+  useEffect(() => {
+    const vehicle = (window as any).globalVehicle;
+    if (!vehicle) return;
+
+    const observer = (_position: [number, number], _speed: number, currentAcceleration: number) => {
+      setAcceleration(currentAcceleration);
+    };
+
+    vehicle.addObserver(observer);
+    return () => vehicle.removeObserver(observer);
+  }, []);
 
   useEffect(() => {
     console.log('[SpeedPanel] Speed update received:', {
@@ -28,9 +39,9 @@ const SpeedPanel = ({
       speedLimit,
       optimalSpeed,
       prediction,
-      currentAcceleration
+      acceleration
     });
-  }, [currentSpeed, displaySpeed, recommendedSpeed, speedLimit, optimalSpeed, prediction, currentAcceleration]);
+  }, [currentSpeed, displaySpeed, recommendedSpeed, speedLimit, optimalSpeed, prediction, acceleration]);
 
   const kmhSpeed = Math.round(displaySpeed * 3.6); // Conversion m/s to km/h
   const kmhRecommended = optimalSpeed || speedLimit || Math.round(recommendedSpeed * 3.6);
@@ -66,7 +77,7 @@ const SpeedPanel = ({
           recommendedSpeed={kmhRecommended}
           speedLimit={speedLimit}
           deceleration={prediction?.requiredDeceleration}
-          acceleration={currentAcceleration}
+          acceleration={acceleration}
         />
         {prediction && (
           <TurnWarning 
