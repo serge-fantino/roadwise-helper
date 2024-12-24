@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import { predictionService } from '../../services/PredictionService';
 import { toast } from '../../components/ui/use-toast';
-import { roadInfoService } from '../../services/roadInfo';
+import { roadInfoManager } from '../../services/roadInfo/RoadInfoManager';
 
 interface MapEventHandlersProps {
   position: [number, number];
@@ -25,26 +25,17 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
     };
   }, [position, map]);
 
-  // Vérification de la position sur la route avec un effet séparé
+  // Écouter les mises à jour du RoadInfoManager
   useEffect(() => {
-    let isMounted = true;
-
-    const checkRoadPosition = async () => {
-      try {
-        const [lat, lon] = position;
-        const onRoad = await roadInfoService.isPointOnRoad(lat, lon);
-        if (isMounted) {
-          onRoadStatusChange(onRoad);
-        }
-      } catch (error) {
-        console.error('Error checking road position:', error);
-      }
+    const handleRoadInfo = (info: { isOnRoad: boolean }) => {
+      onRoadStatusChange(info.isOnRoad);
     };
 
-    checkRoadPosition();
+    roadInfoManager.addObserver(handleRoadInfo);
+    roadInfoManager.updateRoadInfo(position);
 
     return () => {
-      isMounted = false;
+      roadInfoManager.removeObserver(handleRoadInfo);
     };
   }, [position, onRoadStatusChange]);
 
