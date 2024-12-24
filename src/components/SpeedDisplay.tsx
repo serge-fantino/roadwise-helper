@@ -7,7 +7,6 @@ interface SpeedDisplayProps {
 
 const SpeedDisplay = ({ currentSpeed, recommendedSpeed, speedLimit, deceleration }: SpeedDisplayProps) => {
   const isOverSpeed = currentSpeed > (speedLimit || recommendedSpeed);
-  const displaySpeedLimit = speedLimit || null;
   
   return (
     <div className="flex items-center space-x-2">
@@ -24,17 +23,10 @@ const SpeedDisplay = ({ currentSpeed, recommendedSpeed, speedLimit, deceleration
         {recommendedSpeed}
       </span>
 
-      {/* Unité */}
-      <span className="text-sm text-gray-400 mr-4">km/h</span>
-
-      {/* Panneau de limitation */}
-      {displaySpeedLimit && (
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-600 border-2 border-white">
-          <span className="text-xl font-bold text-white">
-            {displaySpeedLimit}
-          </span>
-        </div>
-      )}
+      {/* Unité et limite de vitesse */}
+      <span className="text-sm text-gray-400">
+        km/h {speedLimit === null ? "(? km/h)" : speedLimit ? `(${speedLimit} km/h)` : ""}
+      </span>
 
       {/* Décélération */}
       {deceleration && deceleration < 0 && (
