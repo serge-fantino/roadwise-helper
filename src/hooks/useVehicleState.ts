@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
 
 interface VehicleState {
   position: [number, number];
@@ -49,13 +50,22 @@ export const useVehicleState = (
     }
   }, [handleVehicleUpdate]);
 
-  const handleRoadStatusChange = useCallback((status: boolean) => {
-    setState(prev => ({ ...prev, isOnRoad: status }));
-    onRoadStatusChange(status);
+  // S'abonner aux mises à jour des informations routières
+  useEffect(() => {
+    const observer = (roadInfo: { isOnRoad: boolean }) => {
+      setState(prev => ({ ...prev, isOnRoad: roadInfo.isOnRoad }));
+      onRoadStatusChange(roadInfo.isOnRoad);
+    };
+
+    roadInfoManager.addObserver(observer);
+    return () => roadInfoManager.removeObserver(observer);
   }, [onRoadStatusChange]);
 
   return {
     ...state,
-    handleRoadStatusChange
+    handleRoadStatusChange: (status: boolean) => {
+      setState(prev => ({ ...prev, isOnRoad: status }));
+      onRoadStatusChange(status);
+    }
   };
 };
