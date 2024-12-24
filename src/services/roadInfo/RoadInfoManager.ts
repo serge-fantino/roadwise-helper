@@ -15,7 +15,9 @@ class RoadInfoManager {
   private static instance: RoadInfoManager;
   private observers: RoadInfoObserver[] = [];
   private currentInfo: RoadInfo | null = null;
-  private readonly UPDATE_DISTANCE = 100; // Distance en mètres avant mise à jour
+  private readonly MIN_UPDATE_DISTANCE = 10; // Distance minimale en mètres avant mise à jour
+  private readonly MIN_UPDATE_INTERVAL = 5000; // Intervalle minimal entre les mises à jour (5 secondes)
+  private lastUpdateTime: number = 0;
   private updateTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {}
@@ -42,22 +44,36 @@ class RoadInfoManager {
   }
 
   private shouldUpdate(newPosition: [number, number]): boolean {
+    const now = Date.now();
+    const timeSinceLastUpdate = now - this.lastUpdateTime;
+
+    // Vérifier l'intervalle minimal
+    if (timeSinceLastUpdate < this.MIN_UPDATE_INTERVAL) {
+      console.log('Skipping road info update - too soon since last update:', 
+        timeSinceLastUpdate, 'ms');
+      return false;
+    }
+
+    // Si pas d'info courante, on doit mettre à jour
     if (!this.currentInfo) return true;
 
+    // Calculer la distance depuis la dernière position
     const distance = calculateDistance(newPosition, this.currentInfo.lastPosition);
     console.log('Distance since last road info update:', distance, 'm');
-    return distance >= this.UPDATE_DISTANCE;
+
+    // Mettre à jour seulement si on a bougé suffisamment
+    return distance >= this.MIN_UPDATE_DISTANCE;
   }
 
   public async updateRoadInfo(position: [number, number]) {
-    // Éviter les mises à jour trop fréquentes
+    // Annuler tout timeout en cours
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);
     }
 
+    // Utiliser un debounce pour éviter les appels trop fréquents
     this.updateTimeout = setTimeout(async () => {
       if (!this.shouldUpdate(position)) {
-        console.log('Skipping road info update - vehicle hasn\'t moved enough');
         return;
       }
 
@@ -82,13 +98,14 @@ class RoadInfoManager {
           lastPosition: position
         };
 
+        this.lastUpdateTime = Date.now();
         console.log('Road info updated:', this.currentInfo);
         this.notifyObservers();
       } catch (error) {
         console.error('Error updating road info:', error);
         // En cas d'erreur, on garde les anciennes informations
       }
-    }, 100); // Petit délai pour éviter les appels trop fréquents
+    }, 100); // Petit délai pour le debounce
   }
 
   public getCurrentInfo(): RoadInfo | null {
