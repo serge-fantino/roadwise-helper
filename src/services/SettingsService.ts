@@ -10,6 +10,7 @@ export interface Settings {
   roadInfoProvider: RoadInfoProvider;
   mapboxToken: string;
   predictionDistance: number; // Distance en mètres pour l'analyse des virages
+  maxRouteDeviation: number; // Distance maximale en mètres avant recalcul
 }
 
 const SETTINGS_STORAGE_KEY = 'app_settings';
@@ -28,6 +29,7 @@ class SettingsService {
       roadInfoProvider: 'overpass',
       mapboxToken: '',
       predictionDistance: 500,
+      maxRouteDeviation: 50,
     };
 
     if (savedSettings) {

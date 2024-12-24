@@ -4,6 +4,8 @@ import { TurnAnalyzer } from './prediction/TurnAnalyzer';
 import { SpeedCalculator } from './prediction/SpeedCalculator';
 import { RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';
 import { calculateDistance } from '../utils/mapUtils';
+import { SpeedLimitCache } from './SpeedLimitCache';
+import { RouteTracker } from './RouteTracker';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
@@ -11,10 +13,15 @@ class RoadPredictor {
   private updateInterval: NodeJS.Timeout | null = null;
   private turnAnalyzer: TurnAnalyzer;
   private speedCalculator: SpeedCalculator;
+  private speedLimitCache: SpeedLimitCache;
+  private routeTracker: RouteTracker;
+  private destination: [number, number] | null = null;
 
   constructor() {
     this.turnAnalyzer = new TurnAnalyzer();
     this.speedCalculator = new SpeedCalculator();
+    this.speedLimitCache = new SpeedLimitCache();
+    this.routeTracker = new RouteTracker();
   }
 
   addObserver(observer: PredictionObserver) {
@@ -59,6 +66,10 @@ class RoadPredictor {
     return (v0 * v0 - vx * vx) / (2 * distance * 9.81);
   }
 
+  setDestination(destination: [number, number]) {
+    this.destination = destination;
+  }
+
   private async updatePrediction(routePoints: [number, number][]) {
     const vehicle = (window as any).globalVehicle;
     if (!vehicle || !routePoints || routePoints.length < 2) {
@@ -67,26 +78,40 @@ class RoadPredictor {
       return;
     }
 
-    // Trouver le point le plus proche sur la route
-    let closestPointIndex = 0;
-    let minDistance = Infinity;
     const currentPosition = vehicle.position;
-    const currentSpeed = vehicle.speed * 3.6; // Conversion en km/h
-    
-    for (let i = 0; i < routePoints.length; i++) {
-      const distance = calculateDistance(currentPosition, routePoints[i]);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestPointIndex = i;
-      }
+    const currentSpeed = vehicle.speed * 3.6;
+    const settings = settingsService.getSettings();
+
+    // Trouver le point le plus proche sur la route
+    const { index: closestPointIndex, distance: deviationDistance } = 
+      this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
+
+    // Vérifier si on est trop loin de la route
+    if (this.routeTracker.isOffRoute(deviationDistance, settings) && this.destination) {
+      // Émettre un événement pour demander un recalcul d'itinéraire
+      const event = new CustomEvent('recalculateRoute', {
+        detail: {
+          from: currentPosition,
+          to: this.destination
+        }
+      });
+      window.dispatchEvent(event);
+      return;
     }
 
-    const settings = settingsService.getSettings();
+    // Continuer avec l'analyse des virages...
     const turnInfo = this.turnAnalyzer.analyze(routePoints, closestPointIndex, settings);
 
     if (turnInfo) {
-      const speedLimit = await getSpeedLimit(turnInfo.position[0], turnInfo.position[1]);
-      const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(turnInfo.angle, speedLimit, settings);
+      const speedLimit = await this.speedLimitCache.getSpeedLimit(
+        turnInfo.position[0], 
+        turnInfo.position[1]
+      );
+      const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(
+        turnInfo.angle, 
+        speedLimit, 
+        settings
+      );
 
       const requiredDeceleration = currentSpeed > optimalSpeed 
         ? this.calculateRequiredDeceleration(currentSpeed, optimalSpeed, turnInfo.distance)

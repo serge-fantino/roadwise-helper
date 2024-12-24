@@ -9,7 +9,7 @@ export class SpeedCalculator {
       return settings.minTurnSpeed;
     } else {
       const ratio = absAngle / settings.maxTurnAngle;
-      return baseSpeed - (ratio * (baseSpeed - settings.minTurnSpeed));
+      return (1-ratio) * baseSpeed + ratio * settings.minTurnSpeed;
     }
   }
 }

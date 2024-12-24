@@ -9,18 +9,18 @@ export class TurnAnalyzer {
     settings: Settings
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
     // First, look for any dangerous turn (>45°) on the entire route
-    let dangerousTurn = this.findDangerousTurn(routePoints, closestPointIndex);
+    let dangerousTurn = this.findDangerousTurn(routePoints, closestPointIndex, settings);
     if (dangerousTurn) {
       return dangerousTurn;
     }
-
     // If no dangerous turn found, look for the sharpest turn within prediction distance
-    return this.findSharpestTurnWithinDistance(routePoints, closestPointIndex, settings.predictionDistance);
+    return this.findSharpestTurnWithinDistance(routePoints, closestPointIndex, settings);
   }
 
   private findDangerousTurn(
     routePoints: [number, number][], 
-    startIndex: number
+    startIndex: number,
+    settings: Settings
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
     let totalDistance = 0;
     let totalAngle = 0;
@@ -29,7 +29,7 @@ export class TurnAnalyzer {
       routePoints[startIndex + 1] || routePoints[startIndex]
     );
 
-    for (let i = startIndex; i < routePoints.length - 1 && totalDistance < 1000; i++) {
+    for (let i = startIndex; i < routePoints.length - 1 && totalDistance < settings.predictionDistance; i++) {
       const currentBearing = calculateBearing(routePoints[i], routePoints[i + 1]);
       const angleDiff = calculateAngleDifference(previousBearing, currentBearing);
       totalAngle += angleDiff;
@@ -37,11 +37,20 @@ export class TurnAnalyzer {
       totalDistance += calculateDistance(routePoints[i], routePoints[i + 1]);
 
       // Si on trouve un virage de plus de 45°, on le retourne immédiatement
-      if (Math.abs(angleDiff) > 45 || Math.abs(totalAngle) > 45) {
+      if (Math.abs(angleDiff) > 45) {
         return {
           distance: totalDistance,
           angle: angleDiff,
           position: routePoints[i + 1],
+          index: i + 1
+        };
+      }
+      if (Math.abs(totalAngle) > 45) {
+        return {
+          distance: totalDistance,
+          angle: totalAngle,
+          position: routePoints[i + 1],
+          index: i + 1
         };
       }
 
@@ -54,12 +63,13 @@ export class TurnAnalyzer {
   private findSharpestTurnWithinDistance(
     routePoints: [number, number][], 
     startIndex: number,
-    maxDistance: number
+    settings: Settings
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
     let sharpestTurn = {
       angle: 0,
       position: routePoints[startIndex],
-      distance: 0
+      distance: 0,
+      index: startIndex
     };
     
     let totalDistance = 0;
@@ -72,7 +82,7 @@ export class TurnAnalyzer {
       const segmentDistance = calculateDistance(routePoints[i], routePoints[i + 1]);
       totalDistance += segmentDistance;
 
-      if (totalDistance > maxDistance) {
+      if (totalDistance > settings.predictionDistance) {
         break;
       }
 
@@ -83,18 +93,20 @@ export class TurnAnalyzer {
         sharpestTurn = {
           angle: angleDiff,
           position: routePoints[i + 1],
-          distance: totalDistance
+          distance: totalDistance,
+          index: i + 1
         };
       }
 
       previousBearing = currentBearing;
     }
 
-    if (Math.abs(sharpestTurn.angle) > 15) { // On garde le seuil minimum de 15°
+    if (Math.abs(sharpestTurn.angle) > settings.minTurnAngle) { 
       return {
         distance: sharpestTurn.distance,
         angle: sharpestTurn.angle,
         position: sharpestTurn.position,
+        index: sharpestTurn.index
       };
     }
 

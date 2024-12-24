@@ -3,9 +3,10 @@ import { roadPredictor } from '../services/RoadPredictor';
 
 interface RoadPredictionInfoProps {
   routePoints: [number, number][];
+  onRouteRecalculation: (from: [number, number], to: [number, number]) => Promise<void>;
 }
 
-const RoadPredictionInfo = ({ routePoints }: RoadPredictionInfoProps) => {
+const RoadPredictionInfo = ({ routePoints, onRouteRecalculation }: RoadPredictionInfoProps) => {
   const [prediction, setPrediction] = useState<{
     distance: number;
     angle: number;
@@ -25,6 +26,19 @@ const RoadPredictionInfo = ({ routePoints }: RoadPredictionInfoProps) => {
       roadPredictor.stopUpdates();
     };
   }, [routePoints]);
+
+  useEffect(() => {
+    const handleRouteRecalculation = async (event: CustomEvent) => {
+      const { from, to } = event.detail;
+      await onRouteRecalculation(from, to);
+    };
+
+    window.addEventListener('recalculateRoute', handleRouteRecalculation as EventListener);
+    
+    return () => {
+      window.removeEventListener('recalculateRoute', handleRouteRecalculation as EventListener);
+    };
+  }, [onRouteRecalculation]);
 
   if (!prediction) return null;
 
