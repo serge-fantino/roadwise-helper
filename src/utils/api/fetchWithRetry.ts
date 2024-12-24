@@ -1,4 +1,4 @@
-const TIMEOUT = 10000; // Increased to 10 seconds
+const TIMEOUT = 30000; // Increased to 30 seconds for slower connections
 const MAX_RETRIES = 3;
 const INITIAL_DELAY = 1000; // 1 second
 
@@ -7,32 +7,38 @@ interface FetchWithRetryOptions extends RequestInit {
 }
 
 export async function fetchWithTimeout(url: string, options: FetchWithRetryOptions = {}): Promise<Response> {
-  const { timeout = TIMEOUT, ...fetchOptions } = options;
-  const controller = new AbortController();
-  const { signal } = controller;
+  const { timeout = TIMEOUT, signal: existingSignal, ...fetchOptions } = options;
+  
+  // Create a new AbortController that will be used for timeout
+  const timeoutController = new AbortController();
+  const { signal: timeoutSignal } = timeoutController;
 
-  const timeoutPromise = new Promise<Response>((_, reject) => {
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      reject(new Error(`Request timed out after ${timeout}ms`));
-    }, timeout);
+  // Create a combined signal if there's an existing one
+  const combinedSignal = existingSignal
+    ? new AbortController().signal
+    : timeoutSignal;
 
-    // Clean up the timeout if the fetch completes
-    signal.addEventListener('abort', () => clearTimeout(timeoutId), { once: true });
-  });
+  if (existingSignal) {
+    existingSignal.addEventListener('abort', () => timeoutController.abort());
+  }
+
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort();
+  }, timeout);
 
   try {
-    const fetchPromise = fetch(url, {
+    const response = await fetch(url, {
       ...fetchOptions,
-      signal,
+      signal: combinedSignal,
     });
-
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    
+    clearTimeout(timeoutId);
     return response;
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new Error(`Request aborted: ${error.message}`);
+        throw new Error('Request timed out');
       }
     }
     throw error;
@@ -69,7 +75,7 @@ export async function fetchWithRetry(
       console.log(
         `Request failed (attempt ${MAX_RETRIES - retries + 1}/${MAX_RETRIES}), ` +
         `retrying in ${delay}ms...`,
-        { error }
+        error
       );
       
       await new Promise(resolve => setTimeout(resolve, delay));
