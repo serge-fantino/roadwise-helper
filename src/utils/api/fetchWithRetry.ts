@@ -6,12 +6,12 @@ interface FetchWithRetryOptions extends RequestInit {
   timeout?: number;
 }
 
-export async function fetchWithTimeout(url: string, options: FetchWithRetryOptions = {}) {
+export async function fetchWithTimeout(url: string, options: FetchWithRetryOptions = {}): Promise<Response> {
   const { timeout = TIMEOUT, ...fetchOptions } = options;
   const controller = new AbortController();
   const { signal } = controller;
 
-  const timeoutPromise = new Promise((_, reject) => {
+  const timeoutPromise = new Promise<Response>((_, reject) => {
     const timeoutId = setTimeout(() => {
       controller.abort();
       reject(new Error(`Request timed out after ${timeout}ms`));
@@ -27,7 +27,8 @@ export async function fetchWithTimeout(url: string, options: FetchWithRetryOptio
       signal,
     });
 
-    return await Promise.race([fetchPromise, timeoutPromise]);
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    return response;
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
