@@ -86,10 +86,8 @@ class RoadPredictor {
 
     this.turnPredictionManager.sortTurns();
 
-    // Mise à jour de la prédiction courante
     const nextTurn = this.turnPredictionManager.getNextTurn();
     
-    // Si pas de prochain virage, on envoie explicitement une prédiction nulle
     if (!nextTurn) {
       this.currentPrediction = null;
     } else {
@@ -113,11 +111,14 @@ class RoadPredictor {
       speedLimit
     });
     
-    // On notifie même quand il n'y a pas de virage pour mettre à jour l'interface
     this.notifyObservers();
   }
 
   public startUpdates(routePoints: [number, number][]) {
+    // Reset the turns when starting updates with new route points
+    this.turnPredictionManager = new TurnPredictionManager();
+    this.currentPrediction = null;
+    
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
@@ -126,6 +127,7 @@ class RoadPredictor {
       this.updatePrediction(routePoints);
     }, 1000);
 
+    // Initial update
     this.updatePrediction(routePoints);
   }
 
