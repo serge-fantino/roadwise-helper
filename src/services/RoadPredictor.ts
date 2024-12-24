@@ -3,7 +3,7 @@ import { TurnPrediction, RoadPrediction, PredictionObserver } from './prediction
 import { RouteTracker } from './RouteTracker';
 import { TurnPredictionManager } from './prediction/TurnPredictionManager';
 import { DecelerationCalculator } from './prediction/DecelerationCalculator';
-import { roadInfoService } from './roadInfo';
+import { roadInfoManager } from './roadInfo/RoadInfoManager';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
@@ -18,44 +18,25 @@ class RoadPredictor {
     this.routeTracker = new RouteTracker();
     this.turnPredictionManager = new TurnPredictionManager();
     this.decelerationCalculator = new DecelerationCalculator();
+
+    // S'abonner aux mises à jour des informations routières
+    roadInfoManager.addObserver((roadInfo) => {
+      if (this.currentPrediction) {
+        this.currentPrediction.speedLimit = roadInfo.speedLimit;
+      }
+    });
   }
 
-  addObserver(observer: PredictionObserver) {
+  public addObserver(observer: PredictionObserver) {
     this.observers.push(observer);
   }
 
-  removeObserver(observer: PredictionObserver) {
+  public removeObserver(observer: PredictionObserver) {
     this.observers = this.observers.filter(obs => obs !== observer);
   }
 
   private notifyObservers() {
-    const turns = this.turnPredictionManager.getTurns();
-    this.observers.forEach(observer => observer(this.currentPrediction, turns));
-  }
-
-  startUpdates(routePoints: [number, number][]) {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-    }
-
-    this.updateInterval = setInterval(() => {
-      this.updatePrediction(routePoints);
-    }, 1000);
-
-    this.updatePrediction(routePoints);
-  }
-
-  stopUpdates() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
-    this.currentPrediction = null;
-    this.notifyObservers();
-  }
-
-  setDestination(destination: [number, number]) {
-    this.destination = destination;
+    this.observers.forEach(observer => observer(this.currentPrediction, this.turnPredictionManager.getTurns()));
   }
 
   private async updatePrediction(routePoints: [number, number][]) {
@@ -70,14 +51,9 @@ class RoadPredictor {
     const currentSpeed = vehicle.speed * 3.6;
     const settings = settingsService.getSettings();
 
-    // Récupérer la limite de vitesse actuelle
-    let speedLimit = null;
-    try {
-      speedLimit = await roadInfoService.getSpeedLimit(currentPosition[0], currentPosition[1]);
-      console.log('Speed limit for prediction:', speedLimit);
-    } catch (error) {
-      console.error('Error getting speed limit for prediction:', error);
-    }
+    // Utiliser les informations routières du manager
+    const roadInfo = roadInfoManager.getCurrentInfo();
+    const speedLimit = roadInfo?.speedLimit ?? null;
 
     const { index: closestPointIndex, distance: deviationDistance } = 
       this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
@@ -92,6 +68,9 @@ class RoadPredictor {
       window.dispatchEvent(event);
       return;
     }
+
+    // Mise à jour des informations routières
+    await roadInfoManager.updateRoadInfo(currentPosition);
 
     // Mise à jour des distances pour les virages existants
     await this.turnPredictionManager.updateTurnDistances(currentPosition);
@@ -140,6 +119,27 @@ class RoadPredictor {
       allTurns: this.turnPredictionManager.getTurns(),
       speedLimit
     });
+    this.notifyObservers();
+  }
+
+  public startUpdates(routePoints: [number, number][]) {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
+
+    this.updateInterval = setInterval(() => {
+      this.updatePrediction(routePoints);
+    }, 1000);
+
+    this.updatePrediction(routePoints);
+  }
+
+  public stopUpdates() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+    this.currentPrediction = null;
     this.notifyObservers();
   }
 }

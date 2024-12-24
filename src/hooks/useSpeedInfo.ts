@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { roadPredictor } from '../services/RoadPredictor';
 import { RoadPrediction } from '../services/prediction/PredictionTypes';
-import { roadInfoService } from '../services/roadInfo';
+import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
 
 interface SpeedInfo {
   displaySpeed: number;
@@ -18,6 +18,7 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInf
     prediction: null
   });
 
+  // Observer pour les prédictions
   useEffect(() => {
     const predictionObserver = (prediction: RoadPrediction | null) => {
       if (prediction) {
@@ -30,42 +31,21 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInf
     };
 
     roadPredictor.addObserver(predictionObserver);
-    
-    return () => {
-      roadPredictor.removeObserver(predictionObserver);
-    };
+    return () => roadPredictor.removeObserver(predictionObserver);
   }, []);
 
-  // Nouvel effet pour récupérer la limite de vitesse
+  // Observer pour les informations routières
   useEffect(() => {
-    const updateSpeedLimit = async () => {
-      if (!isOnRoad) return;
-      
-      try {
-        const vehicle = (window as any).globalVehicle;
-        if (!vehicle?.position) return;
-        
-        const [lat, lon] = vehicle.position;
-        console.log('Fetching speed limit for position:', { lat, lon });
-        
-        const limit = await roadInfoService.getSpeedLimit(lat, lon);
-        console.log('Speed limit received:', limit);
-        
-        setSpeedInfo(prev => ({
-          ...prev,
-          speedLimit: limit
-        }));
-      } catch (error) {
-        console.error('Error fetching speed limit:', error);
-      }
+    const roadInfoObserver = (roadInfo: { speedLimit: number | null }) => {
+      setSpeedInfo(prev => ({
+        ...prev,
+        speedLimit: roadInfo.speedLimit
+      }));
     };
 
-    // Mettre à jour la limite de vitesse toutes les 10 secondes
-    updateSpeedLimit();
-    const interval = setInterval(updateSpeedLimit, 10000);
-
-    return () => clearInterval(interval);
-  }, [isOnRoad]);
+    roadInfoManager.addObserver(roadInfoObserver);
+    return () => roadInfoManager.removeObserver(roadInfoObserver);
+  }, []);
 
   useEffect(() => {
     console.log('Speed updated in useSpeedInfo:', currentSpeed);
