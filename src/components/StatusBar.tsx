@@ -1,4 +1,4 @@
-import { Bug, Settings, RefreshCw, Road, City, Highway } from 'lucide-react';
+import { Bug, Settings, RefreshCw, Navigation2, Building2, Car } from 'lucide-react';
 import { Toggle } from './ui/toggle';
 import { useEffect, useState } from 'react';
 import { roadPredictor } from '../services/RoadPredictor';
@@ -56,11 +56,11 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }
   const getRoadTypeIcon = () => {
     switch (roadType) {
       case 'highway':
-        return <Highway className="h-4 w-4" />;
+        return <Car className="h-4 w-4" />;
       case 'city':
-        return <City className="h-4 w-4" />;
+        return <Building2 className="h-4 w-4" />;
       default:
-        return <Road className="h-4 w-4" />;
+        return <Navigation2 className="h-4 w-4" />;
     }
   };
 
