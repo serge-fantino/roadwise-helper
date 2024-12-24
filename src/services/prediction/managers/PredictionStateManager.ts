@@ -45,12 +45,19 @@ export class PredictionStateManager {
 
     this.turnPredictionManager.sortTurns();
     
-    // Réinitialiser complètement si aucun virage n'est devant
+    // Créer une prédiction "ligne droite" si aucun virage n'est devant
     const remainingTurns = this.getTurns();
     if (remainingTurns.length === 0) {
-      console.log('No more turns ahead, resetting current prediction');
-      this.currentPrediction = null;
-      this.turnPredictionManager = new TurnPredictionManager();
+      console.log('No more turns ahead, creating straight line prediction');
+      this.currentPrediction = {
+        distance: 1000, // Une grande distance arbitraire
+        angle: null,    // null indique une ligne droite
+        position: currentPosition,
+        index: this.currentRouteIndex,
+        speedLimit: speedLimit,
+        optimalSpeed: speedLimit || 130, // Vitesse max par défaut si pas de limite
+        requiredDeceleration: null
+      };
     } else {
       this.updateCurrentPrediction(currentSpeed);
     }
@@ -112,7 +119,6 @@ export class PredictionStateManager {
   }
 
   getTurns(): TurnPrediction[] {
-    // Ne retourner que les virages dont l'index est supérieur à l'index actuel
     return this.turnPredictionManager.getTurns()
       .filter(turn => turn.index > this.currentRouteIndex);
   }

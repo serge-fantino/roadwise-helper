@@ -6,8 +6,8 @@ interface TurnWarningProps {
 }
 
 const TurnWarning = ({ distance, angle }: TurnWarningProps) => {
-  // Si pas d'angle fourni ou distance > 500m, on affiche le message de ligne droite
-  if (angle === null || distance > 500) {
+  // Si l'angle est null, c'est une ligne droite
+  if (angle === null) {
     return (
       <div className="text-lg text-green-500">
         belle ligne droite devant
