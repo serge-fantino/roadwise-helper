@@ -32,13 +32,29 @@ export class SimulationServiceV2 {
     }
 
     const currentPosition = this.vehicle.position;
+    
+    // Obtenir la vitesse optimale et la décélération requise du RoadPredictor
+    let optimalSpeed = 90;
+    let requiredDeceleration = null;
+
+    if (!this.isIdle) {
+      const prediction = (window as any).roadPredictor?.getCurrentPrediction();
+      optimalSpeed = prediction?.optimalSpeed || 90;
+      requiredDeceleration = prediction?.requiredDeceleration || null;
+
+      console.log('[SimulationV2] Current prediction:', {
+        optimalSpeed,
+        requiredDeceleration
+      });
+    }
+
     const { speed: newSpeed, acceleration } = this.speedController.updateSpeed(
-      TIME_STEP,
-      90, // Default optimal speed if no prediction
-      null
+      1, // TIME_STEP
+      optimalSpeed,
+      requiredDeceleration
     );
     
-    const distanceToTravel = newSpeed * TIME_STEP;
+    const distanceToTravel = newSpeed * 1; // TIME_STEP
     
     const targetIndex = this.routeManager.findNextValidTarget(currentPosition, distanceToTravel);
     const nextPosition = this.routeManager.getRoutePoint(targetIndex);
@@ -53,33 +69,20 @@ export class SimulationServiceV2 {
       targetIndex,
       currentPosition,
       nextPosition,
-      currentSpeed: newSpeed,
+      currentSpeed: newSpeed * 3.6,
       acceleration,
       distanceToTravel
     });
 
     const heading = this.navigationCalculator.calculateHeading(currentPosition, nextPosition);
-
-    // Obtenir la vitesse optimale et la décélération requise du RoadPredictor
-    let optimalSpeed = 90;
-    let requiredDeceleration = null;
-
-    if (!this.isIdle) {
-      const prediction = (window as any).roadPredictor?.getCurrentPrediction();
-      optimalSpeed = prediction?.optimalSpeed || 90;
-      requiredDeceleration = prediction?.requiredDeceleration || null;
-    }
-
-    // Calculer la nouvelle position
     const newPosition = this.navigationCalculator.calculateNextPosition(currentPosition, heading, distanceToTravel);
 
-    // Mettre à jour l'index de route si nécessaire
     if (targetIndex > this.routeManager.getCurrentIndex()) {
       console.log('[SimulationV2] Updating route index from', this.routeManager.getCurrentIndex(), 'to', targetIndex);
       this.routeManager.updateCurrentIndex(targetIndex);
     }
 
-    // Mettre à jour le véhicule avec la nouvelle accélération
+    // Mise à jour du véhicule avec l'accélération
     this.vehicle.update(newPosition, newSpeed, acceleration);
   }
 

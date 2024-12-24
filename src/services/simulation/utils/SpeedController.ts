@@ -1,8 +1,3 @@
-const GRAVITY = 9.81;
-const ACCELERATION_FACTOR = 0.2;
-const DECELERATION_FACTOR = 0.3;
-const MAX_DECELERATION = 0.5; // 0.5g maximum
-
 export class SpeedController {
   private currentSpeed: number = 0;
   private currentAcceleration: number = 0;
@@ -26,14 +21,17 @@ export class SpeedController {
   ): { speed: number; acceleration: number } {
     // Convertir la vitesse optimale de km/h en m/s
     const optimalSpeedMS = optimalSpeed / 3.6;
+    const GRAVITY = 9.81;
+    const ACCELERATION_FACTOR = 0.2;
+    const DECELERATION_FACTOR = 0.3;
+    const MAX_DECELERATION = 0.5;
+    
     let acceleration = 0;
 
-    // Log des valeurs pour debug
     console.log('SpeedController update:', {
       currentSpeed: this.currentSpeed * 3.6,
       optimalSpeed,
-      requiredDeceleration,
-      timeStep
+      requiredDeceleration
     });
 
     if (this.currentSpeed < optimalSpeedMS) {
@@ -62,10 +60,12 @@ export class SpeedController {
     
     // Ne pas dépasser la vitesse optimale lors de l'accélération
     this.currentSpeed = Math.min(newSpeed, optimalSpeedMS);
-    this.currentAcceleration = acceleration / GRAVITY; // Store acceleration in g
+    this.currentAcceleration = acceleration / GRAVITY; // Stockage en g
 
-    console.log('New speed:', this.currentSpeed * 3.6, 'km/h');
-    console.log('Acceleration:', this.currentAcceleration, 'g');
+    console.log('Speed updated:', {
+      newSpeed: this.currentSpeed * 3.6,
+      acceleration: this.currentAcceleration
+    });
     
     return { 
       speed: this.currentSpeed,
