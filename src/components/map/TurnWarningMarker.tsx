@@ -6,11 +6,12 @@ import { renderToString } from 'react-dom/server';
 interface TurnWarningMarkerProps {
   position: [number, number];
   angle: number;
+  isNextTurn?: boolean;
 }
 
-const TurnWarningMarker = ({ position, angle }: TurnWarningMarkerProps) => {
+const TurnWarningMarker = ({ position, angle, isNextTurn = false }: TurnWarningMarkerProps) => {
   const iconHtml = renderToString(
-    <div className="text-red-500">
+    <div className={isNextTurn ? "text-red-500" : "text-yellow-500"}>
       <TriangleAlert size={24} />
     </div>
   );

@@ -1,4 +1,4 @@
-export interface RoadPrediction {
+export interface TurnPrediction {
   distance: number;  // Distance jusqu'au prochain virage en mètres
   angle: number;     // Angle du virage en degrés
   position: [number, number]; // Position du virage
@@ -8,4 +8,6 @@ export interface RoadPrediction {
   requiredDeceleration?: number | null; // Décélération requise en g
 }
 
-export type PredictionObserver = (prediction: RoadPrediction | null) => void;
+export type RoadPrediction = TurnPrediction;
+
+export type PredictionObserver = (prediction: RoadPrediction | null, allTurns: TurnPrediction[]) => void;

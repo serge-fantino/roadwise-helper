@@ -2,7 +2,7 @@ import { getSpeedLimit } from '../utils/osmUtils';
 import { settingsService } from './SettingsService';
 import { TurnAnalyzer } from './prediction/TurnAnalyzer';
 import { SpeedCalculator } from './prediction/SpeedCalculator';
-import { RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';
+import { TurnPrediction, RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';
 import { calculateDistance } from '../utils/mapUtils';
 import { SpeedLimitCache } from './SpeedLimitCache';
 import { RouteTracker } from './RouteTracker';
@@ -10,6 +10,7 @@ import { RouteTracker } from './RouteTracker';
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
   private currentPrediction: RoadPrediction | null = null;
+  private turns: TurnPrediction[] = [];
   private updateInterval: NodeJS.Timeout | null = null;
   private turnAnalyzer: TurnAnalyzer;
   private speedCalculator: SpeedCalculator;
@@ -33,7 +34,7 @@ class RoadPredictor {
   }
 
   private notifyObservers() {
-    this.observers.forEach(observer => observer(this.currentPrediction));
+    this.observers.forEach(observer => observer(this.currentPrediction, this.turns));
   }
 
   startUpdates(routePoints: [number, number][]) {
@@ -54,15 +55,13 @@ class RoadPredictor {
       this.updateInterval = null;
     }
     this.currentPrediction = null;
+    this.turns = [];
     this.notifyObservers();
   }
 
   private calculateRequiredDeceleration(currentSpeed: number, optimalSpeed: number, distance: number): number {
-    // Conversion km/h -> m/s
     const vx = currentSpeed / 3.6;
     const v0 = optimalSpeed / 3.6;
-    
-    // Calcul de la décélération en g
     return (v0 * v0 - vx * vx) / (2 * distance * 9.81);
   }
 
@@ -70,10 +69,50 @@ class RoadPredictor {
     this.destination = destination;
   }
 
+  private async updateTurnDistances(currentPosition: [number, number]) {
+    this.turns = await Promise.all(
+      this.turns.map(async (turn) => {
+        const distance = calculateDistance(currentPosition, turn.position);
+        return { ...turn, distance };
+      })
+    );
+  }
+
+  private async findNewTurns(
+    routePoints: [number, number][], 
+    startIndex: number, 
+    currentPosition: [number, number],
+    settings: Settings
+  ) {
+    const turnInfo = this.turnAnalyzer.analyze(routePoints, startIndex, settings);
+    if (!turnInfo) return;
+
+    const distance = calculateDistance(currentPosition, turnInfo.position);
+    if (distance <= settings.predictionDistance) {
+      const speedLimit = await this.speedLimitCache.getSpeedLimit(
+        turnInfo.position[0],
+        turnInfo.position[1]
+      );
+      const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(
+        turnInfo.angle,
+        speedLimit,
+        settings
+      );
+
+      this.turns.push({
+        ...turnInfo,
+        speedLimit,
+        optimalSpeed,
+        distance
+      });
+    }
+  }
+
   private async updatePrediction(routePoints: [number, number][]) {
     const vehicle = (window as any).globalVehicle;
     if (!vehicle || !routePoints || routePoints.length < 2) {
       this.currentPrediction = null;
+      this.turns = [];
       this.notifyObservers();
       return;
     }
@@ -82,13 +121,10 @@ class RoadPredictor {
     const currentSpeed = vehicle.speed * 3.6;
     const settings = settingsService.getSettings();
 
-    // Trouver le point le plus proche sur la route
     const { index: closestPointIndex, distance: deviationDistance } = 
       this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
 
-    // Vérifier si on est trop loin de la route
     if (this.routeTracker.isOffRoute(deviationDistance, settings) && this.destination) {
-      // Émettre un événement pour demander un recalcul d'itinéraire
       const event = new CustomEvent('recalculateRoute', {
         detail: {
           from: currentPosition,
@@ -99,35 +135,41 @@ class RoadPredictor {
       return;
     }
 
-    // Continuer avec l'analyse des virages...
-    const turnInfo = this.turnAnalyzer.analyze(routePoints, closestPointIndex, settings);
+    // Mise à jour des distances pour les virages existants
+    await this.updateTurnDistances(currentPosition);
 
-    if (turnInfo) {
-      const speedLimit = await this.speedLimitCache.getSpeedLimit(
-        turnInfo.position[0], 
-        turnInfo.position[1]
-      );
-      const optimalSpeed = this.speedCalculator.calculateOptimalSpeed(
-        turnInfo.angle, 
-        speedLimit, 
-        settings
-      );
+    // Suppression des virages dépassés
+    this.turns = this.turns.filter(turn => turn.distance > 0);
 
-      const requiredDeceleration = currentSpeed > optimalSpeed 
-        ? this.calculateRequiredDeceleration(currentSpeed, optimalSpeed, turnInfo.distance)
+    // Recherche de nouveaux virages si nécessaire
+    const lastTurnIndex = this.turns.length > 0 
+      ? Math.max(...this.turns.map(t => t.index))
+      : closestPointIndex;
+
+    await this.findNewTurns(routePoints, lastTurnIndex, currentPosition, settings);
+
+    // Tri des virages par distance
+    this.turns.sort((a, b) => a.distance - b.distance);
+
+    // Mise à jour de la prédiction courante avec le virage le plus proche
+    if (this.turns.length > 0) {
+      const nextTurn = this.turns[0];
+      const requiredDeceleration = currentSpeed > (nextTurn.optimalSpeed || 0)
+        ? this.calculateRequiredDeceleration(currentSpeed, nextTurn.optimalSpeed || 0, nextTurn.distance)
         : null;
 
       this.currentPrediction = {
-        ...turnInfo,
-        speedLimit,
-        optimalSpeed,
+        ...nextTurn,
         requiredDeceleration
       };
     } else {
       this.currentPrediction = null;
     }
 
-    console.log('Road prediction updated:', this.currentPrediction);
+    console.log('Road prediction updated:', { 
+      currentPrediction: this.currentPrediction,
+      allTurns: this.turns 
+    });
     this.notifyObservers();
   }
 }

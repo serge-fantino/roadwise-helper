@@ -12,6 +12,7 @@ import RoadPredictionInfo from './RoadPredictionInfo';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
+import { TurnPrediction } from '../services/prediction/PredictionTypes';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -48,21 +49,13 @@ const MapView = ({
     handleRoadStatusChange
   } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
 
-  const [nextTurn, setNextTurn] = useState<{
-    position: [number, number];
-    angle: number;
-  } | null>(null);
+  const [nextTurn, setNextTurn] = useState<TurnPrediction | null>(null);
+  const [allTurns, setAllTurns] = useState<TurnPrediction[]>([]);
 
   useEffect(() => {
-    const observer = (prediction: any) => {
-      if (prediction && prediction.position) {
-        setNextTurn({
-          position: prediction.position,
-          angle: prediction.angle
-        });
-      } else {
-        setNextTurn(null);
-      }
+    const observer = (prediction: TurnPrediction | null, turns: TurnPrediction[]) => {
+      setNextTurn(prediction);
+      setAllTurns(turns);
     };
 
     roadPredictor.addObserver(observer);
@@ -92,7 +85,14 @@ const MapView = ({
       <PredictionOverlay position={currentPosition} speed={currentSpeed} routePoints={routePoints} />
       <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} heading={heading} />
       {destination && <DestinationMarker position={destination} />}
-      {nextTurn && <TurnWarningMarker position={nextTurn.position} angle={nextTurn.angle} />}
+      {allTurns.map((turn, index) => (
+        <TurnWarningMarker 
+          key={`${turn.position[0]}-${turn.position[1]}-${index}`}
+          position={turn.position} 
+          angle={turn.angle}
+          isNextTurn={index === 0}
+        />
+      ))}
       <RouteOverlay routePoints={routePoints} />
       <RoadPredictionInfo routePoints={routePoints} />
     </MapContainer>
