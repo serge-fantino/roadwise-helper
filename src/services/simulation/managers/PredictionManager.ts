@@ -1,3 +1,5 @@
+import { roadPredictor } from '../../RoadPredictor';
+
 interface PredictionState {
   optimalSpeed: number;
   requiredDeceleration: number | null;
@@ -5,8 +7,7 @@ interface PredictionState {
 
 export class PredictionManager {
   getLatestPrediction(): PredictionState {
-    const roadPredictor = (window as any).roadPredictor;
-    const prediction = roadPredictor?.getCurrentPrediction();
+    const prediction = roadPredictor.getCurrentPrediction();
     
     console.log('PredictionManager received prediction:', prediction);
 
