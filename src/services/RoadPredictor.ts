@@ -1,5 +1,5 @@
 import { getSpeedLimit } from '../utils/osmUtils';
-import { settingsService } from './SettingsService';
+import { settingsService, Settings } from './SettingsService';
 import { TurnAnalyzer } from './prediction/TurnAnalyzer';
 import { SpeedCalculator } from './prediction/SpeedCalculator';
 import { TurnPrediction, RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';

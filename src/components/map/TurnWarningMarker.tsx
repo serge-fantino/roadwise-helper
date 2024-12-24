@@ -11,7 +11,7 @@ interface TurnWarningMarkerProps {
 
 const TurnWarningMarker = ({ position, angle, isNextTurn = false }: TurnWarningMarkerProps) => {
   const iconHtml = renderToString(
-    <div className={isNextTurn ? "text-red-500" : "text-yellow-500"}>
+    <div className={isNextTurn ? "text-blue-500" : "text-blue-400"}>
       <TriangleAlert size={24} />
     </div>
   );
