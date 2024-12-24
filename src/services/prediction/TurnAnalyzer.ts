@@ -8,6 +8,10 @@ export class TurnAnalyzer {
     closestPointIndex: number,
     settings: Settings
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
+    if (!routePoints || !Array.isArray(routePoints) || routePoints.length < 2 || closestPointIndex >= routePoints.length) {
+      return null;
+    }
+
     // First, look for any dangerous turn (>45°) on the entire route
     let dangerousTurn = this.findDangerousTurn(routePoints, closestPointIndex, settings);
     if (dangerousTurn) {
@@ -22,6 +26,10 @@ export class TurnAnalyzer {
     startIndex: number,
     settings: Settings
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
+    if (startIndex >= routePoints.length - 1) {
+      return null;
+    }
+
     let totalDistance = 0;
     let totalAngle = 0;
     let previousBearing = calculateBearing(
@@ -65,6 +73,10 @@ export class TurnAnalyzer {
     startIndex: number,
     settings: Settings
   ): Omit<RoadPrediction, 'speedLimit' | 'optimalSpeed'> | null {
+    if (startIndex >= routePoints.length - 1) {
+      return null;
+    }
+
     let sharpestTurn = {
       angle: 0,
       position: routePoints[startIndex],

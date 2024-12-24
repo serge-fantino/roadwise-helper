@@ -1,4 +1,8 @@
 export const calculateBearing = (start: [number, number], end: [number, number]): number => {
+  if (!start || !end || !Array.isArray(start) || !Array.isArray(end) || start.length < 2 || end.length < 2) {
+    return 0;
+  }
+
   const startLat = start[0] * Math.PI / 180;
   const startLng = start[1] * Math.PI / 180;
   const endLat = end[0] * Math.PI / 180;
@@ -19,6 +23,10 @@ export const calculateBearing = (start: [number, number], end: [number, number])
 };
 
 export const calculateDistance = (point1: [number, number], point2: [number, number]): number => {
+  if (!point1 || !point2 || !Array.isArray(point1) || !Array.isArray(point2) || point1.length < 2 || point2.length < 2) {
+    return 0;
+  }
+
   const R = 6371e3; // Earth's radius in meters
   const φ1 = point1[0] * Math.PI / 180;
   const φ2 = point2[0] * Math.PI / 180;
@@ -53,13 +61,17 @@ export const calculateAngleDifference = (angle1: number, angle2: number): number
 
 export const predictRoadAhead = (position: [number, number], speed: number, heading: number = 0): [number, number][] => {
   const vehicle = (window as any).globalVehicle;
-  if (!vehicle || vehicle.positionHistory.length < 2) {
+  if (!vehicle || !vehicle.positionHistory || vehicle.positionHistory.length < 2) {
     return [position, position];
   }
 
   // Get the last two positions
   const currentPos = vehicle.positionHistory[0];
   const prevPos = vehicle.positionHistory[1];
+
+  if (!currentPos || !prevPos) {
+    return [position, position];
+  }
 
   // Calculate the difference in latitude and longitude
   const deltaLat = currentPos[0] - prevPos[0];
