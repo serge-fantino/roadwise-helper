@@ -1,71 +1,131 @@
-import { getSpeedLimit } from '../utils/osmUtils';
+import { Vehicle } from '../models/Vehicle';
+import { TurnPredictionManager } from './prediction/TurnPredictionManager';
+import { Settings } from './SettingsService';
+import { RoadPrediction } from './prediction/PredictionTypes';
 
-type PredictionObserver = (speedLimit: number | null) => void;
+type PredictionObserver = (prediction: RoadPrediction | null) => void;
 
 class PredictionService {
-  private static instance: PredictionService;
   private observers: PredictionObserver[] = [];
-  private currentSpeedLimit: number | null = null;
+  private turnPredictionManager: TurnPredictionManager;
+  private currentPrediction: RoadPrediction | null = null;
+  private vehicle: Vehicle;
   private updateInterval: NodeJS.Timeout | null = null;
 
-  private constructor() {
-    // Singleton
+  constructor(vehicle: Vehicle) {
+    this.vehicle = vehicle;
+    this.turnPredictionManager = new TurnPredictionManager();
   }
 
-  public static getInstance(): PredictionService {
-    if (!PredictionService.instance) {
-      PredictionService.instance = new PredictionService();
-    }
-    return PredictionService.instance;
-  }
-
-  public addObserver(observer: PredictionObserver) {
+  addObserver(observer: PredictionObserver) {
     this.observers.push(observer);
   }
 
-  public removeObserver(observer: PredictionObserver) {
+  removeObserver(observer: PredictionObserver) {
     this.observers = this.observers.filter(obs => obs !== observer);
   }
 
   private notifyObservers() {
-    this.observers.forEach(observer => observer(this.currentSpeedLimit));
+    this.observers.forEach(observer => observer(this.currentPrediction));
+    console.log('Road prediction updated:', {
+      prediction: this.currentPrediction,
+      turns: this.turnPredictionManager.getTurns()
+    });
   }
 
-  public async updatePrediction(position: [number, number]) {
-    try {
-      const [lat, lon] = position;
-      const speedLimit = await getSpeedLimit(lat, lon);
-      
-      if (speedLimit !== this.currentSpeedLimit) {
-        this.currentSpeedLimit = speedLimit;
-        this.notifyObservers();
+  async updatePredictions(
+    routePoints: [number, number][],
+    settings: Settings,
+    speedLimit: number | null = null
+  ) {
+    if (!routePoints || routePoints.length < 2) {
+      console.log('Stopping road predictor updates - no route points');
+      this.currentPrediction = null;
+      this.notifyObservers();
+      return;
+    }
+
+    const currentPosition = this.vehicle.position;
+    const currentSpeed = this.vehicle.speed;
+
+    // Mettre à jour les distances des virages existants
+    await this.turnPredictionManager.updateTurnDistances(currentPosition);
+
+    // Trouver l'index actuel sur la route
+    const currentIndex = this.findClosestRouteIndex(currentPosition, routePoints);
+
+    // Supprimer les virages passés
+    this.turnPredictionManager.removePastTurns(currentIndex);
+
+    const turns = this.turnPredictionManager.getTurns();
+    const lastTurnIndex = turns.length > 0 
+      ? Math.max(...turns.map(t => t.index))
+      : currentIndex;
+
+    // Chercher de nouveaux virages
+    await this.turnPredictionManager.findNewTurns(
+      routePoints,
+      lastTurnIndex,
+      currentPosition,
+      settings,
+      currentSpeed,
+      speedLimit
+    );
+
+    // Trier les virages par distance
+    this.turnPredictionManager.sortTurns();
+
+    // Mettre à jour la prédiction actuelle
+    this.updateCurrentPrediction();
+    this.notifyObservers();
+  }
+
+  private findClosestRouteIndex(position: [number, number], routePoints: [number, number][]): number {
+    let minDistance = Infinity;
+    let closestIndex = 0;
+
+    routePoints.forEach((point, index) => {
+      const distance = this.calculateDistance(position, point);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
       }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de la prédiction:', error);
-    }
+    });
+
+    return closestIndex;
   }
 
-  public getCurrentSpeedLimit(): number | null {
-    return this.currentSpeedLimit;
+  private calculateDistance(point1: [number, number], point2: [number, number]): number {
+    const [lat1, lon1] = point1;
+    const [lat2, lon2] = point2;
+    const R = 6371e3; // Rayon de la terre en mètres
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
   }
 
-  public startUpdates(position: [number, number]) {
-    this.updatePrediction(position);
+  private updateCurrentPrediction() {
+    const nextTurn = this.turnPredictionManager.getNextTurn();
     
-    // Mettre à jour toutes les 10 secondes
-    if (!this.updateInterval) {
-      this.updateInterval = setInterval(() => {
-        this.updatePrediction(position);
-      }, 10000);
-    }
-  }
+    if (nextTurn) {
+      const requiredDeceleration = this.vehicle.speed > (nextTurn.optimalSpeed || 0)
+        ? (this.vehicle.speed - nextTurn.optimalSpeed) / (nextTurn.distance || 1)
+        : null;
 
-  public stopUpdates() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
+      this.currentPrediction = {
+        ...nextTurn,
+        requiredDeceleration
+      };
     }
   }
 }
 
-export const predictionService = PredictionService.getInstance();
+export const createPredictionService = (vehicle: Vehicle) => new PredictionService(vehicle);

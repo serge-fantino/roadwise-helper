@@ -36,6 +36,7 @@ export class TurnPredictionManager {
     startIndex: number,
     currentPosition: [number, number],
     settings: Settings,
+    currentSpeed: number,
     currentSpeedLimit: number | null = null
   ): Promise<void> {
     // Analyser la courbe à partir du point de départ
@@ -57,11 +58,11 @@ export class TurnPredictionManager {
 
       // Calculer les vitesses et points de freinage avec CurveAssistant
       const curveCalculations = this.curveAssistant.calculateAll(
-        settings.currentSpeed || 0,
+        currentSpeed,
         distance,
         curveAnalysis,
         speedLimit,
-        settings.drivingStyle || 'prudent'
+        settings.drivingStyle
       );
 
       // Créer une nouvelle prédiction de virage
@@ -73,7 +74,7 @@ export class TurnPredictionManager {
         speedLimit,
         optimalSpeed: curveCalculations.optimalCurveSpeed,
         requiredDeceleration: distance > curveCalculations.brakingPoint ? null : 
-          (curveCalculations.optimalCurveSpeed - (settings.currentSpeed || 0)) / (distance || 1)
+          (curveCalculations.optimalCurveSpeed - currentSpeed) / (distance || 1)
       };
 
       console.log('New turn prediction:', {
