@@ -29,18 +29,38 @@ const Index = () => {
     console.log('[Index] Speed updated:', speed);
   }, [speed]);
 
-  // Log pour tracer les mises à jour des points de route
+  // Log détaillé pour tracer les mises à jour des points de route
   useEffect(() => {
-    console.log('[Index] Route points updated:', routePoints?.length, routePoints);
-  }, [routePoints]);
+    console.log('[Index] Route points state updated:', {
+      length: routePoints?.length,
+      points: routePoints,
+      destination: destination?.location
+    });
+  }, [routePoints, destination]);
 
   // Calcul d'itinéraire uniquement lors d'un changement de destination
   useEffect(() => {
     if (destination) {
-      console.log('[Index] Calculating route for new destination:', destination);
-      calculateRoute(position, destination.location);
+      console.log('[Index] Starting route calculation:', {
+        from: position,
+        to: destination.location,
+        currentRoutePoints: routePoints?.length
+      });
+      
+      calculateRoute(position, destination.location)
+        .then(newRoute => {
+          console.log('[Index] Route calculation completed:', {
+            success: newRoute.length > 0,
+            points: newRoute.length,
+            firstPoint: newRoute[0],
+            lastPoint: newRoute[newRoute.length - 1]
+          });
+        })
+        .catch(error => {
+          console.error('[Index] Route calculation failed:', error);
+        });
     }
-  }, [destination]); // Removed position from dependencies to avoid recalculation
+  }, [destination]); 
 
   if (!vehicle) {
     return <LoadingScreen />;
