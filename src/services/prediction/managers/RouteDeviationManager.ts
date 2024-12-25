@@ -1,10 +1,12 @@
 import { Settings } from '../../SettingsService';
 import { RouteTracker } from '../../RouteTracker';
 import { calculateDistanceToSegment } from '../../../utils/mapUtils';
+import { routePlannerService } from '../../RoutePlannerService';
 
 export class RouteDeviationManager {
   private lastRecalculationTime: number = 0;
   private static RECALCULATION_COOLDOWN = 10000; // 10 secondes minimum entre les recalculs
+  private static MINIMUM_SPEED_FOR_RECALCULATION = 5; // 5 m/s minimum (18 km/h)
   private routeTracker: RouteTracker;
 
   constructor(routeTracker: RouteTracker) {
@@ -19,13 +21,24 @@ export class RouteDeviationManager {
     isOnRoad: boolean,
     currentSpeed: number
   ): boolean {
-    if (!destination || !isOnRoad || currentSpeed === 0) {
+    const routeState = routePlannerService.getState();
+    
+    // Vérifier si on a une destination active
+    if (!routeState.destination || !isOnRoad) {
+      console.log('[RouteDeviationManager] No active destination or not on road');
+      return false;
+    }
+
+    // Vérifier si la vitesse est suffisante
+    if (currentSpeed < RouteDeviationManager.MINIMUM_SPEED_FOR_RECALCULATION) {
+      console.log('[RouteDeviationManager] Speed too low for recalculation:', currentSpeed);
       return false;
     }
 
     // Vérifier si assez de temps s'est écoulé depuis le dernier recalcul
     const cooldownElapsed = Date.now() - this.lastRecalculationTime > RouteDeviationManager.RECALCULATION_COOLDOWN;
     if (!cooldownElapsed) {
+      console.log('[RouteDeviationManager] Cooldown not elapsed');
       return false;
     }
 
@@ -55,12 +68,17 @@ export class RouteDeviationManager {
       minDistance = Math.min(minDistance, distToNextSegment);
     }
 
-    console.log('[RouteDeviationManager] Checking deviation:', {
+    const shouldRecalculate = minDistance > settings.maxRouteDeviation;
+
+    console.log('[RouteDeviationManager] Deviation check:', {
       minDistance,
-      maxDeviation: settings.maxRouteDeviation
+      maxDeviation: settings.maxRouteDeviation,
+      shouldRecalculate,
+      currentSpeed,
+      position: currentPosition
     });
 
-    return minDistance > settings.maxRouteDeviation;
+    return shouldRecalculate;
   }
 
   markRecalculationTime() {
