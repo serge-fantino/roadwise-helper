@@ -67,6 +67,12 @@ export async function fetchWithRetry(
     return response;
   } catch (error) {
     if (retries > 0) {
+      // If it's the main Overpass endpoint and it failed, try the fallback
+      if (url === 'https://overpass-api.de/api/interpreter' && retries === MAX_RETRIES) {
+        console.log('Main Overpass endpoint failed, trying fallback...');
+        return fetchWithRetry('https://overpass.kumi.systems/api/interpreter', options, retries - 1);
+      }
+
       const delay = Math.min(
         Math.pow(2, MAX_RETRIES - retries) * INITIAL_DELAY,
         30000 // Max 30 seconds delay

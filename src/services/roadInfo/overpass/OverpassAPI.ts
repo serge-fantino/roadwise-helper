@@ -1,4 +1,5 @@
 const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
+const FALLBACK_API = 'https://overpass.kumi.systems/api/interpreter';
 
 export class OverpassAPI {
   async queryNearbyRoads(lat: number, lon: number): Promise<any> {
@@ -51,8 +52,6 @@ export class OverpassAPI {
   }
 
   private async queryOverpassFallback(query: string): Promise<any> {
-    const FALLBACK_API = 'https://overpass.kumi.systems/api/interpreter';
-    
     const response = await fetch(FALLBACK_API, {
       method: 'POST',
       body: `data=${encodeURIComponent(query)}`,
