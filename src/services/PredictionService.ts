@@ -12,6 +12,7 @@ export class PredictionService {
   private routePoints: [number, number][] | null = null;
   private settings: Settings;
   private speedLimit: number | null = null;
+  private currentPosition: [number, number] | null = null;
 
   constructor(
     private vehicle: Vehicle,
@@ -37,11 +38,12 @@ export class PredictionService {
     this.observers = this.observers.filter(obs => obs !== observer);
   }
 
-  startUpdates(): void {
+  startUpdates(position: [number, number]): void {
     if (this.updateInterval) {
       this.stopUpdates();
     }
 
+    this.currentPosition = position;
     this.updatePrediction();
     this.updateInterval = setInterval(() => {
       this.updatePrediction();
@@ -56,13 +58,13 @@ export class PredictionService {
   }
 
   private async updatePrediction(): Promise<void> {
-    if (!this.routePoints) {
+    if (!this.routePoints || !this.currentPosition) {
       this.notifyObservers(null);
       return;
     }
 
     await this.stateManager.updatePredictions(
-      this.vehicle.position,
+      this.currentPosition,
       this.vehicle.speed,
       this.routePoints,
       this.settings,
@@ -80,11 +82,12 @@ export class PredictionService {
     this.stateManager.reset();
     this.routePoints = null;
     this.speedLimit = null;
+    this.currentPosition = null;
     this.notifyObservers(null);
   }
 }
 
 // Création de l'instance singleton
 const vehicle = (window as any).globalVehicle;
-const settings = (window as any).globalSettings; // À adapter selon votre configuration
+const settings = (window as any).globalSettings;
 export const predictionService = vehicle ? new PredictionService(vehicle, settings) : null;
