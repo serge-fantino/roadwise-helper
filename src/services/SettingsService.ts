@@ -2,6 +2,7 @@ type Observer = (settings: Settings) => void;
 
 export type RoadInfoProvider = 'overpass' | 'mapbox' | 'nominatim';
 export type SimulatorVersion = 'v1' | 'v2';
+export type DrivingStyle = 'prudent' | 'normal' | 'sportif';
 
 export interface Settings {
   defaultSpeed: number;
@@ -14,6 +15,8 @@ export interface Settings {
   maxRouteDeviation: number;
   disableOverpass: boolean;
   simulatorVersion: SimulatorVersion;
+  currentSpeed: number;
+  drivingStyle: DrivingStyle;
 }
 
 const SETTINGS_STORAGE_KEY = 'app_settings';
@@ -35,6 +38,8 @@ class SettingsService {
       maxRouteDeviation: 50,
       disableOverpass: false,
       simulatorVersion: 'v1',
+      currentSpeed: 0,
+      drivingStyle: 'prudent'
     };
 
     if (savedSettings) {
