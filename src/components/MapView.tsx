@@ -82,7 +82,7 @@ const MapView = ({
   useEffect(() => {
     if (routePoints && routePoints.length > 1) {
       console.log('[MapView] Starting road predictor updates with route points:', routePoints);
-      roadPredictor.startUpdates(routePoints);
+      roadPredictor.startUpdates();
     } else {
       console.log('[MapView] Stopping road predictor updates - no route points');
       roadPredictor.stopUpdates();

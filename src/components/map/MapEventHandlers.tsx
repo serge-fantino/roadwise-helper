@@ -17,7 +17,7 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
     map.setView(position, map.getZoom());
     
     if (roadPredictor) {
-      roadPredictor.startUpdates([position]);
+      roadPredictor.startUpdates();
       return () => roadPredictor.stopUpdates();
     }
   }, [position, map]);

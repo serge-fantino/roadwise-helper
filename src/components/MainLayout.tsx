@@ -36,7 +36,8 @@ const MainLayout = ({
   const [routeState, setRouteState] = useState<RouteState>({
     origin: null,
     destination: null,
-    routePoints: []
+    routePoints: [],
+    routeColor: '#3B82F6' // Added missing routeColor property
   });
 
   // Observer pour le RoutePlannerService
