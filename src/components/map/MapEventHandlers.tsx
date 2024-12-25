@@ -13,16 +13,13 @@ interface MapEventHandlersProps {
 const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEventHandlersProps) => {
   const map = useMap();
 
-  // Handle position updates and road status checks
   useEffect(() => {
     map.setView(position, map.getZoom());
 
-    // Démarrer les mises à jour de prédiction
-    predictionService.startUpdates(position);
-
-    return () => {
-      predictionService.stopUpdates();
-    };
+    if (predictionService) {
+      predictionService.startUpdates(position);
+      return () => predictionService.stopUpdates();
+    }
   }, [position, map]);
 
   // Écouter les mises à jour du RoadInfoManager

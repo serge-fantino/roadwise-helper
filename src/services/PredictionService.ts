@@ -128,4 +128,6 @@ class PredictionService {
   }
 }
 
-export const createPredictionService = (vehicle: Vehicle) => new PredictionService(vehicle);
+// Create and export the singleton instance
+const vehicle = (window as any).globalVehicle;
+export const predictionService = vehicle ? new PredictionService(vehicle) : null;
