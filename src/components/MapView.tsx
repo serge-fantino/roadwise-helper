@@ -69,17 +69,18 @@ const MapView = ({
     return () => roadPredictor.removeObserver(observer);
   }, []);
 
+  // Démarrer les mises à jour du RoadPredictor quand la route change
   useEffect(() => {
-    if (routePoints && routePoints.length > 0) {
+    if (routePoints && routePoints.length > 1) {
       console.log('Starting road predictor updates with route points:', routePoints);
-      roadPredictor.startUpdates(routePoints, destination);
+      roadPredictor.startUpdates(routePoints);
     } else {
       console.log('Stopping road predictor updates - no route points');
       roadPredictor.stopUpdates();
     }
 
     return () => roadPredictor.stopUpdates();
-  }, [routePoints, destination]);
+  }, [routePoints]);
 
   // Gérer l'événement de recalcul d'itinéraire
   useEffect(() => {

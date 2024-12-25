@@ -53,7 +53,8 @@ class RoadPredictor {
       console.log('Skipping prediction update - missing data:', {
         hasVehicle: !!vehicle,
         hasPosition: !!this.currentPosition,
-        routePointsLength: this.routePoints.length
+        routePointsLength: this.routePoints.length,
+        currentPosition: this.currentPosition
       });
       this.notifyObservers();
       return;
@@ -107,7 +108,8 @@ class RoadPredictor {
   public startUpdates(routePoints: [number, number][], destination?: [number, number]) {
     console.log('Starting road predictor updates with:', {
       routePointsLength: routePoints.length,
-      destination
+      destination,
+      currentPosition: this.currentPosition
     });
     
     this.predictionManager.reset();
@@ -122,11 +124,12 @@ class RoadPredictor {
       clearInterval(this.updateInterval);
     }
 
+    // Forcer une première mise à jour immédiate
+    this.updatePrediction();
+
     this.updateInterval = setInterval(() => {
       this.updatePrediction();
     }, 1000);
-
-    this.updatePrediction();
   }
 
   public stopUpdates() {
@@ -142,6 +145,7 @@ class RoadPredictor {
   }
 
   public updatePosition(position: [number, number]) {
+    console.log('Updating position in RoadPredictor:', position);
     this.currentPosition = position;
     this.updatePrediction();
   }
