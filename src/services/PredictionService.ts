@@ -1,163 +1,90 @@
 import { Vehicle } from '../models/Vehicle';
-import { TurnPredictionManager } from './prediction/TurnPredictionManager';
+import { PredictionStateManager } from './prediction/managers/PredictionStateManager';
 import { Settings } from './SettingsService';
 import { RoadPrediction } from './prediction/PredictionTypes';
 
 type PredictionObserver = (prediction: RoadPrediction | null) => void;
 
-class PredictionService {
+export class PredictionService {
   private observers: PredictionObserver[] = [];
-  private turnPredictionManager: TurnPredictionManager;
-  private currentPrediction: RoadPrediction | null = null;
-  private vehicle: Vehicle;
+  private stateManager: PredictionStateManager;
   private updateInterval: NodeJS.Timeout | null = null;
+  private routePoints: [number, number][] | null = null;
+  private settings: Settings;
+  private speedLimit: number | null = null;
 
-  constructor(vehicle: Vehicle) {
-    this.vehicle = vehicle;
-    this.turnPredictionManager = new TurnPredictionManager();
+  constructor(
+    private vehicle: Vehicle,
+    settings: Settings
+  ) {
+    this.stateManager = new PredictionStateManager();
+    this.settings = settings;
   }
 
-  addObserver(observer: PredictionObserver) {
+  setRoutePoints(points: [number, number][]): void {
+    this.routePoints = points;
+  }
+
+  setSpeedLimit(limit: number | null): void {
+    this.speedLimit = limit;
+  }
+
+  addObserver(observer: PredictionObserver): void {
     this.observers.push(observer);
   }
 
-  removeObserver(observer: PredictionObserver) {
+  removeObserver(observer: PredictionObserver): void {
     this.observers = this.observers.filter(obs => obs !== observer);
   }
 
-  private notifyObservers() {
-    this.observers.forEach(observer => observer(this.currentPrediction));
-    console.log('Road prediction updated:', {
-      prediction: this.currentPrediction,
-      turns: this.turnPredictionManager.getTurns()
-    });
-  }
-
-  startUpdates(position: [number, number]) {
-    console.log('Starting prediction updates for position:', position);
+  startUpdates(): void {
     if (this.updateInterval) {
-      clearInterval(this.updateInterval);
+      this.stopUpdates();
     }
 
-    // Initial update
-    this.updatePrediction(position);
-
-    // Set up interval for continuous updates
+    this.updatePrediction();
     this.updateInterval = setInterval(() => {
-      this.updatePrediction(position);
-    }, 1000); // Update every second
+      this.updatePrediction();
+    }, 1000);
   }
 
-  stopUpdates() {
-    console.log('Stopping prediction updates');
+  stopUpdates(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
   }
 
-  private updatePrediction(position: [number, number]) {
-    // Update prediction logic here
-    // This is a placeholder - actual prediction logic should be implemented
-    console.log('Updating prediction for position:', position);
-    // You might want to use this.turnPredictionManager here
-  }
-
-  async updatePredictions(
-    routePoints: [number, number][],
-    settings: Settings,
-    speedLimit: number | null = null
-  ) {
-    if (!routePoints || routePoints.length < 2) {
-      console.log('Stopping road predictor updates - no route points');
-      this.currentPrediction = null;
-      this.notifyObservers();
+  private async updatePrediction(): Promise<void> {
+    if (!this.routePoints) {
+      this.notifyObservers(null);
       return;
     }
 
-    const currentPosition = this.vehicle.position;
-    const currentSpeed = this.vehicle.speed;
-
-    // Mettre à jour les distances des virages existants
-    await this.turnPredictionManager.updateTurnDistances(currentPosition);
-
-    // Trouver l'index actuel sur la route
-    const currentIndex = this.findClosestRouteIndex(currentPosition, routePoints);
-
-    // Supprimer les virages passés
-    this.turnPredictionManager.removePastTurns(currentIndex);
-
-    const turns = this.turnPredictionManager.getTurns();
-    const lastTurnIndex = turns.length > 0 
-      ? Math.max(...turns.map(t => t.index))
-      : currentIndex;
-
-    // Chercher de nouveaux virages
-    await this.turnPredictionManager.findNewTurns(
-      routePoints,
-      lastTurnIndex,
-      currentPosition,
-      settings,
-      currentSpeed,
-      speedLimit
+    await this.stateManager.updatePredictions(
+      this.vehicle.position,
+      this.vehicle.speed,
+      this.routePoints,
+      this.settings,
+      this.speedLimit
     );
 
-    // Trier les virages par distance
-    this.turnPredictionManager.sortTurns();
-
-    // Mettre à jour la prédiction actuelle
-    this.updateCurrentPrediction();
-    this.notifyObservers();
+    this.notifyObservers(this.stateManager.getCurrentPrediction());
   }
 
-  private findClosestRouteIndex(position: [number, number], routePoints: [number, number][]): number {
-    let minDistance = Infinity;
-    let closestIndex = 0;
-
-    routePoints.forEach((point, index) => {
-      const distance = this.calculateDistance(position, point);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIndex = index;
-      }
-    });
-
-    return closestIndex;
+  private notifyObservers(prediction: RoadPrediction | null): void {
+    this.observers.forEach(observer => observer(prediction));
   }
 
-  private calculateDistance(point1: [number, number], point2: [number, number]): number {
-    const [lat1, lon1] = point1;
-    const [lat2, lon2] = point2;
-    const R = 6371e3; // Rayon de la terre en mètres
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
-  }
-
-  private updateCurrentPrediction() {
-    const nextTurn = this.turnPredictionManager.getNextTurn();
-    
-    if (nextTurn) {
-      const requiredDeceleration = this.vehicle.speed > (nextTurn.optimalSpeed || 0)
-        ? (this.vehicle.speed - nextTurn.optimalSpeed) / (nextTurn.distance || 1)
-        : null;
-
-      this.currentPrediction = {
-        ...nextTurn,
-        requiredDeceleration
-      };
-    }
+  reset(): void {
+    this.stateManager.reset();
+    this.routePoints = null;
+    this.speedLimit = null;
+    this.notifyObservers(null);
   }
 }
 
-// Create and export the singleton instance
+// Création de l'instance singleton
 const vehicle = (window as any).globalVehicle;
-export const predictionService = vehicle ? new PredictionService(vehicle) : null;
+const settings = (window as any).globalSettings; // À adapter selon votre configuration
+export const predictionService = vehicle ? new PredictionService(vehicle, settings) : null;

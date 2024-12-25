@@ -39,18 +39,22 @@ export class TurnPredictionManager {
     currentSpeed: number,
     currentSpeedLimit: number | null = null
   ): Promise<void> {
-    // Analyser la courbe à partir du point de départ
-    const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, startIndex);
-    
-    if (!curveAnalysis) {
-      console.log('No curve detected at index:', startIndex);
-      return;
-    }
 
-    const distance = calculateDistance(currentPosition, curveAnalysis.apex);
+    let distance = 0;
+    let turnCount = 0;
+    let nextIndex = startIndex
+
+    while (distance <= settings.predictionDistance && turnCount < 3) {
+      // Analyser la courbe à partir du point de départ
+      const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, nextIndex);
+      
+      if (!curveAnalysis) {
+        console.log('No curve detected after index:', nextIndex);
+        return;
+      }
+
+      distance = calculateDistance(currentPosition, curveAnalysis.startPoint);
     
-    // Ne traiter que les virages dans la distance de prédiction
-    if (distance <= settings.predictionDistance) {
       const speedLimit = currentSpeedLimit || await this.speedLimitCache.getSpeedLimit(
         curveAnalysis.apex[0],
         curveAnalysis.apex[1]
@@ -70,7 +74,7 @@ export class TurnPredictionManager {
         distance,
         angle: curveAnalysis.apexAngle,
         position: curveAnalysis.startPoint,
-        index: startIndex,
+        index: curveAnalysis.startIndex,
         speedLimit,
         optimalSpeed: curveCalculations.optimalCurveSpeed,
         requiredDeceleration: distance > curveCalculations.brakingPoint ? null : 
@@ -85,6 +89,8 @@ export class TurnPredictionManager {
       });
 
       this.turns.push(turnPrediction);
+      turnCount++;
+      nextIndex = curveAnalysis.endIndex;
     }
   }
 

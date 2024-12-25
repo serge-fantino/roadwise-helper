@@ -2,6 +2,9 @@ import { calculateBearing, calculateDistance, calculateAngleDifference } from '.
 import { Settings } from '../SettingsService';
 import { RoadPrediction } from './PredictionTypes';
 
+/**
+ * this is the original version for turn detection using a very basic logic. This has been replaced by CurveAnalyzer.
+ */
 export class TurnAnalyzer {
   analyze(
     routePoints: [number, number][], 
