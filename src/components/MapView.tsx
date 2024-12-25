@@ -53,6 +53,15 @@ const MapView = ({
   const [nextTurn, setNextTurn] = useState<TurnPrediction | null>(null);
   const [allTurns, setAllTurns] = useState<TurnPrediction[]>([]);
 
+  // Log des mises à jour des points de route
+  useEffect(() => {
+    console.log('[MapView] Route points updated:', {
+      length: routePoints?.length,
+      points: routePoints,
+      destination
+    });
+  }, [routePoints, destination]);
+
   // Mettre à jour la position dans le RoadPredictor
   useEffect(() => {
     roadPredictor.updatePosition(currentPosition);
@@ -60,7 +69,7 @@ const MapView = ({
 
   useEffect(() => {
     const observer = (prediction: TurnPrediction | null, turns: TurnPrediction[]) => {
-      console.log('Road prediction updated:', { prediction, turns });
+      console.log('[MapView] Road prediction updated:', { prediction, turns });
       setNextTurn(prediction);
       setAllTurns(turns);
     };
@@ -72,10 +81,10 @@ const MapView = ({
   // Démarrer les mises à jour du RoadPredictor quand la route change
   useEffect(() => {
     if (routePoints && routePoints.length > 1) {
-      console.log('Starting road predictor updates with route points:', routePoints);
+      console.log('[MapView] Starting road predictor updates with route points:', routePoints);
       roadPredictor.startUpdates(routePoints);
     } else {
-      console.log('Stopping road predictor updates - no route points');
+      console.log('[MapView] Stopping road predictor updates - no route points');
       roadPredictor.stopUpdates();
     }
 

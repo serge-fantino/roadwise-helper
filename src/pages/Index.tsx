@@ -29,15 +29,18 @@ const Index = () => {
     console.log('[Index] Speed updated:', speed);
   }, [speed]);
 
-  // Calcul de la vitesse recommandée
-  const recommendedSpeed = calculateRecommendedSpeed(speed);
+  // Log pour tracer les mises à jour des points de route
+  useEffect(() => {
+    console.log('[Index] Route points updated:', routePoints?.length, routePoints);
+  }, [routePoints]);
 
   // Calcul d'itinéraire uniquement lors d'un changement de destination
   useEffect(() => {
     if (destination) {
+      console.log('[Index] Calculating route for new destination:', destination);
       calculateRoute(position, destination.location);
     }
-  }, [destination]); // Removed position from dependencies
+  }, [destination]); // Removed position from dependencies to avoid recalculation
 
   if (!vehicle) {
     return <LoadingScreen />;
@@ -47,11 +50,12 @@ const Index = () => {
     <MainLayout
       position={position}
       speed={speed}
-      recommendedSpeed={recommendedSpeed}
+      recommendedSpeed={calculateRecommendedSpeed(speed)}
       isOnRoad={isOnRoad}
       destination={destination}
       routePoints={routePoints}
       onDestinationSelect={(location, address) => {
+        console.log('[Index] New destination selected:', { location, address });
         setDestination({ location, address });
       }}
       onRoadStatusChange={handleRoadStatusChange}
