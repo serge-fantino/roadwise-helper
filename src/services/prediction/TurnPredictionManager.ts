@@ -79,7 +79,7 @@ export class TurnPredictionManager {
         optimalSpeed: curveCalculations.optimalCurveSpeed,
         requiredDeceleration: distance > curveCalculations.brakingPoint ? null : 
           (curveCalculations.optimalCurveSpeed - currentSpeed) / (distance || 1),
-        curvePoints: curveAnalysis.curvePoints
+        curveInfo: curveAnalysis
       };
 
       console.log('New turn prediction:', {

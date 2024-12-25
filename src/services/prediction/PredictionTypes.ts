@@ -1,3 +1,5 @@
+import { CurveAnalysisResult } from "./CurveAnalyzer";
+
 export interface TurnPrediction {
   distance: number;  // Distance jusqu'au prochain virage en mètres
   angle: number;     // Angle du virage en degrés
@@ -6,7 +8,7 @@ export interface TurnPrediction {
   speedLimit?: number; // Vitesse limite en km/h
   optimalSpeed?: number; // Vitesse optimale en km/h
   requiredDeceleration?: number | null; // Décélération requise en g
-  curvePoints: [number, number][]; // Ajout des points du virage
+  curveInfo: CurveAnalysisResult; // détail du virage
 }
 
 export type RoadPrediction = TurnPrediction;

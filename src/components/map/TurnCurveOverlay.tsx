@@ -26,9 +26,9 @@ const TurnCurveOverlay = ({ turns }: TurnCurveOverlayProps) => {
       {turns.map((turn, index) => (
         <Polyline
           key={`curve-${index}`}
-          positions={turn.curvePoints}
+          positions={turn.curveInfo.curvePoints}
           pathOptions={{
-            color: getTurnColor(turn.radius),
+            color: getTurnColor(turn.curveInfo.radius),
             weight: 4,
             opacity: index === 0 ? 0.8 : 0.5,
             dashArray: index === 0 ? undefined : '5, 10'
