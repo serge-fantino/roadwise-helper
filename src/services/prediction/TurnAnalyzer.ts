@@ -53,7 +53,8 @@ export class TurnAnalyzer {
           distance: totalDistance,
           angle: angleDiff,
           position: routePoints[i + 1],
-          index: i + 1
+          index: i + 1,
+          curvePoints: [routePoints[i], routePoints[i + 1]] // Add minimal curve points
         };
       }
       if (Math.abs(totalAngle) > 45) {
@@ -61,7 +62,8 @@ export class TurnAnalyzer {
           distance: totalDistance,
           angle: totalAngle,
           position: routePoints[i + 1],
-          index: i + 1
+          index: i + 1,
+          curvePoints: [routePoints[i], routePoints[i + 1]] // Add minimal curve points
         };
       }
 
@@ -84,7 +86,8 @@ export class TurnAnalyzer {
       angle: 0,
       position: routePoints[startIndex],
       distance: 0,
-      index: startIndex
+      index: startIndex,
+      curvePoints: [] as [number, number][] // Initialize empty curve points array
     };
     
     let totalDistance = 0;
@@ -109,7 +112,8 @@ export class TurnAnalyzer {
           angle: angleDiff,
           position: routePoints[i + 1],
           distance: totalDistance,
-          index: i + 1
+          index: i + 1,
+          curvePoints: [routePoints[i], routePoints[i + 1]] // Add minimal curve points for the sharpest turn
         };
       }
 
@@ -121,7 +125,8 @@ export class TurnAnalyzer {
         distance: sharpestTurn.distance,
         angle: sharpestTurn.angle,
         position: sharpestTurn.position,
-        index: sharpestTurn.index
+        index: sharpestTurn.index,
+        curvePoints: sharpestTurn.curvePoints
       };
     }
 
