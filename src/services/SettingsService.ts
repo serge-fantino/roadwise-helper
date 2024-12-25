@@ -17,6 +17,7 @@ export interface Settings {
   simulatorVersion: SimulatorVersion;
   drivingStyle: DrivingStyle;
   mapboxToken: string;
+  enableAutoRecalculate: boolean; // New setting
 }
 
 type SettingsObserver = (settings: Settings) => void;
@@ -43,7 +44,8 @@ class SettingsService {
       disableOverpass: false,
       simulatorVersion: 'v1',
       drivingStyle: 'prudent',
-      mapboxToken: ''
+      mapboxToken: '',
+      enableAutoRecalculate: true // Default value
     };
 
     if (savedSettings) {

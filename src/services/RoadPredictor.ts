@@ -49,6 +49,7 @@ class RoadPredictor {
   private async updatePrediction() {
     const vehicle = (window as any).globalVehicle;
     const routeState = routePlannerService.getState();
+    const settings = settingsService.getSettings();
     
     if (!vehicle || !this.currentPosition || routeState.routePoints.length < 2) {
       console.log('Skipping prediction update - missing data:', {
@@ -62,13 +63,12 @@ class RoadPredictor {
     }
 
     const currentSpeed = vehicle.speed * 3.6;
-    const settings = settingsService.getSettings();
     const roadInfo = roadInfoManager.getCurrentInfo();
     const speedLimit = roadInfo?.speedLimit ?? null;
     const isOnRoad = roadInfo?.isOnRoad ?? false;
 
-    // Vérifier si on doit recalculer l'itinéraire
-    if (this.deviationManager.shouldRecalculateRoute(
+    // Vérifier si on doit recalculer l'itinéraire seulement si la fonctionnalité est activée
+    if (settings.enableAutoRecalculate && this.deviationManager.shouldRecalculateRoute(
       this.currentPosition,
       routeState.routePoints,
       routeState.destination?.location,
@@ -80,7 +80,8 @@ class RoadPredictor {
         currentPosition: this.currentPosition,
         destination: routeState.destination?.location,
         isOnRoad,
-        currentSpeed
+        currentSpeed,
+        autoRecalculateEnabled: settings.enableAutoRecalculate
       });
       
       await routePlannerService.recalculateRoute();

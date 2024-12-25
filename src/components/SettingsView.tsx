@@ -75,6 +75,7 @@ const SettingsView = () => {
             <TabsTrigger value="curves">Virages</TabsTrigger>
             <TabsTrigger value="providers">Services</TabsTrigger>
             <TabsTrigger value="simulation">Simulation</TabsTrigger>
+            <TabsTrigger value="navigation">Navigation</TabsTrigger>
           </TabsList>
 
           <TabsContent value="curves" className="space-y-6">
@@ -236,6 +237,20 @@ const SettingsView = () => {
                 </Select>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="navigation" className="space-y-6">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-recalculate"
+                checked={settings.enableAutoRecalculate}
+                onCheckedChange={(checked) => handleSettingChange('enableAutoRecalculate', checked)}
+              />
+              <Label htmlFor="auto-recalculate">Recalcul automatique de l'itinéraire</Label>
+            </div>
+            <p className="text-sm text-gray-500">
+              Lorsque cette option est activée, l'itinéraire sera automatiquement recalculé si le véhicule s'écarte trop du trajet prévu.
+            </p>
           </TabsContent>
         </Tabs>
       </div>
