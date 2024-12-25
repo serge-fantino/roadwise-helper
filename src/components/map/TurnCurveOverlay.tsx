@@ -1,5 +1,5 @@
 import { Polyline } from 'react-leaflet';
-import { TurnPrediction } from '../services/prediction/PredictionTypes';
+import { TurnPrediction } from '../../services/prediction/PredictionTypes';
 
 interface TurnCurveOverlayProps {
   turns: TurnPrediction[];
