@@ -1,4 +1,5 @@
 import { Polyline } from 'react-leaflet';
+import { routePlannerService } from '../../services/RoutePlannerService';
 
 interface RouteOverlayProps {
   routePoints: [number, number][];
@@ -10,7 +11,7 @@ const RouteOverlay = ({ routePoints }: RouteOverlayProps) => {
   return (
     <Polyline
       positions={routePoints}
-      color="#10B981"
+      color={routePlannerService.getRouteColor()}
       weight={4}
       opacity={0.8}
       dashArray="10, 10"

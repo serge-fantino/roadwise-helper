@@ -6,7 +6,8 @@ class RoutePlannerService {
   private state: RouteState = {
     origin: null,
     destination: null,
-    routePoints: []
+    routePoints: [],
+    routeColor: '#3B82F6' // Default blue color
   };
   private observers: RouteObserver[] = [];
 
@@ -106,9 +107,14 @@ class RoutePlannerService {
     this.state = {
       origin: null,
       destination: null,
-      routePoints: []
+      routePoints: [],
+      routeColor: '#3B82F6'
     };
     this.notifyObservers();
+  }
+
+  public getRouteColor(): string {
+    return this.state.routeColor;
   }
 }
 

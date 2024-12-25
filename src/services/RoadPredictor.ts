@@ -4,16 +4,15 @@ import { RouteTracker } from './RouteTracker';
 import { roadInfoManager } from './roadInfo/RoadInfoManager';
 import { RouteDeviationManager } from './prediction/managers/RouteDeviationManager';
 import { PredictionStateManager } from './prediction/managers/PredictionStateManager';
+import { routePlannerService } from './RoutePlannerService';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
   private routeTracker: RouteTracker;
   private updateInterval: NodeJS.Timeout | null = null;
-  private destination: [number, number] | null = null;
   private deviationManager: RouteDeviationManager;
   private predictionManager: PredictionStateManager;
   private currentPosition: [number, number] | null = null;
-  private routePoints: [number, number][] = [];
 
   constructor() {
     this.routeTracker = new RouteTracker();
@@ -49,11 +48,13 @@ class RoadPredictor {
 
   private async updatePrediction() {
     const vehicle = (window as any).globalVehicle;
-    if (!vehicle || !this.currentPosition || this.routePoints.length < 2) {
+    const routeState = routePlannerService.getState();
+    
+    if (!vehicle || !this.currentPosition || routeState.routePoints.length < 2) {
       console.log('Skipping prediction update - missing data:', {
         hasVehicle: !!vehicle,
         hasPosition: !!this.currentPosition,
-        routePointsLength: this.routePoints.length,
+        routePointsLength: routeState.routePoints.length,
         currentPosition: this.currentPosition
       });
       this.notifyObservers();
@@ -69,26 +70,20 @@ class RoadPredictor {
     // Vérifier si on doit recalculer l'itinéraire
     if (this.deviationManager.shouldRecalculateRoute(
       this.currentPosition,
-      this.routePoints,
-      this.destination,
+      routeState.routePoints,
+      routeState.destination?.location,
       settings,
       isOnRoad,
       currentSpeed
     )) {
       console.log('Vehicle is off route, recalculating...', {
         currentPosition: this.currentPosition,
-        destination: this.destination,
+        destination: routeState.destination?.location,
         isOnRoad,
         currentSpeed
       });
       
-      const event = new CustomEvent('recalculateRoute', {
-        detail: {
-          from: this.currentPosition,
-          to: this.destination
-        }
-      });
-      window.dispatchEvent(event);
+      await routePlannerService.recalculateRoute();
       this.deviationManager.markRecalculationTime();
       return;
     }
@@ -97,7 +92,7 @@ class RoadPredictor {
     await this.predictionManager.updatePredictions(
       this.currentPosition,
       currentSpeed,
-      this.routePoints,
+      routeState.routePoints,
       settings,
       speedLimit
     );
@@ -105,20 +100,11 @@ class RoadPredictor {
     this.notifyObservers();
   }
 
-  public startUpdates(routePoints: [number, number][], destination?: [number, number]) {
-    console.log('Starting road predictor updates with:', {
-      routePointsLength: routePoints.length,
-      destination,
-      currentPosition: this.currentPosition
-    });
+  public startUpdates() {
+    console.log('Starting road predictor updates');
     
     this.predictionManager.reset();
     this.deviationManager.reset();
-    this.routePoints = routePoints;
-    
-    if (destination) {
-      this.destination = destination;
-    }
     
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -137,9 +123,7 @@ class RoadPredictor {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    this.destination = null;
     this.currentPosition = null;
-    this.routePoints = [];
     this.predictionManager.reset();
     this.notifyObservers();
   }
