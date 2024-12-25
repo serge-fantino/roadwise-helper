@@ -53,6 +53,11 @@ const MapView = ({
   const [nextTurn, setNextTurn] = useState<TurnPrediction | null>(null);
   const [allTurns, setAllTurns] = useState<TurnPrediction[]>([]);
 
+  // Mettre à jour la position dans le RoadPredictor
+  useEffect(() => {
+    roadPredictor.updatePosition(currentPosition);
+  }, [currentPosition]);
+
   useEffect(() => {
     const observer = (prediction: TurnPrediction | null, turns: TurnPrediction[]) => {
       console.log('Road prediction updated:', { prediction, turns });

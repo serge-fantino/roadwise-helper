@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { predictionService } from '../../services/PredictionService';
 import { roadPredictor } from '../../services/RoadPredictor';
 import { toast } from '../../components/ui/use-toast';
 import { roadInfoManager } from '../../services/roadInfo/RoadInfoManager';
@@ -16,11 +15,7 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
 
   useEffect(() => {
     map.setView(position, map.getZoom());
-    if (predictionService) {
-      predictionService.startUpdates();
-      return () => predictionService.stopUpdates();
-    }
-
+    
     if (roadPredictor) {
       roadPredictor.startUpdates([position]);
       return () => roadPredictor.stopUpdates();
