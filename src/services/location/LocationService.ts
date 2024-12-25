@@ -15,6 +15,8 @@ export class LocationService {
   private simulationService: ReturnType<typeof createSimulationService>;
   private simulationServiceV2: ReturnType<typeof createSimulationServiceV2>;
   private vehicle: Vehicle;
+  private lastSpeed: number = 0;
+  private lastSpeedUpdateTime: number = Date.now();
 
   private constructor(vehicle: Vehicle) {
     this.vehicle = vehicle;
@@ -40,6 +42,35 @@ export class LocationService {
   private notifyObservers(position: [number, number], speed: number) {
     console.log('[LocationService] Speed update:', { position, speed, mode: this.mode });
     this.observers.forEach(observer => observer(position, speed));
+  }
+
+  private calculateAcceleration(currentSpeed: number): number {
+    const currentTime = Date.now();
+    const deltaTime = (currentTime - this.lastSpeedUpdateTime) / 1000; // Convert to seconds
+    
+    // Si le delta temps est trop petit, on évite de calculer pour éviter les erreurs
+    if (deltaTime < 0.1) {
+      return 0;
+    }
+
+    // Calcul de l'accélération en m/s²
+    const acceleration = (currentSpeed - this.lastSpeed) / deltaTime;
+    
+    // Conversion en g (1g = 9.81 m/s²)
+    const accelerationInG = acceleration / 9.81;
+
+    console.log('[LocationService] Acceleration calculated:', {
+      currentSpeed,
+      lastSpeed: this.lastSpeed,
+      deltaTime,
+      accelerationInG
+    });
+
+    // Mise à jour des valeurs pour le prochain calcul
+    this.lastSpeed = currentSpeed;
+    this.lastSpeedUpdateTime = currentTime;
+
+    return accelerationInG;
   }
 
   public setMode(mode: LocationMode) {
@@ -95,8 +126,9 @@ export class LocationService {
     const handlePosition = (pos: GeolocationPosition) => {
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
-      console.log('[LocationService] GPS update:', { position, speed });
-      this.vehicle.update(position, speed);
+      const acceleration = this.calculateAcceleration(speed);
+      console.log('[LocationService] GPS update:', { position, speed, acceleration });
+      this.vehicle.update(position, speed, acceleration);
       this.notifyObservers(position, speed);
     };
 
