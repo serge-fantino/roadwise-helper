@@ -10,12 +10,13 @@ const TurnCurveOverlay = ({ turns }: TurnCurveOverlayProps) => {
     <>
       {turns.map((turn, index) => (
         <Polyline
-          key={index}
+          key={`curve-${index}`}
           positions={turn.curvePoints}
           pathOptions={{
-            color: 'red',
+            color: index === 0 ? '#3B82F6' : '#60A5FA',
             weight: 4,
-            opacity: 0.7
+            opacity: index === 0 ? 0.8 : 0.5,
+            dashArray: index === 0 ? undefined : '5, 10'
           }}
         />
       ))}
@@ -23,4 +24,4 @@ const TurnCurveOverlay = ({ turns }: TurnCurveOverlayProps) => {
   );
 };
 
-export default TurnCurveOverlay; 
+export default TurnCurveOverlay;

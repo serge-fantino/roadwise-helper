@@ -9,6 +9,7 @@ import DestinationMarker from './map/DestinationMarker';
 import HistoryTrail from './map/HistoryTrail';
 import MapEventHandlers from './map/MapEventHandlers';
 import TurnWarningMarker from './map/TurnWarningMarker';
+import TurnCurveOverlay from './map/TurnCurveOverlay';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
 import { TurnPrediction } from '../services/prediction/PredictionTypes';
@@ -144,6 +145,7 @@ const MapView = ({
           isNextTurn={index === 0}
         />
       ))}
+      <TurnCurveOverlay turns={allTurns} />
       <RouteOverlay routePoints={routePoints} />
     </MapContainer>
   );
