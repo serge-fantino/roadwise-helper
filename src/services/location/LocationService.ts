@@ -4,7 +4,7 @@ import { createSimulationServiceV2 } from '../simulation/SimulationServiceV2';
 import { settingsService } from '../SettingsService';
 
 type LocationMode = 'gps' | 'simulation';
-type LocationObserver = (position: [number, number], speed: number) => void;
+type LocationObserver = (position: [number, number], speed: number, accelerationInG: number) => void;
 
 export class LocationService {
   private static instance: LocationService | null = null;
@@ -15,8 +15,9 @@ export class LocationService {
   private simulationService: ReturnType<typeof createSimulationService>;
   private simulationServiceV2: ReturnType<typeof createSimulationServiceV2>;
   private vehicle: Vehicle;
-  private lastSpeed: number = 0;
-  private lastSpeedUpdateTime: number = Date.now();
+  private lastSpeed: number = 0; // en m/s
+  private lastSpeedUpdateTime: number = null;
+  private lastAccelerationInG: number = 0; // en g
 
   private constructor(vehicle: Vehicle) {
     this.vehicle = vehicle;
@@ -39,12 +40,12 @@ export class LocationService {
     this.observers = this.observers.filter(obs => obs !== observer);
   }
 
-  private notifyObservers(position: [number, number], speed: number) {
+  private notifyObservers(position: [number, number], speed: number, accelerationInG: number) {
     console.log('[LocationService] Speed update:', { position, speed, mode: this.mode });
-    this.observers.forEach(observer => observer(position, speed));
+    this.observers.forEach(observer => observer(position, speed, accelerationInG));
   }
 
-  private calculateAcceleration(currentSpeed: number): number {
+  private calculateAccelerationInG(currentSpeed: number): number {
     const currentTime = Date.now();
     const deltaTime = (currentTime - this.lastSpeedUpdateTime) / 1000; // Convert to seconds
     
@@ -57,7 +58,7 @@ export class LocationService {
     const acceleration = (currentSpeed - this.lastSpeed) / deltaTime;
     
     // Conversion en g (1g = 9.81 m/s²)
-    const accelerationInG = acceleration / 9.81;
+    const accelerationInG = (this.lastAccelerationInG + acceleration / 9.81) / 2; // Moyenne des deux dernières valeurs pour lisser les données
 
     console.log('[LocationService] Acceleration calculated:', {
       currentSpeed,
@@ -69,6 +70,7 @@ export class LocationService {
     // Mise à jour des valeurs pour le prochain calcul
     this.lastSpeed = currentSpeed;
     this.lastSpeedUpdateTime = currentTime;
+    this.lastAccelerationInG = accelerationInG;
 
     return accelerationInG;
   }
@@ -126,10 +128,10 @@ export class LocationService {
     const handlePosition = (pos: GeolocationPosition) => {
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
-      const acceleration = this.calculateAcceleration(speed);
-      console.log('[LocationService] GPS update:', { position, speed, acceleration });
-      this.vehicle.update(position, speed, acceleration);
-      this.notifyObservers(position, speed);
+      const accelerationInG = this.calculateAccelerationInG(speed);
+      console.log('[LocationService] GPS update:', { position, speed, accelerationInG });
+      this.vehicle.update(position, speed, accelerationInG);
+      this.notifyObservers(position, speed, accelerationInG);
     };
 
     const handleError = (error: GeolocationPositionError) => {
