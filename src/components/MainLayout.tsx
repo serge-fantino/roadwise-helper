@@ -3,7 +3,7 @@ import MapArea from './layout/MapArea';
 import StatusBar from './StatusBar';
 import SearchArea from './layout/SearchArea';
 import { useState, useEffect } from 'react';
-import { routePlannerService } from '../services/RoutePlannerService';
+import { routePlannerService } from '../services/route/RoutePlannerService';
 import { RouteState } from '../services/route/RoutePlannerTypes';
 
 interface MainLayoutProps {

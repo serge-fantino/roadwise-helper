@@ -4,7 +4,7 @@ import { RouteTracker } from './RouteTracker';
 import { roadInfoManager } from './roadInfo/RoadInfoManager';
 import { RouteDeviationManager } from './prediction/managers/RouteDeviationManager';
 import { PredictionStateManager } from './prediction/managers/PredictionStateManager';
-import { routePlannerService } from './RoutePlannerService';
+import { routePlannerService } from './route/RoutePlannerService';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];

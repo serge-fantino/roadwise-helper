@@ -1,7 +1,7 @@
 import { Settings } from '../../SettingsService';
 import { RouteTracker } from '../../RouteTracker';
 import { calculateDistanceToSegment } from '../../../utils/mapUtils';
-import { routePlannerService } from '../../RoutePlannerService';
+import { routePlannerService } from '../../route/RoutePlannerService';
 
 export class RouteDeviationManager {
   private lastRecalculationTime: number = 0;

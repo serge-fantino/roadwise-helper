@@ -12,7 +12,7 @@ import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
 import { TurnPrediction } from '../services/prediction/PredictionTypes';
-import { routePlannerService } from '../services/RoutePlannerService';
+import { routePlannerService } from '../services/route/RoutePlannerService';
 import { toast } from './ui/use-toast';
 
 // Fix Leaflet default icon paths

@@ -1,5 +1,5 @@
 import AddressSearch from '../AddressSearch';
-import { routePlannerService } from '../../services/RoutePlannerService';
+import { routePlannerService } from '../../services/route/RoutePlannerService';
 
 interface SearchAreaProps {
   onLocationSelect: (location: [number, number], address: string) => void;

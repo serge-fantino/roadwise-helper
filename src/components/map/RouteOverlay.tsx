@@ -1,5 +1,5 @@
 import { Polyline } from 'react-leaflet';
-import { routePlannerService } from '../../services/RoutePlannerService';
+import { routePlannerService } from '../../services/route/RoutePlannerService';
 
 interface RouteOverlayProps {
   routePoints: [number, number][];
