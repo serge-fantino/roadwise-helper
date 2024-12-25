@@ -12,6 +12,7 @@ Also this is a functional WPA web site, you can easily install the app on your p
 
 > ⚠️ **Warning**: This is an educational project. It is not a production ready software, nor something you can trust for driving. Be careful and drive safely, and look at the road, not at your phone.
 
+
 ## Installation
 
 > ⚠️ **Warning**: This project is still in development. Some features might not work as expected, and breaking changes could occur without notice.
@@ -49,17 +50,11 @@ npm run preview
 The build output will be in the `dist` directory, ready for deployment.
 
 
-## What technologies are used for this project?
+## Technical Documentation
 
-This project is built with:
+See [docs/tech-overview.md](docs/tech-overview.md) for more details.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- React Leaflet for map integration
-- TanStack Query for data fetching
+> This project is an attempt to test capabilities of AI code generation tools. The main service used to create the application is Lovable (https://lovable.dev). Gemini2 helped for some work on calculations, and also to generate the technical documentation. I also use Cursor & Claude for local editing to fine tune some algorithms.
 
 ## Project contribution
 
