@@ -69,7 +69,7 @@ export class TurnPredictionManager {
       const turnPrediction: TurnPrediction = {
         distance,
         angle: curveAnalysis.apexAngle,
-        position: curveAnalysis.apex,
+        position: curveAnalysis.startPoint,
         index: startIndex,
         speedLimit,
         optimalSpeed: curveCalculations.optimalCurveSpeed,

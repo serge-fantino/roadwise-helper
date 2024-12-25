@@ -20,7 +20,7 @@ interface Point {
 export class CurveDetector {
     private readonly SMOOTHING_WINDOW = 3; 
     private readonly TURN_THRESHOLD = 10;
-    private readonly APEX_LOOKAHEAD = 5;
+    private readonly APEX_LOOKAHEAD = 10;
   
     analyzeCurve(
         routePoints: [number, number][],
@@ -63,6 +63,7 @@ export class CurveDetector {
                 turnStart = [smoothedPath[i].lat, smoothedPath[i].lon];
                 startAngle = bearing1;
                 startPointIndex = i;
+                console.log('detected turn start at index:', startPointIndex);
                 break;
             }
         }
@@ -80,6 +81,7 @@ export class CurveDetector {
                     turnEnd = [smoothedPath[i].lat, smoothedPath[i].lon];
                     endAngle = bearing2;
                     endPointIndex = i;
+                    console.log('detected turn end at index:', endPointIndex);
                     break;
                 }
             }
@@ -102,6 +104,11 @@ export class CurveDetector {
                     apexIndex = i;
                 }
             }
+        }
+        if (!turnApex) {
+            console.log('No apex detected !!!');
+        } else {
+            console.log('Apex detected at index:', apexIndex);
         }
           
         if (!turnStart || !turnEnd || !turnApex) {
