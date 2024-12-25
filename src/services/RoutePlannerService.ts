@@ -1,13 +1,6 @@
 import { getRoute } from '../utils/routingUtils';
 import { toast } from '../components/ui/use-toast';
-
-export type RouteState = {
-  origin: [number, number] | null;
-  destination: { location: [number, number]; address: string } | null;
-  routePoints: [number, number][];
-};
-
-type RouteObserver = (state: RouteState) => void;
+import { RouteState, RouteObserver } from './route/RoutePlannerTypes';
 
 class RoutePlannerService {
   private state: RouteState = {
