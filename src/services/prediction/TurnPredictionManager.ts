@@ -90,7 +90,7 @@ export class TurnPredictionManager {
 
       this.turns.push(turnPrediction);
       turnCount++;
-      nextIndex = curveAnalysis.endIndex;
+      nextIndex = curveAnalysis.endIndex+1;
     }
   }
 
