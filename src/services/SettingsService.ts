@@ -31,7 +31,7 @@ class SettingsService {
     // Valeurs par défaut
     this.settings = {
       defaultSpeed: 50,
-      predictionDistance: 200,
+      predictionDistance: 500,
       minTurnAngle: 30,
       maxTurnAngle: 90,
       maxTurnDistance: 200,

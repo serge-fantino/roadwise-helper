@@ -1,4 +1,5 @@
 import { calculateBearing, calculateDistance, calculateAngleDifference } from '../../utils/mapUtils';
+import { Settings } from '../SettingsService';
 import { smoothPath, calculateCurveRadius, calculateCurveLength, calculateAngleBetweenPoints } from './CurveAnalyzerUtils';
 
 export interface CurveAnalysisResult {
@@ -10,9 +11,10 @@ export interface CurveAnalysisResult {
     apexIndex: number;
     length: number;
     radius: number;
-    startAngle: number,
-    endAngle: number,
-    apexAngle:number
+    startAngle: number;
+    endAngle: number;
+    apexAngle: number;
+    curvePoints: [number,number][];
 }
 
 interface Point {
@@ -21,21 +23,22 @@ interface Point {
 }
 
 export class CurveDetector {
-    private readonly SMOOTHING_WINDOW = 3; 
-    private readonly TURN_THRESHOLD = 10;
-    private readonly APEX_LOOKAHEAD = 10;
-  
+    
+    private readonly SMOOTHING_WINDOW = 1; 
+
     analyzeCurve(
         routePoints: [number, number][],
-        startIndex: number
+        startIndex: number,
+        settings: Settings
     ): CurveAnalysisResult | null {
         if (routePoints.length < 3 || startIndex >= routePoints.length - 2) {
             return null;
         }
 
         const smoothedPath = smoothPath(
-            routePoints.slice(startIndex, startIndex + this.APEX_LOOKAHEAD * 2),
-            this.SMOOTHING_WINDOW
+            routePoints.slice(startIndex, routePoints.length-1),
+            this.SMOOTHING_WINDOW,
+            settings.predictionDistance
         );
         
         if (smoothedPath.length < 3) {
@@ -62,7 +65,7 @@ export class CurveDetector {
                 smoothedPath[i+1]
             );
            
-            if (Math.abs(angleDiff) > this.TURN_THRESHOLD) {
+            if (Math.abs(angleDiff) > settings.minTurnAngle) {
                 turnStart = [smoothedPath[i].lat, smoothedPath[i].lon];
                 startAngle = bearing1;
                 startPointIndex = i;
@@ -82,7 +85,7 @@ export class CurveDetector {
                 smoothedPath[i+1]
             );
                 
-            if(Math.abs(angleDiff) <= this.TURN_THRESHOLD) {
+            if(Math.abs(angleDiff) <= settings.minTurnAngle) {
                 turnEnd = [smoothedPath[i].lat, smoothedPath[i].lon];
                 endAngle = bearing2;
                 endPointIndex = i;
@@ -110,8 +113,17 @@ export class CurveDetector {
             }
         }
 
+        if (!turnStart || !turnEnd || !turnApex) {
+            return null;
+        }
+
         const curveLength = calculateCurveLength(smoothedPath, startPointIndex, endPointIndex);
         const curveRadius = calculateCurveRadius(smoothedPath, apexIndex);
+
+        // Extraire les points du virage
+        const curvePoints: [number,number][] = smoothedPath
+            .slice(startPointIndex, endPointIndex + 1)
+            .map(point => [point.lat, point.lon]);
 
         return {
             startPoint: [smoothedPath[startPointIndex].lat, smoothedPath[startPointIndex].lon],
@@ -124,7 +136,8 @@ export class CurveDetector {
             radius: curveRadius,
             startAngle,
             endAngle,
-            apexAngle
+            apexAngle,
+            curvePoints
         };
     }
 }

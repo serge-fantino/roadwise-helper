@@ -44,9 +44,9 @@ export class TurnPredictionManager {
     let turnCount = 0;
     let nextIndex = startIndex
 
-    while (distance <= settings.predictionDistance && turnCount < 3) {
+    while (distance <= 2000 && turnCount < 10) {
       // Analyser la courbe à partir du point de départ
-      const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, nextIndex);
+      const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, nextIndex, settings);
       
       if (!curveAnalysis) {
         console.log('No curve detected after index:', nextIndex);
@@ -78,7 +78,8 @@ export class TurnPredictionManager {
         speedLimit,
         optimalSpeed: curveCalculations.optimalCurveSpeed,
         requiredDeceleration: distance > curveCalculations.brakingPoint ? null : 
-          (curveCalculations.optimalCurveSpeed - currentSpeed) / (distance || 1)
+          (curveCalculations.optimalCurveSpeed - currentSpeed) / (distance || 1),
+        curvePoints: curveAnalysis.curvePoints
       };
 
       console.log('New turn prediction:', {

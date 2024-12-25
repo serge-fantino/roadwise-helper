@@ -1,5 +1,6 @@
 import { Settings } from '../../SettingsService';
 import { RouteTracker } from '../../RouteTracker';
+import { calculateDistanceToSegment } from '../../../utils/mapUtils';
 
 export class RouteDeviationManager {
   private lastRecalculationTime: number = 0;
@@ -29,40 +30,37 @@ export class RouteDeviationManager {
     }
 
     // Trouver le point le plus proche sur la route
-    const { index: closestIndex, distance: deviationDistance } = 
-      this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
+    const { index } = this.routeTracker.findClosestPointOnRoute(currentPosition, routePoints);
+
+    // Calculer la distance minimale aux segments adjacents
+    let minDistance = Infinity;
+
+    // Vérifier le segment précédent si il existe
+    if (index > 0) {
+      const distToPrevSegment = calculateDistanceToSegment(
+        currentPosition,
+        routePoints[index - 1],
+        routePoints[index]
+      );
+      minDistance = Math.min(minDistance, distToPrevSegment);
+    }
+
+    // Vérifier le segment suivant si il existe
+    if (index < routePoints.length - 1) {
+      const distToNextSegment = calculateDistanceToSegment(
+        currentPosition,
+        routePoints[index],
+        routePoints[index + 1]
+      );
+      minDistance = Math.min(minDistance, distToNextSegment);
+    }
 
     console.log('[RouteDeviationManager] Checking deviation:', {
-      deviationDistance,
-      maxDeviation: settings.maxRouteDeviation,
-      closestIndex,
-      totalPoints: routePoints.length
+      minDistance,
+      maxDeviation: settings.maxRouteDeviation
     });
 
-    // Si la distance au point le plus proche est inférieure à la limite, pas besoin de recalculer
-    if (deviationDistance <= settings.maxRouteDeviation) {
-      return false;
-    }
-
-    // Vérifier le point suivant s'il existe
-    if (closestIndex < routePoints.length - 1) {
-      const nextPoint = routePoints[closestIndex + 1];
-      const distanceToNextPoint = this.routeTracker.calculateDistance(currentPosition, nextPoint);
-
-      console.log('[RouteDeviationManager] Checking next point:', {
-        distanceToNextPoint,
-        maxDeviation: settings.maxRouteDeviation
-      });
-
-      // Si la distance au point suivant est inférieure à la limite, pas besoin de recalculer
-      if (distanceToNextPoint <= settings.maxRouteDeviation) {
-        return false;
-      }
-    }
-
-    // Si on arrive ici, c'est qu'on est trop loin des deux points
-    console.log('[RouteDeviationManager] Route deviation detected, should recalculate');
-    return true;
+    return minDistance > settings.maxRouteDeviation;
   }
 
   markRecalculationTime() {

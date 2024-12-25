@@ -6,6 +6,7 @@ export interface TurnPrediction {
   speedLimit?: number; // Vitesse limite en km/h
   optimalSpeed?: number; // Vitesse optimale en km/h
   requiredDeceleration?: number | null; // Décélération requise en g
+  curvePoints: [number, number][]; // Ajout des points du virage
 }
 
 export type RoadPrediction = TurnPrediction;

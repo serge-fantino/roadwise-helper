@@ -5,12 +5,15 @@ interface Point {
   lon: number;
 }
 
-export function smoothPath(routePoints: [number, number][], smoothingWindow: number): Point[] {
+export function smoothPath(routePoints: [number, number][], smoothingWindow: number, maxDistance: number): Point[] {
   const smoothedPath: Point[] = [];
   
   if (routePoints.length < 2) {
     return smoothedPath;
   }
+
+  let totalDistance = 0;
+  let startPoint = null;
 
   // Conversion initiale en Points
   for(let i = 0; i < routePoints.length; i++) {
@@ -18,6 +21,15 @@ export function smoothPath(routePoints: [number, number][], smoothingWindow: num
       lat: routePoints[i][0],
       lon: routePoints[i][1]
     });
+    if(startPoint === null) {
+      startPoint = routePoints[i];
+    } else {
+      totalDistance += calculateDistance(startPoint, routePoints[i]);
+      startPoint = routePoints[i];
+    }
+    if (totalDistance > maxDistance) {
+      break;
+    }
   }
   
   // Application de la moyenne mobile

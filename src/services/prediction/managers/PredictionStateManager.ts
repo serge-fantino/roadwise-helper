@@ -93,7 +93,8 @@ export class PredictionStateManager {
       index: 0,
       speedLimit: null,
       optimalSpeed: 130,
-      requiredDeceleration: null
+      requiredDeceleration: null,
+      curvePoints: []
     };
   }
 
