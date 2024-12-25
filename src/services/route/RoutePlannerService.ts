@@ -7,11 +7,10 @@ class RoutePlannerService {
     origin: null,
     destination: null,
     routePoints: [],
-    routeColor: '#3B82F6' // Default blue color
+    routeColor: '#3B82F6'
   };
   private observers: RouteObserver[] = [];
 
-  // Singleton instance
   private static instance: RoutePlannerService;
   public static getInstance(): RoutePlannerService {
     if (!RoutePlannerService.instance) {
@@ -22,7 +21,6 @@ class RoutePlannerService {
 
   private constructor() {}
 
-  // Observer pattern
   public addObserver(observer: RouteObserver) {
     this.observers.push(observer);
   }
@@ -36,38 +34,15 @@ class RoutePlannerService {
     this.observers.forEach(observer => observer({ ...this.state }));
   }
 
-  // State management
   public getState(): RouteState {
     return { ...this.state };
   }
 
-  public setOrigin(origin: [number, number]) {
-    console.log('[RoutePlannerService] Setting origin:', origin);
-    this.state.origin = origin;
-    if (this.state.destination) {
-      this.calculateRoute();
-    }
-    this.notifyObservers();
-  }
-
-  public setDestination(location: [number, number], address: string) {
-    console.log('[RoutePlannerService] Setting destination:', { location, address });
-    this.state.destination = { location, address };
-    if (this.state.origin) {
-      this.calculateRoute();
-    }
-    this.notifyObservers();
-  }
-
-  public async calculateRoute() {
-    if (!this.state.origin || !this.state.destination) {
-      console.log('[RoutePlannerService] Cannot calculate route: missing origin or destination');
-      return;
-    }
-
+  public async calculateRoute(origin: [number, number], destination: [number, number]) {
+    console.log('[RoutePlannerService] Calculating route:', { origin, destination });
+    
     try {
-      console.log('[RoutePlannerService] Calculating route from', this.state.origin, 'to', this.state.destination.location);
-      const route = await getRoute(this.state.origin, this.state.destination.location);
+      const route = await getRoute(origin, destination);
       
       if (route.length < 2) {
         console.error('[RoutePlannerService] Invalid route calculated:', route);
@@ -79,7 +54,6 @@ class RoutePlannerService {
         return;
       }
 
-      console.log('[RoutePlannerService] Route calculated successfully:', route);
       this.state.routePoints = route;
       this.notifyObservers();
       
@@ -97,9 +71,19 @@ class RoutePlannerService {
     }
   }
 
+  public setDestination(location: [number, number], address: string) {
+    console.log('[RoutePlannerService] Setting destination:', { location, address });
+    this.state.destination = { location, address };
+    this.notifyObservers();
+  }
+
   public async recalculateRoute() {
-    console.log('[RoutePlannerService] Recalculating route...');
-    await this.calculateRoute();
+    if (!this.state.origin || !this.state.destination) {
+      console.log('[RoutePlannerService] Cannot recalculate route: missing origin or destination');
+      return;
+    }
+
+    await this.calculateRoute(this.state.origin, this.state.destination.location);
   }
 
   public reset() {
@@ -112,11 +96,6 @@ class RoutePlannerService {
     };
     this.notifyObservers();
   }
-
-  public getRouteColor(): string {
-    return this.state.routeColor;
-  }
 }
 
-// Export singleton instance
 export const routePlannerService = RoutePlannerService.getInstance();

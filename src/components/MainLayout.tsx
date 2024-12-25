@@ -37,7 +37,7 @@ const MainLayout = ({
     origin: null,
     destination: null,
     routePoints: [],
-    routeColor: '#3B82F6' // Added missing routeColor property
+    routeColor: '#3B82F6'
   });
 
   // Observer pour le RoutePlannerService
@@ -58,14 +58,10 @@ const MainLayout = ({
     return () => routePlannerService.removeObserver(handleRouteUpdate);
   }, [destination, onDestinationSelect]);
 
-  // Mettre à jour l'origine quand la position change
-  useEffect(() => {
-    routePlannerService.setOrigin(position);
-  }, [position]);
-
-  const handleDestinationSelect = (location: [number, number], address: string) => {
+  const handleDestinationSelect = async (location: [number, number], address: string) => {
     console.log('[MainLayout] New destination selected:', { location, address });
     routePlannerService.setDestination(location, address);
+    await routePlannerService.calculateRoute(position, location);
     setIsSearchMode(false);
   };
 
