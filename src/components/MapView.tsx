@@ -12,7 +12,7 @@ import TurnWarningMarker from './map/TurnWarningMarker';
 import { roadPredictor } from '../services/RoadPredictor';
 import { useVehicleState } from '../hooks/useVehicleState';
 import { TurnPrediction } from '../services/prediction/PredictionTypes';
-import { getRoute } from '../utils/routingUtils';
+import { routePlannerService } from '../services/RoutePlannerService';
 import { toast } from './ui/use-toast';
 
 // Fix Leaflet default icon paths
@@ -93,26 +93,10 @@ const MapView = ({
 
   // Gérer l'événement de recalcul d'itinéraire
   useEffect(() => {
-    const handleRouteRecalculation = async (event: CustomEvent) => {
-      const { from, to } = event.detail;
-      console.log('Recalculating route:', { from, to });
-      
+    const handleRouteRecalculation = async () => {
+      console.log('Recalculating route...');
       try {
-        const newRoutePoints = await getRoute(from, to);
-        if (newRoutePoints.length > 0) {
-          // Créer un événement personnalisé pour mettre à jour l'itinéraire
-          const updateEvent = new CustomEvent('updateRoute', {
-            detail: {
-              routePoints: newRoutePoints
-            }
-          });
-          window.dispatchEvent(updateEvent);
-          
-          toast({
-            title: "Itinéraire recalculé",
-            description: "Un nouvel itinéraire a été calculé pour vous ramener à destination",
-          });
-        }
+        await routePlannerService.recalculateRoute();
       } catch (error) {
         console.error('Failed to recalculate route:', error);
         toast({
@@ -123,9 +107,9 @@ const MapView = ({
       }
     };
 
-    window.addEventListener('recalculateRoute', handleRouteRecalculation as EventListener);
+    window.addEventListener('recalculateRoute', handleRouteRecalculation);
     return () => {
-      window.removeEventListener('recalculateRoute', handleRouteRecalculation as EventListener);
+      window.removeEventListener('recalculateRoute', handleRouteRecalculation);
     };
   }, []);
 
