@@ -96,6 +96,10 @@ class RoutePlannerService {
     };
     this.notifyObservers();
   }
+
+  public getRouteColor(): string {
+    return this.state.routeColor;
+  }
 }
 
 export const routePlannerService = RoutePlannerService.getInstance();
