@@ -33,6 +33,36 @@ class PredictionService {
     });
   }
 
+  startUpdates(position: [number, number]) {
+    console.log('Starting prediction updates for position:', position);
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
+
+    // Initial update
+    this.updatePrediction(position);
+
+    // Set up interval for continuous updates
+    this.updateInterval = setInterval(() => {
+      this.updatePrediction(position);
+    }, 1000); // Update every second
+  }
+
+  stopUpdates() {
+    console.log('Stopping prediction updates');
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+
+  private updatePrediction(position: [number, number]) {
+    // Update prediction logic here
+    // This is a placeholder - actual prediction logic should be implemented
+    console.log('Updating prediction for position:', position);
+    // You might want to use this.turnPredictionManager here
+  }
+
   async updatePredictions(
     routePoints: [number, number][],
     settings: Settings,
