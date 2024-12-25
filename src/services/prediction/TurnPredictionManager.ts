@@ -27,7 +27,7 @@ export class TurnPredictionManager {
   }
 
   removePastTurns(currentIndex: number): void {
-    this.turns = this.turns.filter(turn => turn.index > currentIndex);
+    this.turns = this.turns.filter(turn => turn.curveInfo.apexIndex >= currentIndex);
     console.log('Turns after removing past turns:', this.turns.length);
   }
 
@@ -44,7 +44,7 @@ export class TurnPredictionManager {
     let turnCount = 0;
     let nextIndex = startIndex
 
-    while (distance <= 2000 && turnCount < 10) {
+    while (distance <= settings.predictionDistance && turnCount < 10) {
       // Analyser la courbe à partir du point de départ
       const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, nextIndex, settings);
       

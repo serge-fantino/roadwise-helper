@@ -45,7 +45,7 @@ export class PredictionStateManager {
     // Chercher de nouveaux virages si nécessaire
     const turns = this.turnPredictionManager.getTurns();
     const lastTurnIndex = turns.length > 0 
-      ? Math.max(...turns.map(t => t.index))
+      ? Math.max(...turns.map(t => t.curveInfo.endIndex))
       : currentIndex;
 
     await this.turnPredictionManager.findNewTurns(
