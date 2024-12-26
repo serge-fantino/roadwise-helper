@@ -27,7 +27,7 @@ const DestinationPanel = ({
     };
 
     // Initial state
-    setIsPredicting(roadPredictor.isActive());
+    setIsPredicting(roadPredictor.getIsActive());
 
     // Subscribe to state changes
     roadPredictor.addStateObserver(updatePredictionState);

@@ -16,7 +16,7 @@ class RoadPredictor {
   private deviationManager: RouteDeviationManager;
   private predictionManager: PredictionStateManager;
   private currentPosition: [number, number] | null = null;
-  private _isActive: boolean = false;
+  private _active: boolean = false;
 
   constructor() {
     this.routeTracker = new RouteTracker();
@@ -54,7 +54,7 @@ class RoadPredictor {
   public addStateObserver(observer: StateObserver) {
     this.stateObservers.push(observer);
     // Notify the new observer of the current state immediately
-    observer(this._isActive);
+    observer(this._active);
   }
 
   public removeStateObserver(observer: StateObserver) {
@@ -62,8 +62,8 @@ class RoadPredictor {
   }
 
   private notifyStateObservers() {
-    console.log('Notifying state observers, active:', this._isActive);
-    this.stateObservers.forEach(observer => observer(this._isActive));
+    console.log('Notifying state observers, active:', this._active);
+    this.stateObservers.forEach(observer => observer(this._active));
   }
 
   private notifyObservers() {
@@ -73,8 +73,8 @@ class RoadPredictor {
     this.observers.forEach(observer => observer(currentPrediction, turns));
   }
 
-  public isActive(): boolean {
-    return this._isActive;
+  public getIsActive(): boolean {
+    return this._active;
   }
 
   private async updatePrediction() {
@@ -137,7 +137,7 @@ class RoadPredictor {
     
     this.predictionManager.reset();
     this.deviationManager.reset();
-    this._isActive = true;
+    this._active = true;
     
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -160,7 +160,7 @@ class RoadPredictor {
       this.updateInterval = null;
     }
     this.currentPosition = null;
-    this._isActive = false;
+    this._active = false;
     this.predictionManager.reset();
     this.notifyObservers();
     this.notifyStateObservers();
@@ -169,7 +169,7 @@ class RoadPredictor {
   public updatePosition(position: [number, number]) {
     console.log('Updating position in RoadPredictor:', position);
     this.currentPosition = position;
-    if (this._isActive) {
+    if (this._active) {
       this.updatePrediction();
     }
   }
