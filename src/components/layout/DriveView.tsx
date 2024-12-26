@@ -50,8 +50,16 @@ const DriveView = ({ position, routePoints }: DriveViewProps) => {
   const extractRouteSegment = (startIndex: number): [number, number][] => {
     const segment: [number, number][] = [];
     let accumulatedDistance = 0;
-    let currentIdx = startIndex;
+    
+    // Ajouter les 10 points précédents s'ils existent
+    const startHistoryIndex = Math.max(0, startIndex - 10);
+    for (let i = startHistoryIndex; i < startIndex; i++) {
+      if (routePoints[i]) {
+        segment.push(routePoints[i]);
+      }
+    }
 
+    let currentIdx = startIndex;
     while (currentIdx < routePoints.length - 1 && accumulatedDistance < 1000) {
       const point1 = routePoints[currentIdx];
       const point2 = routePoints[currentIdx + 1];
@@ -128,7 +136,12 @@ const DriveView = ({ position, routePoints }: DriveViewProps) => {
         const distance = Math.sqrt(localPoint.x * localPoint.x + localPoint.y * localPoint.y);
         const alpha = Math.max(0.1, 1 - (distance / 1000));
         
-        ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
+        // Définir la couleur en fonction de si c'est un point d'historique ou non
+        const isHistoryPoint = index < 10;
+        ctx.strokeStyle = isHistoryPoint ? 
+          `rgba(128, 128, 128, ${alpha})` : 
+          `rgba(59, 130, 246, ${alpha})`;
+        
         ctx.lineWidth = 20 * (1 - distance / 2000); // Largeur qui diminue avec la distance
         
         if (index === 0) {
