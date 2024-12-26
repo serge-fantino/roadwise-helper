@@ -2,7 +2,6 @@ import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
-
 import { cn } from "@/lib/utils"
 
 const ToastProvider = ToastPrimitives.Provider
@@ -43,6 +42,20 @@ const Toast = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
+  React.useEffect(() => {
+    const handleClick = () => {
+      // Ferme tous les toasts ouverts
+      document.querySelectorAll('[data-state="open"]').forEach((toast) => {
+        if (toast instanceof HTMLElement && toast.hasAttribute('data-radix-toast-root')) {
+          toast.setAttribute('data-state', 'closed');
+        }
+      });
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
   return (
     <ToastPrimitives.Root
       ref={ref}
@@ -50,7 +63,7 @@ const Toast = React.forwardRef<
       duration={5000}
       {...props}
     />
-  )
+  );
 })
 Toast.displayName = ToastPrimitives.Root.displayName
 
