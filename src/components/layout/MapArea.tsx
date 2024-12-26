@@ -1,4 +1,5 @@
 import MapView from '../MapView';
+import DriveView from './DriveView';
 
 interface MapAreaProps {
   position: [number, number];
@@ -8,6 +9,7 @@ interface MapAreaProps {
   routePoints: [number, number][];
   onMapClick: (location: [number, number], address: string) => void;
   positionHistory: [number, number][];
+  viewMode: 'map' | 'drive';
 }
 
 const MapArea = ({
@@ -17,19 +19,27 @@ const MapArea = ({
   destination,
   routePoints,
   onMapClick,
-  positionHistory
+  positionHistory,
+  viewMode
 }: MapAreaProps) => {
   return (
     <div className="flex-1 w-full h-full relative">
-      <MapView 
-        position={position} 
-        speed={speed} 
-        onRoadStatusChange={onRoadStatusChange}
-        destination={destination}
-        routePoints={routePoints}
-        onMapClick={onMapClick}
-        positionHistory={positionHistory}
-      />
+      {viewMode === 'map' ? (
+        <MapView 
+          position={position} 
+          speed={speed} 
+          onRoadStatusChange={onRoadStatusChange}
+          destination={destination}
+          routePoints={routePoints}
+          onMapClick={onMapClick}
+          positionHistory={positionHistory}
+        />
+      ) : (
+        <DriveView 
+          position={position}
+          routePoints={routePoints}
+        />
+      )}
     </div>
   );
 };

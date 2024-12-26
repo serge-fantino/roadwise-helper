@@ -32,6 +32,7 @@ const MainLayout = ({
   positionHistory
 }: MainLayoutProps) => {
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'map' | 'drive'>('map');
 
   const handleDestinationSelect = (location: [number, number], address: string) => {
     console.log('[MainLayout] New destination selected:', { location, address });
@@ -51,6 +52,8 @@ const MainLayout = ({
         onDestinationClick={() => setIsSearchMode(true)}
         onSearchModeChange={setIsSearchMode}
         isSearchMode={isSearchMode}
+        onViewModeChange={setViewMode}
+        viewMode={viewMode}
       />
       <div className="flex-1 relative">
         {isSearchMode ? (
@@ -64,6 +67,7 @@ const MainLayout = ({
             routePoints={routePoints}
             onMapClick={handleDestinationSelect}
             positionHistory={positionHistory}
+            viewMode={viewMode}
           />
         )}
       </div>

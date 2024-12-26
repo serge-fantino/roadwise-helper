@@ -1,5 +1,5 @@
-import SpeedPanel from '../SpeedPanel';
 import DestinationPanel from '../DestinationPanel';
+import SpeedPanel from '../SpeedPanel';
 
 interface TopPanelProps {
   speed: number;
@@ -11,6 +11,8 @@ interface TopPanelProps {
   onDestinationClick: () => void;
   onSearchModeChange: (isSearchMode: boolean) => void;
   isSearchMode: boolean;
+  onViewModeChange: (mode: 'map' | 'drive') => void;
+  viewMode: 'map' | 'drive';
 }
 
 const TopPanel = ({
@@ -22,29 +24,32 @@ const TopPanel = ({
   onDestinationSelect,
   onDestinationClick,
   onSearchModeChange,
-  isSearchMode
+  isSearchMode,
+  onViewModeChange,
+  viewMode
 }: TopPanelProps) => {
   return (
-    <>
-      <div className="h-20 bg-gray-900 p-2">
-        <SpeedPanel 
-          currentSpeed={speed} 
-          recommendedSpeed={recommendedSpeed}
-          isOnRoad={isOnRoad}
-          isDebugMode={isDebugMode}
-        />
+    <div className="relative z-10 bg-gray-900 shadow-lg">
+      <div className="container mx-auto py-4 px-4">
+        <div className="flex flex-col gap-4">
+          <SpeedPanel
+            speed={speed}
+            recommendedSpeed={recommendedSpeed}
+            isOnRoad={isOnRoad}
+            isDebugMode={isDebugMode}
+          />
+          <DestinationPanel
+            destination={destination}
+            onDestinationSelect={onDestinationSelect}
+            onDestinationClick={onDestinationClick}
+            onSearchModeChange={onSearchModeChange}
+            isSearchMode={isSearchMode}
+            onViewModeChange={onViewModeChange}
+            viewMode={viewMode}
+          />
+        </div>
       </div>
-
-      <div className="h-12 bg-gray-900 p-2">
-        <DestinationPanel 
-          destination={destination} 
-          onDestinationSelect={onDestinationSelect}
-          onDestinationClick={onDestinationClick}
-          onSearchModeChange={onSearchModeChange}
-          isSearchMode={isSearchMode}
-        />
-      </div>
-    </>
+    </div>
   );
 };
 
