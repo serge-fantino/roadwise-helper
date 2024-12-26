@@ -58,7 +58,7 @@ export class CurveDetector {
         let endPointIndex: number = 0;
     
         // Détection du début de virage
-        for (let i = 1; i < smoothedPath.length - 1; i++) {
+        for (let i = 1; i+1 < smoothedPath.length - 1; i++) {
             const { bearing1, angleDiff } = calculateAngleBetweenPoints(
                 smoothedPath[i-1],
                 smoothedPath[i],
@@ -68,7 +68,7 @@ export class CurveDetector {
             if (Math.abs(angleDiff) > settings.minTurnAngle) {
                 turnStart = [smoothedPath[i].lat, smoothedPath[i].lon];
                 startAngle = bearing1;
-                startPointIndex = i;
+                startPointIndex = i+startIndex;
                 console.log('detected turn start at index:', startPointIndex);
                 break;
             }
@@ -78,17 +78,17 @@ export class CurveDetector {
         }
            
         // Détection de la fin de virage
-        for (let i = startPointIndex + 1; i < smoothedPath.length - 1; i++) {
+        for (let i = startPointIndex - startIndex + 1; i+1 < smoothedPath.length - 1; i++) {
             const { bearing2, angleDiff } = calculateAngleBetweenPoints(
                 smoothedPath[i-1],
                 smoothedPath[i],
                 smoothedPath[i+1]
             );
                 
-            if(Math.abs(angleDiff) <= settings.minTurnAngle) {
+            if(Math.abs(angleDiff) <= settings.minTurnAngle || Math.sign(angleDiff) !== Math.sign(startAngle)) {
                 turnEnd = [smoothedPath[i].lat, smoothedPath[i].lon];
                 endAngle = bearing2;
-                endPointIndex = i;
+                endPointIndex = i+startIndex;
                 console.log('detected turn end at index:', endPointIndex);
                 break;
             }
@@ -98,7 +98,7 @@ export class CurveDetector {
         }
     
         let maxAngleDiff = 0;
-        for (let i = startPointIndex; i <= endPointIndex; i++) {
+        for (let i = startPointIndex - startIndex; i <= endPointIndex - startIndex; i++) {
             const { angleDiff } = calculateAngleBetweenPoints(
                 smoothedPath[i-1],
                 smoothedPath[i],
@@ -109,7 +109,7 @@ export class CurveDetector {
                 maxAngleDiff = Math.abs(angleDiff);
                 turnApex = [smoothedPath[i].lat, smoothedPath[i].lon];
                 apexAngle = angleDiff;
-                apexIndex = i;
+                apexIndex = i+startIndex;
             }
         }
 

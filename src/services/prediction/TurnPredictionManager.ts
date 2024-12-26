@@ -17,18 +17,36 @@ export class TurnPredictionManager {
     this.curveAssistant = new CurveAssistanceCalculator();
   }
 
-  async updateTurnDistances(currentPosition: [number, number]): Promise<void> {
-    this.turns = await Promise.all(
-      this.turns.map(async (turn) => {
-        const distance = calculateDistance(currentPosition, turn.position);
-        return { ...turn, distance };
-      })
-    );
+  updateTurnDistances(
+    currentPosition: [number, number], 
+    currentIndex: number,
+    routePoints: [number, number][]
+  ): void {
+    for (let turn of this.turns) {
+        turn.distance = this.calculateRoadDistanceToIndex(
+            currentPosition, 
+            currentIndex, 
+            turn.curveInfo.startIndex, 
+            routePoints
+        );
+    }
+  }
+
+  calculateRoadDistanceToIndex(
+    currentPosition: [number, number], 
+    startIndex: number, 
+    endIndex: number,
+    routePoints: [number, number][]
+  ): number {
+    let distance = calculateDistance(currentPosition, routePoints[startIndex]);
+    for (let i = startIndex+1; i <= endIndex; i++) {
+      distance += calculateDistance(routePoints[i-1], routePoints[i]);
+    }
+    return distance;
   }
 
   removePastTurns(currentIndex: number): void {
-    this.turns = this.turns.filter(turn => turn.curveInfo.apexIndex >= currentIndex);
-    console.log('Turns after removing past turns:', this.turns.length);
+    this.turns = this.turns.filter(turn => turn.curveInfo.endIndex >= currentIndex);
   }
 
   async findNewTurns(
@@ -40,11 +58,11 @@ export class TurnPredictionManager {
     currentSpeedLimit: number | null = null
   ): Promise<void> {
 
-    let distance = 0;
-    let turnCount = 0;
     let nextIndex = startIndex
+    let nextPoint = routePoints[nextIndex]
+    let distance = calculateDistance(currentPosition, nextPoint);
 
-    while (distance <= settings.predictionDistance && turnCount < 10) {
+    while (distance <= settings.predictionDistance && this.turns.length < 10) {
       // Analyser la courbe à partir du point de départ
       const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, nextIndex, settings);
       
@@ -53,11 +71,13 @@ export class TurnPredictionManager {
         return;
       }
 
-      distance = calculateDistance(currentPosition, curveAnalysis.startPoint);
+      for (let i = nextIndex+1; i <= curveAnalysis.startIndex; i++) {
+        distance += calculateDistance(routePoints[i-1], routePoints[i]);
+      }
     
       const speedLimit = currentSpeedLimit || await this.speedLimitCache.getSpeedLimit(
-        curveAnalysis.apex[0],
-        curveAnalysis.apex[1]
+        curveAnalysis.startPoint[0],
+        curveAnalysis.startPoint[1]
       );
 
       // Calculer les vitesses et points de freinage avec CurveAssistant
@@ -90,7 +110,11 @@ export class TurnPredictionManager {
       });
 
       this.turns.push(turnPrediction);
-      turnCount++;
+
+      for (let i = curveAnalysis.startIndex+1; i <= curveAnalysis.endIndex; i++) {
+        distance += calculateDistance(routePoints[i-1], routePoints[i]);
+      }
+
       nextIndex = curveAnalysis.endIndex+1;
     }
   }

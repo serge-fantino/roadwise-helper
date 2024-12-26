@@ -30,7 +30,7 @@ const TurnCurveOverlay = ({ turns }: TurnCurveOverlayProps) => {
           pathOptions={{
             color: getTurnColor(turn.curveInfo.radius),
             weight: 10,
-            opacity: index === 0 ? 0.8 : 0.5,
+            opacity: 0.9,
             dashArray: undefined
           }}
         />

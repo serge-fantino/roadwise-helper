@@ -39,8 +39,8 @@ export class PredictionStateManager {
     }
 
     // Mettre à jour les virages existants
-    await this.turnPredictionManager.updateTurnDistances(currentPosition);
     this.turnPredictionManager.removePastTurns(currentIndex);
+    this.turnPredictionManager.updateTurnDistances(currentPosition, currentIndex, routePoints);
 
     // Chercher de nouveaux virages si nécessaire
     const turns = this.turnPredictionManager.getTurns();
@@ -48,16 +48,19 @@ export class PredictionStateManager {
       ? Math.max(...turns.map(t => t.curveInfo.endIndex))
       : currentIndex;
 
-    await this.turnPredictionManager.findNewTurns(
-      routePoints,
-      lastTurnIndex,
-      currentPosition,
-      settings,
-      currentSpeed,
-      speedLimit
-    );
+    if (turns.length <10) {
+      await this.turnPredictionManager.findNewTurns(
+        routePoints,
+        lastTurnIndex,
+        currentPosition,
+        settings,
+        currentSpeed,
+        speedLimit
+      );
+    }
 
     this.turnPredictionManager.sortTurns();
+    console.log('Turns ahead:', this.turnPredictionManager.getTurns().length);
     this.updateCurrentPrediction(currentSpeed);
   }
 
