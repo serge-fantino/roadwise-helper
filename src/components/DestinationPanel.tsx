@@ -78,7 +78,7 @@ const DestinationPanel = ({
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white px-4">
+    <div className="w-full max-w-xl mx-auto flex items-center justify-between text-white px-0">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <MapPin className="h-5 w-5 flex-shrink-0" />
         <button
@@ -93,21 +93,21 @@ const DestinationPanel = ({
           variant="ghost"
           size="icon"
           className="text-white hover:text-white hover:bg-gray-800 flex-shrink-0"
-          onClick={handlePredictionToggle}
+          onClick={handleSearchClick}
         >
-          {isPredicting ? (
-            <Square className="h-5 w-5" />
-          ) : (
-            <Play className="h-5 w-5" />
-          )}
+          <Search className="h-5 w-5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
           className="text-white hover:text-white hover:bg-gray-800 flex-shrink-0"
-          onClick={handleSearchClick}
+          onClick={handlePredictionToggle}
         >
-          <Search className="h-5 w-5" />
+          {isPredicting ? (
+            <Play className="h-5 w-5" />
+          ) : (
+            <Square className="h-5 w-5" />
+          )}
         </Button>
       </div>
     </div>
