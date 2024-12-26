@@ -21,14 +21,21 @@ const SpeedPanel = ({
 
   useEffect(() => {
     const vehicle = (window as any).globalVehicle;
-    if (!vehicle) return;
+    if (!vehicle) {
+      console.warn('[SpeedPanel] No vehicle found');
+      return;
+    }
 
+    console.log('[SpeedPanel] Setting up vehicle observer');
     const observer = (_position: [number, number], _speed: number, currentAcceleration: number) => {
       setAcceleration(currentAcceleration);
     };
 
     vehicle.addObserver(observer);
-    return () => vehicle.removeObserver(observer);
+    return () => {
+      console.log('[SpeedPanel] Cleaning up vehicle observer');
+      vehicle.removeObserver(observer);
+    };
   }, []);
 
   useEffect(() => {

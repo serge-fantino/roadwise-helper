@@ -20,7 +20,9 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInf
 
   // Observer pour les prédictions
   useEffect(() => {
+    console.log('[useSpeedInfo] Setting up prediction observer');
     const predictionObserver = (prediction: RoadPrediction | null) => {
+      console.log('[useSpeedInfo] Received prediction update:', prediction);
       if (prediction) {
         setSpeedInfo(prev => ({
           ...prev,
@@ -31,12 +33,17 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInf
     };
 
     roadPredictor.addObserver(predictionObserver);
-    return () => roadPredictor.removeObserver(predictionObserver);
+    return () => {
+      console.log('[useSpeedInfo] Cleaning up prediction observer');
+      roadPredictor.removeObserver(predictionObserver);
+    };
   }, []);
 
   // Observer pour les informations routières
   useEffect(() => {
+    console.log('[useSpeedInfo] Setting up road info observer');
     const roadInfoObserver = (roadInfo: { speedLimit: number | null }) => {
+      console.log('[useSpeedInfo] Received road info update:', roadInfo);
       setSpeedInfo(prev => ({
         ...prev,
         speedLimit: roadInfo.speedLimit
@@ -44,11 +51,14 @@ export const useSpeedInfo = (currentSpeed: number, isOnRoad?: boolean): SpeedInf
     };
 
     roadInfoManager.addObserver(roadInfoObserver);
-    return () => roadInfoManager.removeObserver(roadInfoObserver);
+    return () => {
+      console.log('[useSpeedInfo] Cleaning up road info observer');
+      roadInfoManager.removeObserver(roadInfoObserver);
+    };
   }, []);
 
   useEffect(() => {
-    console.log('Speed updated in useSpeedInfo:', currentSpeed);
+    console.log('[useSpeedInfo] Speed updated:', currentSpeed);
     setSpeedInfo(prev => ({
       ...prev,
       displaySpeed: currentSpeed
