@@ -17,7 +17,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         <div 
           className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full h-full"
           style={{
-            backgroundImage: "url('/artefacts/route2.jpg')",
+            backgroundImage: "url('/src/components/splashscreen.jpg')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)',
