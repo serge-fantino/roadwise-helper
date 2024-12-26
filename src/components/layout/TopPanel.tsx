@@ -33,7 +33,7 @@ const TopPanel = ({
       <div className="container mx-auto py-4 px-4">
         <div className="flex flex-col gap-4">
           <SpeedPanel
-            speed={speed}
+            currentSpeed={speed}
             recommendedSpeed={recommendedSpeed}
             isOnRoad={isOnRoad}
             isDebugMode={isDebugMode}
