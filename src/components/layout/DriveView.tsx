@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Car } from 'lucide-react';
 import { calculateBearing } from '../../utils/mapUtils';
+import { routePlannerService } from '../../services/route/RoutePlannerService';
 
 interface DriveViewProps {
   position: [number, number];
-  routePoints: [number, number][];
 }
 
 interface Point2D {
@@ -12,89 +12,55 @@ interface Point2D {
   y: number;
 }
 
-const DriveView = ({ position, routePoints }: DriveViewProps) => {
+const DriveView = ({ position }: DriveViewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentRouteSegment, setCurrentRouteSegment] = useState<[number, number][]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
   // Conversion des coordonnées GPS en coordonnées cartésiennes locales
-  const toLocalCoordinates = (point: [number, number], origin: [number, number]): Point2D => {
-    // Conversion approximative (1° latitude = ~111km, 1° longitude = ~111km * cos(latitude))
+  const toLocalCoordinates = (point: [number, number], origin: [number, number]): [number, number] => {
     const scale = 111000; // mètres par degré
     const cosLat = Math.cos((origin[0] * Math.PI) / 180);
     
-    return {
-      x: (point[1] - origin[1]) * scale * cosLat,
-      y: (point[0] - origin[0]) * scale
-    };
+    return [
+      (point[1] - origin[1]) * scale * cosLat,
+      (point[0] - origin[0]) * scale]
   };
 
-  // Trouver l'index le plus proche dans la route
-  const findClosestPointIndex = (pos: [number, number], points: [number, number][]): number => {
+  // Mise à jour du segment de route
+  useEffect(() => {
+    const routeState = routePlannerService.getState();
+    if (routeState.routePoints.length < 2) return;
+
+    // Trouver le point de route le plus proche
     let minDist = Infinity;
     let closestIdx = 0;
-
-    points.forEach((point, idx) => {
-      const localPoint = toLocalCoordinates(point, pos);
-      const dist = Math.sqrt(localPoint.x * localPoint.x + localPoint.y * localPoint.y);
+    
+    routeState.routePoints.forEach((point, idx) => {
+      const localPoint = toLocalCoordinates(point, position);
+      const dist = Math.sqrt(localPoint[0] * localPoint[0] + localPoint[1] * localPoint[1]);
       if (dist < minDist) {
         minDist = dist;
         closestIdx = idx;
       }
     });
 
-    return closestIdx;
-  };
-
-  // Extraire le segment de route à afficher
-  const extractRouteSegment = (startIndex: number): [number, number][] => {
+    // Extraire le segment de route à afficher (500m avant et après)
     const segment: [number, number][] = [];
-    let accumulatedDistance = 0;
+    const startIdx = Math.max(0, closestIdx - 10);
+    const endIdx = Math.min(routeState.routePoints.length, closestIdx + 50);
     
-    // Ajouter les 10 points précédents s'ils existent
-    const startHistoryIndex = Math.max(0, startIndex - 10);
-    for (let i = startHistoryIndex; i < startIndex; i++) {
-      if (routePoints[i]) {
-        segment.push(routePoints[i]);
+    let currentIndex = 0;
+    for (let i = startIdx; i < endIdx; i++) {
+      segment.push(toLocalCoordinates(routeState.routePoints[i], position));
+      if (i<=closestIdx) {
+        currentIndex++;
       }
     }
 
-    let currentIdx = startIndex;
-    while (currentIdx < routePoints.length - 1 && accumulatedDistance < 1000) {
-      const point1 = routePoints[currentIdx];
-      const point2 = routePoints[currentIdx + 1];
-      
-      // Calculer la distance en mètres entre les points
-      const p1Local = toLocalCoordinates(point1, point1);
-      const p2Local = toLocalCoordinates(point2, point1);
-      const distance = Math.sqrt(
-        Math.pow(p2Local.x - p1Local.x, 2) + 
-        Math.pow(p2Local.y - p1Local.y, 2)
-      );
-
-      segment.push(point1);
-      accumulatedDistance += distance;
-      currentIdx++;
-    }
-
-    if (currentIdx < routePoints.length) {
-      segment.push(routePoints[currentIdx]);
-    }
-
-    return segment;
-  };
-
-  // Mise à jour du segment de route si nécessaire
-  useEffect(() => {
-    if (routePoints.length < 2) return;
-
-    const newIndex = findClosestPointIndex(position, routePoints);
-    if (newIndex !== currentIndex || currentRouteSegment.length === 0) {
-      const newSegment = extractRouteSegment(newIndex);
-      setCurrentRouteSegment(newSegment);
-      setCurrentIndex(newIndex);
-    }
-  }, [position, routePoints, currentIndex]);
+    setCurrentRouteSegment(segment);
+    setCurrentIndex(currentIndex);
+  }, [position]);
 
   // Rendu de la vue
   useEffect(() => {
@@ -112,52 +78,57 @@ const DriveView = ({ position, routePoints }: DriveViewProps) => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Calculer l'angle du premier segment pour l'orientation
-    const firstPoint = currentRouteSegment[0];
-    const secondPoint = currentRouteSegment[1];
-    const initialBearing = calculateBearing(firstPoint, secondPoint);
-    const rotationAngle = (90 - initialBearing) * Math.PI / 180;
+    // Calculer l'angle du segment courant pour l'orientation
+    const currentPoint = currentRouteSegment[currentIndex];
+    const nextPoint = currentRouteSegment[currentIndex+1];
+    const bearing = calculateBearing(currentPoint, nextPoint);
 
-    // Fonction de dessin
     const drawRoute = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Transformer le contexte pour centrer et orienter la vue
       ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height * 0.7); // Position de la voiture
+      ctx.translate(canvas.width / 2, canvas.height * 0.7);
+      const rotationAngle = (bearing-90) * Math.PI / 180;
       ctx.rotate(rotationAngle);
 
       // Dessiner la route
       ctx.beginPath();
-      currentRouteSegment.forEach((point, index) => {
-        const localPoint = toLocalCoordinates(point, position);
+      currentRouteSegment.forEach((localPoint, index) => {
+        const distance = Math.sqrt(localPoint[0] * localPoint[0]+ localPoint[1] * localPoint[1]);
+        const alpha = Math.max(0.1, 1 - (distance / 500)); // Fade sur 500m
         
-        // Calculer l'opacité en fonction de la distance
-        const distance = Math.sqrt(localPoint.x * localPoint.x + localPoint.y * localPoint.y);
-        const alpha = Math.max(0.1, 1 - (distance / 1000));
-        
-        // Définir la couleur en fonction de si c'est un point d'historique ou non
-        const isHistoryPoint = index < 10;
-        ctx.strokeStyle = isHistoryPoint ? 
-          `rgba(128, 128, 128, ${alpha})` : 
-          `rgba(59, 130, 246, ${alpha})`;
-        
-        ctx.lineWidth = 20 * (1 - distance / 2000); // Largeur qui diminue avec la distance
+        // Utiliser du gris pour les points passés (avant l'index actuel) et du bleu pour les points à venir
+        const color = index < currentIndex ? 'rgba(128, 128, 128, ' : (index === currentIndex ? 'rgba(128, 0, 0, ' : 'rgba(59, 130, 246, ');
+        ctx.strokeStyle = color + alpha + ')';
+        ctx.lineWidth = Math.max(10, 50 * (1 - distance / 1000)); // Largeur qui diminue avec la distance
         
         if (index === 0) {
-          ctx.moveTo(localPoint.x, -localPoint.y);
+          ctx.moveTo(localPoint[0], -localPoint[1]);
         } else {
-          ctx.lineTo(localPoint.x, -localPoint.y);
+          ctx.lineTo(localPoint[0], -localPoint[1]);
           ctx.stroke();
           ctx.beginPath();
-          ctx.moveTo(localPoint.x, -localPoint.y);
+          ctx.moveTo(localPoint[0], -localPoint[1]);
         }
       });
 
+      // Dessiner le point rouge à l'origine
+      ctx.beginPath();
+      ctx.fillStyle = 'red';
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // Afficher le bearing en haut à gauche
+      ctx.save();
+      ctx.font = '16px Arial';
+      ctx.fillStyle = 'black';
+      ctx.fillText(`Bearing: ${Math.round(bearing)}°`, 10, 30);
       ctx.restore();
     };
 
-    // Animation
     const animate = () => {
       drawRoute();
       requestAnimationFrame(animate);
@@ -175,9 +146,6 @@ const DriveView = ({ position, routePoints }: DriveViewProps) => {
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
       />
-      <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 text-blue-500">
-        <Car size={48} />
-      </div>
     </div>
   );
 };
