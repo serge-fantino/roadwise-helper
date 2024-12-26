@@ -26,6 +26,10 @@ const DestinationPanel = ({
       setIsPredicting(isActive);
     };
 
+    // Initial state
+    setIsPredicting(roadPredictor.isActive());
+
+    // Subscribe to state changes
     roadPredictor.addStateObserver(updatePredictionState);
     return () => roadPredictor.removeStateObserver(updatePredictionState);
   }, []);
@@ -41,6 +45,7 @@ const DestinationPanel = ({
   };
 
   const handlePredictionToggle = () => {
+    console.log('Toggling prediction state, current state:', isPredicting);
     if (isPredicting) {
       roadPredictor.stopUpdates();
     } else {

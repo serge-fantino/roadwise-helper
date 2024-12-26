@@ -30,10 +30,7 @@ class RoadPredictor {
       }
     });
 
-
-    // Observer le RoutePlannerService
     routePlannerService.addObserver((state) => {
-      // Démarrer/arrêter les prédictions automatiquement
       if (state.routePoints.length > 1) {
         this.startUpdates();
       } else {
@@ -56,6 +53,8 @@ class RoadPredictor {
 
   public addStateObserver(observer: StateObserver) {
     this.stateObservers.push(observer);
+    // Notify the new observer of the current state immediately
+    observer(this.isActive);
   }
 
   public removeStateObserver(observer: StateObserver) {
@@ -63,6 +62,7 @@ class RoadPredictor {
   }
 
   private notifyStateObservers() {
+    console.log('Notifying state observers, active:', this.isActive);
     this.stateObservers.forEach(observer => observer(this.isActive));
   }
 
@@ -71,6 +71,10 @@ class RoadPredictor {
     const turns = this.predictionManager.getTurns();
     console.log('Notifying observers with prediction:', { currentPrediction, turns });
     this.observers.forEach(observer => observer(currentPrediction, turns));
+  }
+
+  public isActive(): boolean {
+    return this.isActive;
   }
 
   private async updatePrediction() {
@@ -94,7 +98,6 @@ class RoadPredictor {
     const speedLimit = roadInfo?.speedLimit ?? null;
     const isOnRoad = roadInfo?.isOnRoad ?? false;
 
-    // Vérifier si on doit recalculer l'itinéraire seulement si la fonctionnalité est activée
     if (settings.enableAutoRecalculate && this.deviationManager.shouldRecalculateRoute(
       this.currentPosition,
       routeState.routePoints,
@@ -140,7 +143,7 @@ class RoadPredictor {
       clearInterval(this.updateInterval);
     }
 
-    // Forcer une première mise à jour immédiate
+    // Force an immediate first update
     this.updatePrediction();
 
     this.updateInterval = setInterval(() => {
