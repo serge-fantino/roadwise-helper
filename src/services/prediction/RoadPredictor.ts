@@ -16,7 +16,7 @@ class RoadPredictor {
   private deviationManager: RouteDeviationManager;
   private predictionManager: PredictionStateManager;
   private currentPosition: [number, number] | null = null;
-  private isActive: boolean = false;
+  private _isActive: boolean = false;
 
   constructor() {
     this.routeTracker = new RouteTracker();
@@ -54,7 +54,7 @@ class RoadPredictor {
   public addStateObserver(observer: StateObserver) {
     this.stateObservers.push(observer);
     // Notify the new observer of the current state immediately
-    observer(this.isActive);
+    observer(this._isActive);
   }
 
   public removeStateObserver(observer: StateObserver) {
@@ -62,8 +62,8 @@ class RoadPredictor {
   }
 
   private notifyStateObservers() {
-    console.log('Notifying state observers, active:', this.isActive);
-    this.stateObservers.forEach(observer => observer(this.isActive));
+    console.log('Notifying state observers, active:', this._isActive);
+    this.stateObservers.forEach(observer => observer(this._isActive));
   }
 
   private notifyObservers() {
@@ -74,7 +74,7 @@ class RoadPredictor {
   }
 
   public isActive(): boolean {
-    return this.isActive;
+    return this._isActive;
   }
 
   private async updatePrediction() {
@@ -137,7 +137,7 @@ class RoadPredictor {
     
     this.predictionManager.reset();
     this.deviationManager.reset();
-    this.isActive = true;
+    this._isActive = true;
     
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -160,7 +160,7 @@ class RoadPredictor {
       this.updateInterval = null;
     }
     this.currentPosition = null;
-    this.isActive = false;
+    this._isActive = false;
     this.predictionManager.reset();
     this.notifyObservers();
     this.notifyStateObservers();
@@ -169,7 +169,7 @@ class RoadPredictor {
   public updatePosition(position: [number, number]) {
     console.log('Updating position in RoadPredictor:', position);
     this.currentPosition = position;
-    if (this.isActive) {
+    if (this._isActive) {
       this.updatePrediction();
     }
   }
