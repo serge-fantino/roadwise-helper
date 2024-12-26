@@ -69,7 +69,7 @@ const SpeedPanel = ({
     return {
       background: `linear-gradient(to ${isLeftTurn ? 'right' : 'left'}, 
         #8E9196 ${progress}%, 
-        #222222 ${progress}%)`
+        #111827 ${progress}%)`
     };
   };
   

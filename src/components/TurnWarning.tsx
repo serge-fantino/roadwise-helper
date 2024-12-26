@@ -20,7 +20,7 @@ const TurnWarning = ({ distance, angle }: TurnWarningProps) => {
 
   return (
     <div className={`text-lg ${turnColor}`}>
-      virage {turnType} à {turnDirection} dans {Math.round(distance)}m
+      <span>virage {turnType} à {turnDirection} dans <span className="text-xl font-bold">{Math.round(distance)}</span> m</span>
     </div>
   );
 };
