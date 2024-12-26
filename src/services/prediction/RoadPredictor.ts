@@ -6,13 +6,17 @@ import { RouteDeviationManager } from './managers/RouteDeviationManager';
 import { PredictionStateManager } from './managers/PredictionStateManager';
 import { routePlannerService } from '../route/RoutePlannerService';
 
+type StateObserver = (isActive: boolean) => void;
+
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
+  private stateObservers: StateObserver[] = [];
   private routeTracker: RouteTracker;
   private updateInterval: NodeJS.Timeout | null = null;
   private deviationManager: RouteDeviationManager;
   private predictionManager: PredictionStateManager;
   private currentPosition: [number, number] | null = null;
+  private isActive: boolean = false;
 
   constructor() {
     this.routeTracker = new RouteTracker();
@@ -48,6 +52,18 @@ class RoadPredictor {
 
   public removeObserver(observer: PredictionObserver) {
     this.observers = this.observers.filter(obs => obs !== observer);
+  }
+
+  public addStateObserver(observer: StateObserver) {
+    this.stateObservers.push(observer);
+  }
+
+  public removeStateObserver(observer: StateObserver) {
+    this.stateObservers = this.stateObservers.filter(obs => obs !== observer);
+  }
+
+  private notifyStateObservers() {
+    this.stateObservers.forEach(observer => observer(this.isActive));
   }
 
   private notifyObservers() {
@@ -118,6 +134,7 @@ class RoadPredictor {
     
     this.predictionManager.reset();
     this.deviationManager.reset();
+    this.isActive = true;
     
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
@@ -129,6 +146,8 @@ class RoadPredictor {
     this.updateInterval = setInterval(() => {
       this.updatePrediction();
     }, 1000);
+
+    this.notifyStateObservers();
   }
 
   public stopUpdates() {
@@ -138,14 +157,18 @@ class RoadPredictor {
       this.updateInterval = null;
     }
     this.currentPosition = null;
+    this.isActive = false;
     this.predictionManager.reset();
     this.notifyObservers();
+    this.notifyStateObservers();
   }
 
   public updatePosition(position: [number, number]) {
     console.log('Updating position in RoadPredictor:', position);
     this.currentPosition = position;
-    this.updatePrediction();
+    if (this.isActive) {
+      this.updatePrediction();
+    }
   }
 }
 
