@@ -1,20 +1,16 @@
 import { useEffect, useState } from 'react';
 import { roadPredictor } from '../services/prediction/RoadPredictor';
+import { RoadPrediction } from '../services/prediction/PredictionTypes';
 
 interface RoadPredictionInfoProps {
-  routePoints: [number, number][];
   onRouteRecalculation?: (from: [number, number], to: [number, number]) => Promise<void>;
 }
 
-const RoadPredictionInfo = ({ routePoints, onRouteRecalculation }: RoadPredictionInfoProps) => {
-  const [prediction, setPrediction] = useState<{
-    distance: number;
-    angle: number;
-    position: [number, number];
-  } | null>(null);
+const RoadPredictionInfo = ({ onRouteRecalculation }: RoadPredictionInfoProps) => {
+  const [prediction, setPrediction] = useState<RoadPrediction | null>(null);
 
   useEffect(() => {
-    const observer = (newPrediction: typeof prediction) => {
+    const observer = (newPrediction: RoadPrediction | null) => {
       setPrediction(newPrediction);
     };
 
@@ -23,7 +19,7 @@ const RoadPredictionInfo = ({ routePoints, onRouteRecalculation }: RoadPredictio
     return () => {
       roadPredictor.removeObserver(observer);
     };
-  }, [routePoints]);
+  }, []);
 
   useEffect(() => {
     if (!onRouteRecalculation) return;
@@ -49,7 +45,7 @@ const RoadPredictionInfo = ({ routePoints, onRouteRecalculation }: RoadPredictio
       <div className="text-sm space-y-1">
         <div>Distance : {Math.round(prediction.distance)}m</div>
         <div>Direction : {turnDirection}</div>
-        <div>Angle : {Math.abs(Math.round(prediction.angle))}°</div>
+        <div>Angle : {Math.abs(Math.round(prediction.angle || 0))}°</div>
       </div>
     </div>
   );
