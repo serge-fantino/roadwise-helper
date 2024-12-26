@@ -5,9 +5,10 @@ import { routePlannerService } from '../../services/route/RoutePlannerService';
 
 interface DriveViewProps {
   position: [number, number];
+  routePoints: [number, number][];
 }
 
-const DriveView = ({ position }: DriveViewProps) => {
+const DriveView = ({ position, routePoints }: DriveViewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewModel = useRef(new DriveViewModel());
 
