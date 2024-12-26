@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+.matrix-text li {
+  position: relative;
+  padding-left: 1.5em;
+}
+
+.matrix-text li::before {
+  content: '>';
+  position: absolute;
+  left: 0;
+  color: #00ff00;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+} 
