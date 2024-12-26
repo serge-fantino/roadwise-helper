@@ -25,6 +25,17 @@ class RoadPredictor {
         currentPrediction.speedLimit = roadInfo.speedLimit;
       }
     });
+
+
+    // Observer le RoutePlannerService
+    routePlannerService.addObserver((state) => {
+      // Démarrer/arrêter les prédictions automatiquement
+      if (state.routePoints.length > 1) {
+        this.startUpdates();
+      } else {
+        this.stopUpdates();
+      }
+    });
   }
 
   public getCurrentPrediction(): RoadPrediction | null {
@@ -121,6 +132,7 @@ class RoadPredictor {
   }
 
   public stopUpdates() {
+    console.log('Stopping road predictor updates');
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;

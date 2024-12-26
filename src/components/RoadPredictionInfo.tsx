@@ -19,11 +19,9 @@ const RoadPredictionInfo = ({ routePoints, onRouteRecalculation }: RoadPredictio
     };
 
     roadPredictor.addObserver(observer);
-    roadPredictor.startUpdates(); // Removed routePoints argument
 
     return () => {
       roadPredictor.removeObserver(observer);
-      roadPredictor.stopUpdates();
     };
   }, [routePoints]);
 

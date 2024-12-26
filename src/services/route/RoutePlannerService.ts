@@ -2,6 +2,7 @@ import { getRoute } from '../../utils/routingUtils';
 import { toast } from '../../components/ui/use-toast';
 import { EnhancedRoutePoint, RouteState, RouteObserver } from './RoutePlannerTypes';
 import { smoothPath, calculateAngleBetweenPoints } from '../prediction/CurveAnalyzerUtils';
+import { roadPredictor } from '../prediction/RoadPredictor';
 
 class RoutePlannerService {
   private state: RouteState = {
@@ -33,8 +34,8 @@ class RoutePlannerService {
   }
 
   private notifyObservers() {
-    console.log('[RoutePlannerService] Notifying observers with state:', this.state);
-    this.observers.forEach(observer => observer({ ...this.state }));
+    const newState = { ...this.state };
+    this.observers.forEach(observer => observer(newState));
   }
 
   public getState(): RouteState {
