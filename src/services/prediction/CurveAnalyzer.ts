@@ -1,6 +1,6 @@
-import { calculateBearing, calculateDistance, calculateAngleDifference } from '../../utils/mapUtils';
 import { Settings } from '../SettingsService';
-import { smoothPath, calculateCurveRadius, calculateCurveLength, calculateAngleBetweenPoints } from './CurveAnalyzerUtils';
+import { calculateCurveRadius, calculateCurveLength } from './CurveAnalyzerUtils';
+import { EnhancedRoutePoint } from '../route/RoutePlannerTypes';
 
 export interface CurveAnalysisResult {
     startPoint: [number,number];
@@ -17,126 +17,89 @@ export interface CurveAnalysisResult {
     curvePoints: [number,number][];
 }
 
-interface Point {
-    lat: number;
-    lon: number;
-}
-
 export class CurveDetector {
-    
-    private readonly SMOOTHING_WINDOW = 1; 
-
     analyzeCurve(
-        routePoints: [number, number][],
+        enhancedPoints: EnhancedRoutePoint[],
         startIndex: number,
         settings: Settings
     ): CurveAnalysisResult | null {
-        if (routePoints.length < 3 || startIndex >= routePoints.length - 2) {
-            return null;
-        }
-
-        const smoothedPath = smoothPath(
-            routePoints.slice(startIndex, routePoints.length-1),
-            this.SMOOTHING_WINDOW,
-            settings.predictionDistance
-        );
-        
-        if (smoothedPath.length < 3) {
+        if (enhancedPoints.length < 3 || startIndex >= enhancedPoints.length - 2) {
             return null;
         }
     
-        let turnStart: [number, number] | null = null;
-        let turnEnd: [number, number] | null = null;
-        let turnApex: [number, number] | null = null;
-
-        let startAngle = 0;
-        let endAngle = 0;
-        let apexAngle = 0;
-
-        let startPointIndex: number = 0;
-        let apexIndex: number = 0;
-        let endPointIndex: number = 0;
+        let turnStart: EnhancedRoutePoint | null = null;
+        let turnEnd: EnhancedRoutePoint | null = null;
+        let turnApex: EnhancedRoutePoint | null = null;
+        let startPointIndex = 0;
+        let endPointIndex = 0;
+        let apexIndex = 0;
     
         // Détection du début de virage
-        for (let i = 1; i+1 < smoothedPath.length - 1; i++) {
-            const { bearing1, angleDiff } = calculateAngleBetweenPoints(
-                smoothedPath[i-1],
-                smoothedPath[i],
-                smoothedPath[i+1]
-            );
-           
-            if (Math.abs(angleDiff) > settings.minTurnAngle) {
-                turnStart = [smoothedPath[i].lat, smoothedPath[i].lon];
-                startAngle = bearing1;
-                startPointIndex = i+startIndex;
-                console.log('detected turn start at index:', startPointIndex);
+        for (let i = startIndex; i < enhancedPoints.length - 1; i++) {
+            if (Math.abs(enhancedPoints[i].angleSmooth) > settings.minTurnAngle) {
+                turnStart = enhancedPoints[i];
+                startPointIndex = i;
                 break;
             }
         }
-        if(!turnStart) {
-            return null;// no need to continue
-        }
+
+        if (!turnStart) return null;
            
         // Détection de la fin de virage
-        for (let i = startPointIndex - startIndex + 1; i+1 < smoothedPath.length - 1; i++) {
-            const { bearing2, angleDiff } = calculateAngleBetweenPoints(
-                smoothedPath[i-1],
-                smoothedPath[i],
-                smoothedPath[i+1]
-            );
-                
-            if(Math.abs(angleDiff) <= settings.minTurnAngle || Math.sign(angleDiff) !== Math.sign(startAngle)) {
-                turnEnd = [smoothedPath[i].lat, smoothedPath[i].lon];
-                endAngle = bearing2;
-                endPointIndex = i+startIndex;
-                console.log('detected turn end at index:', endPointIndex);
+        for (let i = startPointIndex + 1; i < enhancedPoints.length - 1; i++) {
+            const currentAngle = enhancedPoints[i].angleSmooth;
+            if (Math.abs(currentAngle) <= settings.minTurnAngle || 
+                Math.sign(currentAngle) !== Math.sign(turnStart.angleSmooth)) {
+                turnEnd = enhancedPoints[i];
+                endPointIndex = i;
                 break;
             }
         }
-        if(!turnEnd) {
+
+        if (!turnEnd) {
             turnEnd = turnStart;
+            endPointIndex = startPointIndex;
         }
     
+        // Recherche de l'apex
         let maxAngleDiff = 0;
-        for (let i = startPointIndex - startIndex; i <= endPointIndex - startIndex; i++) {
-            const { angleDiff } = calculateAngleBetweenPoints(
-                smoothedPath[i-1],
-                smoothedPath[i],
-                smoothedPath[i+1]
-            );
-            
-            if(Math.abs(angleDiff) > maxAngleDiff) {
-                maxAngleDiff = Math.abs(angleDiff);
-                turnApex = [smoothedPath[i].lat, smoothedPath[i].lon];
-                apexAngle = angleDiff;
-                apexIndex = i+startIndex;
+        for (let i = startPointIndex; i <= endPointIndex; i++) {
+            const currentAngleDiff = Math.abs(enhancedPoints[i].angleSmooth);
+            if (currentAngleDiff > maxAngleDiff) {
+                maxAngleDiff = currentAngleDiff;
+                turnApex = enhancedPoints[i];
+                apexIndex = i;
             }
         }
 
-        if (!turnStart || !turnEnd || !turnApex) {
-            return null;
-        }
+        if (!turnStart || !turnEnd || !turnApex) return null;
 
-        const curveLength = calculateCurveLength(smoothedPath, startPointIndex, endPointIndex);
-        const curveRadius = calculateCurveRadius(smoothedPath, apexIndex);
-
-        // Extraire les points du virage
-        const curvePoints: [number,number][] = smoothedPath
+        // Extraire les points non lissés du virage
+        const curvePoints = enhancedPoints
             .slice(startPointIndex, endPointIndex + 1)
-            .map(point => [point.lat, point.lon]);
+            .map(point => point.position);
 
         return {
-            startPoint: [smoothedPath[startPointIndex].lat, smoothedPath[startPointIndex].lon],
+            startPoint: turnStart.position,
             startIndex: startPointIndex,
-            endPoint: [smoothedPath[endPointIndex].lat, smoothedPath[endPointIndex].lon],
+            endPoint: turnEnd.position,
             endIndex: endPointIndex,
-            apex: turnApex,
-            apexIndex: apexIndex,
-            length: curveLength,
-            radius: curveRadius,
-            startAngle,
-            endAngle,
-            apexAngle,
+            apex: turnApex.position,
+            apexIndex,
+            length: calculateCurveLength(
+                enhancedPoints.slice(startPointIndex, endPointIndex + 1)
+                    .map(p => ({ lat: p.position[0], lon: p.position[1] })),
+                0,
+                endPointIndex - startPointIndex
+            ),
+            radius: calculateCurveRadius(
+                enhancedPoints.slice(startPointIndex - 1, endPointIndex + 2)
+                    .map(p => ({ lat: p.position[0], lon: p.position[1] })),
+                apexIndex - startPointIndex + 1
+            ),
+            startAngle: turnStart.angleSmooth,
+            endAngle: turnEnd.angleSmooth,
+            apexAngle: turnApex.angleSmooth,
             curvePoints
         };
     }

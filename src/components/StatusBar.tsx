@@ -1,7 +1,7 @@
 import { Bug, Settings, RefreshCw } from 'lucide-react';
 import { Toggle } from './ui/toggle';
 import { useEffect, useState } from 'react';
-import { roadPredictor } from '../services/RoadPredictor';
+import { roadPredictor } from '../services/prediction/RoadPredictor';
 import { useNavigate } from 'react-router-dom';
 import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
 

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { roadPredictor } from '../../services/RoadPredictor';
+import { roadPredictor } from '../../services/prediction/RoadPredictor';
 import { toast } from '../../components/ui/use-toast';
 import { roadInfoManager } from '../../services/roadInfo/RoadInfoManager';
 

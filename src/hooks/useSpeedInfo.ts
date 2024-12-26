@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { roadPredictor } from '../services/RoadPredictor';
+import { roadPredictor } from '../services/prediction/RoadPredictor';
 import { RoadPrediction } from '../services/prediction/PredictionTypes';
 import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
 

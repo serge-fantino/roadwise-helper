@@ -1,10 +1,10 @@
-import { settingsService } from './SettingsService';
-import { TurnPrediction, RoadPrediction, PredictionObserver } from './prediction/PredictionTypes';
-import { RouteTracker } from './RouteTracker';
-import { roadInfoManager } from './roadInfo/RoadInfoManager';
-import { RouteDeviationManager } from './prediction/managers/RouteDeviationManager';
-import { PredictionStateManager } from './prediction/managers/PredictionStateManager';
-import { routePlannerService } from './route/RoutePlannerService';
+import { settingsService } from '../SettingsService';
+import { TurnPrediction, RoadPrediction, PredictionObserver } from './PredictionTypes';
+import { RouteTracker } from '../RouteTracker';
+import { roadInfoManager } from '../roadInfo/RoadInfoManager';
+import { RouteDeviationManager } from './managers/RouteDeviationManager';
+import { PredictionStateManager } from './managers/PredictionStateManager';
+import { routePlannerService } from '../route/RoutePlannerService';
 
 class RoadPredictor {
   private observers: PredictionObserver[] = [];
@@ -94,6 +94,7 @@ class RoadPredictor {
       this.currentPosition,
       currentSpeed,
       routeState.routePoints,
+      routeState.enhancedPoints,
       settings,
       speedLimit
     );

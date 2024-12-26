@@ -4,6 +4,7 @@ import { Settings } from '../SettingsService';
 import { calculateDistance } from '../../utils/mapUtils';
 import { CurveDetector } from './CurveAnalyzer';
 import { CurveAssistanceCalculator } from './CurveAssistant';
+import { EnhancedRoutePoint } from '../route/RoutePlannerTypes';
 
 export class TurnPredictionManager {
   private turns: TurnPrediction[] = [];
@@ -50,7 +51,7 @@ export class TurnPredictionManager {
   }
 
   async findNewTurns(
-    routePoints: [number, number][],
+    enhancedPoints: EnhancedRoutePoint[],
     startIndex: number,
     currentPosition: [number, number],
     settings: Settings,
@@ -58,21 +59,25 @@ export class TurnPredictionManager {
     currentSpeedLimit: number | null = null
   ): Promise<void> {
 
-    let nextIndex = startIndex
-    let nextPoint = routePoints[nextIndex]
-    let distance = calculateDistance(currentPosition, nextPoint);
-
+    let nextIndex = startIndex;
+    let distance = calculateDistance(currentPosition, enhancedPoints[nextIndex].position);
+    console.log('[TurnPredictionManager] Start detecting curves from index at distance:', nextIndex, distance, settings.predictionDistance);
     while (distance <= settings.predictionDistance && this.turns.length < 10) {
-      // Analyser la courbe à partir du point de départ
-      const curveAnalysis = this.curveDetector.analyzeCurve(routePoints, nextIndex, settings);
+      const curveAnalysis = this.curveDetector.analyzeCurve(
+        enhancedPoints,
+        nextIndex,
+        settings
+      );
       
       if (!curveAnalysis) {
-        console.log('No curve detected after index:', nextIndex);
+        console.log('[TurnPredictionManager] No curve detected after index:', nextIndex);
         return;
+      } else {
+        //console.log('[TurnPredictionManager] Curve detected:', curveAnalysis);
       }
 
       for (let i = nextIndex+1; i <= curveAnalysis.startIndex; i++) {
-        distance += calculateDistance(routePoints[i-1], routePoints[i]);
+        distance += calculateDistance(enhancedPoints[i-1].position, enhancedPoints[i].position);
       }
     
       const speedLimit = currentSpeedLimit || await this.speedLimitCache.getSpeedLimit(
@@ -101,22 +106,24 @@ export class TurnPredictionManager {
           (curveCalculations.optimalCurveSpeed - currentSpeed) / (distance || 1),
         curveInfo: curveAnalysis
       };
-
-      console.log('New turn prediction:', {
+      /*
+      console.log('[TurnPredictionManager] New turn prediction:', {
         distance,
         angle: curveAnalysis.apexAngle,
         optimalSpeed: curveCalculations.optimalCurveSpeed,
         brakingPoint: curveCalculations.brakingPoint
       });
+      */
 
       this.turns.push(turnPrediction);
 
       for (let i = curveAnalysis.startIndex+1; i <= curveAnalysis.endIndex; i++) {
-        distance += calculateDistance(routePoints[i-1], routePoints[i]);
+        distance += calculateDistance(enhancedPoints[i-1].position, enhancedPoints[i].position);
       }
 
       nextIndex = curveAnalysis.endIndex+1;
     }
+    console.log('[TurnPredictionManager] End detecting curves:', this.turns.length);
   }
 
   sortTurns(): void {

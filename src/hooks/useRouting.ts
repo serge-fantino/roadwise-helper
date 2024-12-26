@@ -22,7 +22,7 @@ export const useRouting = () => {
 
       setRoutePoints(route);
       toast({
-        title: "Itinéraire calculé",
+        title: "Itinéraire calculé (Old)",
         description: "L'itinéraire a été calculé avec succès",
       });
       return route;

@@ -3,6 +3,7 @@ import { TurnPredictionManager } from '../TurnPredictionManager';
 import { DecelerationCalculator } from '../DecelerationCalculator';
 import { RouteTracker } from '../../RouteTracker';
 import { Settings } from '../../SettingsService';
+import { EnhancedRoutePoint } from '../../route/RoutePlannerTypes';
 
 export class PredictionStateManager {
   private currentPrediction: RoadPrediction | null = null;
@@ -20,10 +21,12 @@ export class PredictionStateManager {
     currentPosition: [number, number],
     currentSpeed: number,
     routePoints: [number, number][],
+    enhancedPoints: EnhancedRoutePoint[],
     settings: Settings,
     speedLimit: number | null
   ): Promise<void> {
-    if (!routePoints || routePoints.length < 2) {
+
+    if (!enhancedPoints || enhancedPoints.length < 2) {
       this.currentPrediction = null;
       return;
     }
@@ -50,7 +53,7 @@ export class PredictionStateManager {
 
     if (turns.length <10) {
       await this.turnPredictionManager.findNewTurns(
-        routePoints,
+        enhancedPoints,
         lastTurnIndex,
         currentPosition,
         settings,

@@ -3,15 +3,15 @@ import { calculateRecommendedSpeed } from '../utils/speedUtils';
 import { toast } from '../components/ui/use-toast';
 import LoadingScreen from '../components/LoadingScreen';
 import MainLayout from '../components/MainLayout';
-import { useRouting } from '../hooks/useRouting';
 import { useVehicle } from '../hooks/useVehicle';
 import { useVehicleState } from '../hooks/useVehicleState';
+import { routePlannerService } from '../services/route/RoutePlannerService';
 
 const Index = () => {
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [isOnRoad, setIsOnRoad] = useState<boolean>(true);
   const [destination, setDestination] = useState<{ address: string; location: [number, number] } | null>(null);
-  const { routePoints, calculateRoute } = useRouting();
+  const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
   
   // Position initiale par défaut (Paris)
   const defaultPosition: [number, number] = [48.8566, 2.3522];
@@ -24,43 +24,28 @@ const Index = () => {
     setIsOnRoad
   );
 
-  // Log pour tracer les mises à jour de vitesse
+  // Observer pour les mises à jour de la route
   useEffect(() => {
-    console.log('[Index] Speed updated:', speed);
-  }, [speed]);
+    const observer = (state: { routePoints: [number, number][] }) => {
+      setRoutePoints(state.routePoints);
+    };
 
-  // Log détaillé pour tracer les mises à jour des points de route
-  useEffect(() => {
-    console.log('[Index] Route points state updated:', {
-      length: routePoints?.length,
-      points: routePoints,
-      destination: destination?.location
-    });
-  }, [routePoints, destination]);
+    routePlannerService.addObserver(observer);
+    return () => routePlannerService.removeObserver(observer);
+  }, []);
 
   // Calcul d'itinéraire uniquement lors d'un changement de destination
   useEffect(() => {
     if (destination) {
       console.log('[Index] Starting route calculation:', {
         from: position,
-        to: destination.location,
-        currentRoutePoints: routePoints?.length
+        to: destination.location
       });
       
-      calculateRoute(position, destination.location)
-        .then(newRoute => {
-          console.log('[Index] Route calculation completed:', {
-            success: newRoute.length > 0,
-            points: newRoute.length,
-            firstPoint: newRoute[0],
-            lastPoint: newRoute[newRoute.length - 1]
-          });
-        })
-        .catch(error => {
-          console.error('[Index] Route calculation failed:', error);
-        });
+      routePlannerService.calculateRoute(position, destination.location);
+      routePlannerService.setDestination(destination.location, destination.address);
     }
-  }, [destination]); 
+  }, [destination]);
 
   if (!vehicle) {
     return <LoadingScreen />;

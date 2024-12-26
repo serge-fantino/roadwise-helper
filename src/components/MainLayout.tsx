@@ -2,9 +2,7 @@ import TopPanel from './layout/TopPanel';
 import MapArea from './layout/MapArea';
 import StatusBar from './StatusBar';
 import SearchArea from './layout/SearchArea';
-import { useState, useEffect } from 'react';
-import { routePlannerService } from '../services/route/RoutePlannerService';
-import { RouteState } from '../services/route/RoutePlannerTypes';
+import { useState } from 'react';
 
 interface MainLayoutProps {
   position: [number, number];
@@ -26,6 +24,7 @@ const MainLayout = ({
   recommendedSpeed,
   isOnRoad,
   destination,
+  routePoints,
   onDestinationSelect,
   onRoadStatusChange,
   isDebugMode,
@@ -33,35 +32,10 @@ const MainLayout = ({
   positionHistory
 }: MainLayoutProps) => {
   const [isSearchMode, setIsSearchMode] = useState(false);
-  const [routeState, setRouteState] = useState<RouteState>({
-    origin: null,
-    destination: null,
-    routePoints: [],
-    routeColor: '#3B82F6'
-  });
 
-  // Observer pour le RoutePlannerService
-  useEffect(() => {
-    const handleRouteUpdate = (state: RouteState) => {
-      console.log('[MainLayout] Route state updated:', state);
-      setRouteState(state);
-      
-      // Mettre à jour le composant parent via onDestinationSelect si nécessaire
-      if (state.destination && (!destination || 
-          state.destination.location[0] !== destination.location[0] || 
-          state.destination.location[1] !== destination.location[1])) {
-        onDestinationSelect(state.destination.location, state.destination.address);
-      }
-    };
-
-    routePlannerService.addObserver(handleRouteUpdate);
-    return () => routePlannerService.removeObserver(handleRouteUpdate);
-  }, [destination, onDestinationSelect]);
-
-  const handleDestinationSelect = async (location: [number, number], address: string) => {
+  const handleDestinationSelect = (location: [number, number], address: string) => {
     console.log('[MainLayout] New destination selected:', { location, address });
-    routePlannerService.setDestination(location, address);
-    await routePlannerService.calculateRoute(position, location);
+    onDestinationSelect(location, address);
     setIsSearchMode(false);
   };
 
@@ -72,7 +46,7 @@ const MainLayout = ({
         recommendedSpeed={recommendedSpeed}
         isOnRoad={isOnRoad}
         isDebugMode={isDebugMode}
-        destination={routeState.destination}
+        destination={destination}
         onDestinationSelect={handleDestinationSelect}
         onDestinationClick={() => setIsSearchMode(true)}
         onSearchModeChange={setIsSearchMode}
@@ -86,8 +60,8 @@ const MainLayout = ({
             position={position}
             speed={speed}
             onRoadStatusChange={onRoadStatusChange}
-            destination={routeState.destination?.location}
-            routePoints={routeState.routePoints}
+            destination={destination?.location}
+            routePoints={routePoints}
             onMapClick={handleDestinationSelect}
             positionHistory={positionHistory}
           />

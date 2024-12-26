@@ -1,4 +1,4 @@
-import { roadPredictor } from '../../RoadPredictor';
+import { roadPredictor } from '../../prediction/RoadPredictor';
 
 interface PredictionState {
   optimalSpeed: number;

@@ -1,15 +1,18 @@
 import { getRoute } from '../../utils/routingUtils';
 import { toast } from '../../components/ui/use-toast';
-import { RouteState, RouteObserver } from './RoutePlannerTypes';
+import { EnhancedRoutePoint, RouteState, RouteObserver } from './RoutePlannerTypes';
+import { smoothPath, calculateAngleBetweenPoints } from '../prediction/CurveAnalyzerUtils';
 
 class RoutePlannerService {
   private state: RouteState = {
     origin: null,
     destination: null,
     routePoints: [],
+    enhancedPoints: [],
     routeColor: '#3B82F6'
   };
   private observers: RouteObserver[] = [];
+  private readonly SMOOTHING_WINDOW = 1;
 
   private static instance: RoutePlannerService;
   public static getInstance(): RoutePlannerService {
@@ -38,6 +41,52 @@ class RoutePlannerService {
     return { ...this.state };
   }
 
+  private enhanceRoutePoints(routePoints: [number, number][]): EnhancedRoutePoint[] {
+    if (routePoints.length < 2) return [];
+
+    const smoothedPath = smoothPath(routePoints, this.SMOOTHING_WINDOW, Infinity);
+
+    const enhanced: EnhancedRoutePoint[] = new Array(routePoints.length);
+
+    enhanced[0] = {
+      position: routePoints[0],
+      smoothPosition: [smoothedPath[0].lat, smoothedPath[0].lon],
+      angleReal: 0,
+      angleSmooth: 0
+    };
+
+    for (let i = 1; i < routePoints.length - 1; i++) {
+      const realAngles = calculateAngleBetweenPoints(
+        { lat: routePoints[i-1][0], lon: routePoints[i-1][1] },
+        { lat: routePoints[i][0], lon: routePoints[i][1] },
+        { lat: routePoints[i+1][0], lon: routePoints[i+1][1] }
+      );
+
+      const smoothAngles = calculateAngleBetweenPoints(
+        smoothedPath[i-1],
+        smoothedPath[i],
+        smoothedPath[i+1]
+      );
+
+      enhanced[i] = {
+        position: routePoints[i],
+        smoothPosition: [smoothedPath[i].lat, smoothedPath[i].lon],
+        angleReal: realAngles.angleDiff,
+        angleSmooth: smoothAngles.angleDiff
+      };
+    }
+
+    const lastIdx = routePoints.length - 1;
+    enhanced[lastIdx] = {
+      position: routePoints[lastIdx],
+      smoothPosition: [smoothedPath[lastIdx].lat, smoothedPath[lastIdx].lon],
+      angleReal: 0,
+      angleSmooth: 0
+    };
+
+    return enhanced;
+  }
+
   public async calculateRoute(origin: [number, number], destination: [number, number]) {
     console.log('[RoutePlannerService] Calculating route:', { origin, destination });
     
@@ -55,10 +104,11 @@ class RoutePlannerService {
       }
 
       this.state.routePoints = route;
+      this.state.enhancedPoints = this.enhanceRoutePoints(route);
       this.notifyObservers();
       
       toast({
-        title: "Itinéraire calculé",
+        title: "Itinéraire calculé (OK)",
         description: "L'itinéraire a été calculé avec succès",
       });
     } catch (error) {
@@ -92,6 +142,7 @@ class RoutePlannerService {
       origin: null,
       destination: null,
       routePoints: [],
+      enhancedPoints: [],
       routeColor: '#3B82F6'
     };
     this.notifyObservers();
