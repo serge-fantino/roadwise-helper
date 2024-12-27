@@ -1,5 +1,5 @@
 import { Button } from './ui/button';
-import { Search, MapPin, X, Play, Square, Map, Car } from 'lucide-react';
+import { Search, MapPin, X, Play, Square, Map, Car, Pause } from 'lucide-react';
 import { roadPredictor } from '../services/prediction/RoadPredictor';
 import { useState, useEffect } from 'react';
 import { Toggle } from './ui/toggle';
@@ -115,7 +115,7 @@ const DestinationPanel = ({
           {isPredicting ? (
             <Play className="h-5 w-5" />
           ) : (
-            <Square className="h-5 w-5" />
+            <Pause className="h-5 w-5" />
           )}
         </Button>
         <Toggle

@@ -56,7 +56,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
             textShadow: '0 0 5px #00ff00'
           }}
         >
-          <div className="text-2xl mb-6">Advanced Driver Assistance System</div>
+          <div className="text-2xl mb-6">Advanced Driver Assistance System v0.1 27122024</div>
           
           <div className="text-xl opacity-80">
             <p className="mb-4">Project Information:</p>
