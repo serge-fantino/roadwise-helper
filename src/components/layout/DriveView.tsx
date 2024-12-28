@@ -100,16 +100,16 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       scene.children = scene.children.filter(child => child instanceof THREE.GridHelper);
 
       // Créer les nouvelles lignes
-      const pathLine = createLine(state.path, 0xffffff);
-      const leftBorder = createLine(state.leftBorder, 0xff0000);
-      const rightBorder = createLine(state.rightBorder, 0x00ff00);
+      const pathLine = createLine(state.path, 0xFFFF00);
+      const leftBorder = createLine(state.leftBorder, 0xFFFFFF);
+      const rightBorder = createLine(state.rightBorder, 0xFFFFFF);
 
       scene.add(pathLine);
       scene.add(leftBorder);
       scene.add(rightBorder);
 
       // Rotation de la caméra selon le bearing
-      if (positionHistory && positionHistory.length > 0) {
+      if (false && positionHistory && positionHistory.length > 0) {
         const lastPosition = positionHistory[0];
         const headingVect = [lastPosition[0] - position[0], lastPosition[1] - position[1]];
         camera.lookAt(headingVect[0], 0, -headingVect[1]);
