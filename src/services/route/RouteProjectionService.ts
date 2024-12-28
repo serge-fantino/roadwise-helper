@@ -1,3 +1,47 @@
+/**
+ * RouteProjectionService
+ * 
+ * This service is responsible for projecting GPS coordinates into a local cartesian 
+ * coordinate system and generating road borders based on the path geometry.
+ * 
+ * Key responsibilities:
+ * - Convert GPS coordinates (lat/lon) to local cartesian coordinates (meters)
+ * - Generate left and right road borders based on path geometry
+ * - Handle road border transitions at turns and intersections
+ * 
+ * Road Border Generation Process:
+ * 1. Path Segmentation:
+ *    - Each pair of consecutive points forms a road segment
+ *    - Each segment has its own coordinate system perpendicular to its direction
+ * 
+ * 2. Border Points Generation:
+ *    - For each segment, generate 6 control points:
+ *      * middleBottom: start point of the segment
+ *      * middleTop: end point of the segment
+ *      * leftBottom/rightBottom: points 1m to the left/right of start
+ *      * leftTop/rightTop: points 1m to the left/right of end
+ * 
+ * 3. Turn Handling:
+ *    - At each junction between segments:
+ *      * Calculate angle between segments
+ *      * For sharp turns (>threshold): generate arc points for smooth transition
+ *      * For gentle turns: find intersection of border lines
+ *    - Outside of turn: straight border lines parallel to path
+ * 
+ * 4. Border Smoothing:
+ *    - Generate additional points along arcs for smooth curves
+ *    - Number of points proportional to arc length
+ *    - Interpolate points along circular arc
+ * 
+ * Coordinate System:
+ * - Origin: First point of the path
+ * - X axis: East direction (positive)
+ * - Y axis: North direction (positive)
+ * - Units: Meters
+ * 
+ * Dependencies:
+ * None - Pure geometric calculations
+ */
 interface Point {
     lat: number;
     lon: number;

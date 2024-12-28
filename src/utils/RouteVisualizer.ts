@@ -1,6 +1,9 @@
+/**
+ * This is a simple utility function to plot the result of the route projection service in a static web page using plotly 
+ */
 import fs from 'fs';
 import path from 'path';
-import { CartesianPoint } from '../services/RouteProjectionService';
+import { CartesianPoint } from '../services/route/RouteProjectionService';
 
 export function saveRoutePlot(result: { path: CartesianPoint[], leftBorder: CartesianPoint[], rightBorder: CartesianPoint[] }, filename: string) {
     const html = `

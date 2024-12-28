@@ -90,3 +90,7 @@ See [docs/tech-overview.md](docs/tech-overview.md) for more details.
 ## Project contribution
 
 This project has been built using Lovable assistant. See https://lovable.dev/projects/a633e3e6-d831-417c-ad56-2d4b003fa9d9
+
+## License
+
+This project is licensed under GNU GENERAL PUBLIC LICENSE - see the [LICENSE](LICENSE) file for details.

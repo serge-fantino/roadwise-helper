@@ -1,4 +1,4 @@
-import { angleBetweenSegments, generateBorders, generateRoadBorders, latLonToMeters } from '../RouteProjectionService';
+import { angleBetweenSegments, generateBorders, generateRoadBorders, latLonToMeters } from '../route/RouteProjectionService';
 import { saveRoutePlot } from '../../utils/RouteVisualizer';
 
 describe('RouteProjectionService', () => {
