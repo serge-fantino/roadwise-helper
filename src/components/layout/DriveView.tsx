@@ -108,14 +108,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       scene.add(leftBorder);
       scene.add(rightBorder);
 
-      // Rotation de la caméra selon le bearing
-      if (false && positionHistory && positionHistory.length > 0) {
-        const lastPosition = positionHistory[0];
-        const headingVect = [lastPosition[0] - position[0], lastPosition[1] - position[1]];
-        camera.lookAt(headingVect[0], 0, -headingVect[1]);
-      } else {
-        camera.lookAt(state.path[state.currentIndex+1].x, 0, -state.path[state.currentIndex+1].y); // Regarde vers l'avant
-      }
+      //the camera for now is looking at the next point in the path
+     camera.lookAt(state.path[state.currentIndex+1].x, 2, -state.path[state.currentIndex+1].y); // Regarde vers l'avant
       // ok the camera is always at the postion (0,0)
 
       renderer.render(scene, camera);
@@ -138,7 +132,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       window.removeEventListener('resize', handleResize);
       containerRef.current?.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [position]);
 
   return (
     <div className="relative w-full h-full">
