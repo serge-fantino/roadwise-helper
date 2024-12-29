@@ -167,16 +167,6 @@ function findIntersection(p1: CartesianPoint, p2: CartesianPoint, p3: CartesianP
     return null; // Pas d'intersection dans les segments
 }
 
-export function generateRoadBorders(path: Point[]): { path: CartesianPoint[], leftBorder: CartesianPoint[], rightBorder: CartesianPoint[] } {
-    if (path.length < 1) {
-        return { path: [], leftBorder: [], rightBorder: [] };
-    }
-
-    const origin = path[0];
-    const cartesianPath = path.map(p => latLonToMeters(p.lat, p.lon, origin.lat, origin.lon));
-    return generateBorders(cartesianPath);
-}
-
 export function generateBorders(cartesianPath: CartesianPoint[]): { path: CartesianPoint[], leftBorder: CartesianPoint[], rightBorder: CartesianPoint[] } {
     if (cartesianPath.length < 2) {
         return { path: [], leftBorder: [], rightBorder: [] };
