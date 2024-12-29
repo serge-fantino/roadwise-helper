@@ -37,7 +37,7 @@ const MapArea = ({
       ) : (
         <DriveView 
           position={position}
-          routePoints={routePoints}
+          positionHistory={positionHistory}
         />
       )}
     </div>

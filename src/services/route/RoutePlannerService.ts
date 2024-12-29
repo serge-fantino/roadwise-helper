@@ -93,7 +93,7 @@ class RoutePlannerService {
     
     try {
       const route = await getRoute(origin, destination);
-      
+      console.log("[RoutePlannerService] new route", route);
       if (route.length < 2) {
         console.error('[RoutePlannerService] Invalid route calculated:', route);
         toast({
@@ -109,7 +109,7 @@ class RoutePlannerService {
       this.notifyObservers();
       
       toast({
-        title: "Itinéraire calculé (OK)",
+        title: "Itinéraire calculé",
         description: "L'itinéraire a été calculé avec succès",
       });
     } catch (error) {
