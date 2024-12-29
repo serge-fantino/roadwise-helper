@@ -90,7 +90,7 @@ function bearing(lat1: number, lon1: number, lat2: number, lon2: number): number
     return Math.atan2(y, x);
 }
 
-function createSegmentBorders(p1: CartesianPoint, p2: CartesianPoint): SegmentBorders {
+function createSegmentBorders(p1: CartesianPoint, p2: CartesianPoint, roadWidth: number=3): SegmentBorders {
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const length = Math.sqrt(dx * dx + dy * dy);
@@ -98,8 +98,8 @@ function createSegmentBorders(p1: CartesianPoint, p2: CartesianPoint): SegmentBo
     const unitDy = dy / length;
 
     // Vecteur perpendiculaire normalisé (pour obtenir le côté gauche/droite)
-    const perpX = -unitDy;
-    const perpY = unitDx;
+    const perpX = -unitDy * roadWidth;
+    const perpY = unitDx * roadWidth;
 
     const leftBottom = { x: p1.x + perpX, y: p1.y + perpY };
     const rightBottom = { x: p1.x - perpX, y: p1.y - perpY };
@@ -140,12 +140,12 @@ function interpolateArc(center: CartesianPoint, startPoint: CartesianPoint, endP
     let deltaAngle = endAngle - startAngle;
     if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
     if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
-
+    const arcRadius = Math.sqrt(Math.pow(center.x - startPoint.x, 2) + Math.pow(center.y - startPoint.y, 2));
     const arcPoints: CartesianPoint[] = [];
     for (let i = 0; i <= numPoints; i++) {
         const angle = startAngle + deltaAngle * (i / numPoints);
-        const x = center.x + Math.cos(angle);
-        const y = center.y + Math.sin(angle);
+        const x = center.x + Math.cos(angle) * arcRadius;
+        const y = center.y + Math.sin(angle) * arcRadius;
         arcPoints.push({ x, y });
     }
     return arcPoints;

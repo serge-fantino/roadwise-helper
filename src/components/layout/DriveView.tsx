@@ -80,8 +80,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     containerRef.current.appendChild(renderer.domElement);
 
     // Position initiale de la caméra
-    camera.position.set(0, 2, 0); // Légèrement surélevée
-    camera.lookAt(0, 0, -10); // Regarde vers l'avant
+    camera.position.set(0, 1.5, 0); // Légèrement surélevée
+    camera.lookAt(0, 0, -5); // Regarde vers l'avant
     //lastPosition = position;
 
     // Ajout d'une grille de référence
@@ -125,7 +125,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       // Mettre à jour la position de la caméra
       if (state.currentIndex + 1 < state.path.length) {
           const nextPosition = state.path[state.currentIndex + 1];
-          camera.lookAt(nextPosition.x, 2, -nextPosition.y);
+          const lookAtDistance = 5/Math.sqrt(Math.pow(nextPosition.x, 2) + Math.pow(nextPosition.y, 2));
+          camera.lookAt(nextPosition.x*lookAtDistance, 0, -nextPosition.y*lookAtDistance);
       }
 
       renderer.render(scene, camera);
