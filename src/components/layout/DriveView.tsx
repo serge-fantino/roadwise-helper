@@ -31,7 +31,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { DriveViewModel } from '../../models/DriveViewModel';
+import { DriveViewModel, DriveViewState } from '../../models/DriveViewModel';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
 import * as THREE from 'three';
 import { CartesianPoint } from '../../services/route/RouteProjectionService';
@@ -47,6 +47,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const sceneRef = useRef<THREE.Scene>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const rendererRef = useRef<THREE.WebGLRenderer>();
+  const lastStateRef = useRef<DriveViewState | null>(null);
 
   useEffect(() => {
     const routeState = routePlannerService.getState();
@@ -81,6 +82,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     // Position initiale de la caméra
     camera.position.set(0, 2, 0); // Légèrement surélevée
     camera.lookAt(0, 0, -10); // Regarde vers l'avant
+    //lastPosition = position;
 
     // Ajout d'une grille de référence
     const grid = new THREE.GridHelper(300, 300);
@@ -95,6 +97,18 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       requestAnimationFrame(animate);
 
       const state = viewModel.current.getState();
+      
+      // Vérifier si l'état a changé avant de redessiner
+      if (lastStateRef.current && 
+          lastStateRef.current.currentIndex === state.currentIndex &&
+          lastStateRef.current.bearing === state.bearing) {
+        // Si rien n'a changé, juste re-render la scène
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Mettre à jour lastState
+      lastStateRef.current = { ...state };
 
       // Nettoyer les anciennes lignes
       scene.children = scene.children.filter(child => child instanceof THREE.GridHelper);
@@ -108,12 +122,15 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       scene.add(leftBorder);
       scene.add(rightBorder);
 
-      //the camera for now is looking at the next point in the path
-     camera.lookAt(state.path[state.currentIndex+1].x, 2, -state.path[state.currentIndex+1].y); // Regarde vers l'avant
-      // ok the camera is always at the postion (0,0)
+      // Mettre à jour la position de la caméra
+      if (state.currentIndex + 1 < state.path.length) {
+          const nextPosition = state.path[state.currentIndex + 1];
+          camera.lookAt(nextPosition.x, 2, -nextPosition.y);
+      }
 
       renderer.render(scene, camera);
     };
+
     animate();
 
     // Gestion du redimensionnement
@@ -132,7 +149,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       window.removeEventListener('resize', handleResize);
       containerRef.current?.removeChild(renderer.domElement);
     };
-  }, [position]);
+  }, []);
 
   return (
     <div className="relative w-full h-full">
