@@ -5,7 +5,8 @@ RoadWise is a project that helps you to drive safely and efficiently:
 - once set, it will track your position and speed
 - and detect the curve ahead and provide you optimal speed and assist in braking
 
-You can test the latest version online: https://roadwise-helper.lovable.app/
+You can test the latest stable version online: https://roadwise-app.netlify.app/
+or the development version: https://roadwise-helper.lovable.app/
 
 Note that the project run locally - no information regarding your GPS position is shared online.
 Also this is a functional WPA web site, you can easily install the app on your phone.
@@ -72,10 +73,20 @@ See [docs/tech-overview.md](docs/tech-overview.md) for more details.
   - new splash screen with credits (with love!)
   - this is a fully functional PWA app that you can easily install on your phone for on the road use
 
+- 05012025: version 0.2 (Sprint 2)
+  - updated "drive" view, now display a real road in 3D using WebGl and three.js
+  - optimisation to better handle memory, but still lot to do
+  - partial refactoring to rely more on services (still some work in progress)
+  - better display of the next turn distance
+  - known bug: the turn distance indicator doesn't work in Drive view mode
+
 ## To Do
 
 - [ ] Add a 3D route mode, where drive can see the road ahead in subjective view, with colors indicating braking distance abd other usefull informations...
-- [ ] Display the distance to next trun in arge font so we can easily see it
+  - [x] create a real 3D view of the road
+  - [ ] add some colors and info to display distance for brake, turn, best trajectory, etc...
+  - [ ] display some real 3D view instead of just wireframe
+- [x] Display the distance to next trun in large font so we can easily see it
 - [ ] Review the CurveAnalyzer in order to better detect "long curves", especially on high speed road: use some cumulative angular metric to spot them ?
 - [ ] Add some voice feedback to alert the user that need to brake, next turn, etc...
 - [ ] Fix the RoadInfo part so we can accurately compute legal speed, detect urban zone entering / exit, Highway...
