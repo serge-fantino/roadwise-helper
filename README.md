@@ -20,6 +20,11 @@ Also this is a functional WPA web site, you can easily install the app on your p
 
 Before building the project, make sure you have [Node.js](https://nodejs.org/) installed (version 18 or higher recommended).
 
+```sh
+# Install Node.js
+brew install node
+```
+
 Then, follow these steps:
 
 ```sh
