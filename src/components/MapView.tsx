@@ -11,10 +11,15 @@ import MapEventHandlers from './map/MapEventHandlers';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import TurnCurveOverlay from './map/TurnCurveOverlay';
 import { roadPredictor } from '../services/prediction/RoadPredictor';
-import { useVehicleState } from '../hooks/useVehicleState';
 import { TurnPrediction } from '../services/prediction/PredictionTypes';
 import { routePlannerService } from '../services/route/RoutePlannerService';
 import { toast } from './ui/use-toast';
+import { vehicleStateManager } from '../services/VehicleStateManager';
+import { tripService } from '../services/TripService';
+import { VehicleState } from '../services/VehicleStateManager';
+import { TripState } from '../services/TripService';
+import { settingsService } from '../services/SettingsService';
+import { getMapTileConfig } from '../utils/mapStyles';
 
 // Fix Leaflet default icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -43,13 +48,27 @@ const MapView = ({
   onMapClick,
   positionHistory
 }: MapViewProps) => {
-  const {
-    position: currentPosition,
-    speed: currentSpeed,
-    history: currentHistory,
-    isOnRoad,
-    handleRoadStatusChange
-  } = useVehicleState(position, speed, positionHistory, onRoadStatusChange);
+  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleStateManager.getState());
+  const [tripState, setTripState] = useState<TripState>({ positions: [], metrics: {} });
+  const [mapTileConfig, setMapTileConfig] = useState(getMapTileConfig(settingsService.getSettings().mapStyle));
+
+  useEffect(() => {
+    const handleVehicleUpdate = (state: VehicleState) => {
+      setVehicleState(state);
+    };
+
+    const handleTripUpdate = (state: TripState) => {
+      setTripState(state);
+    };
+
+    vehicleStateManager.addObserver(handleVehicleUpdate);
+    tripService.addObserver(handleTripUpdate);
+
+    return () => {
+      vehicleStateManager.removeObserver(handleVehicleUpdate);
+      tripService.removeObserver(handleTripUpdate);
+    };
+  }, []);
 
   const [nextTurn, setNextTurn] = useState<TurnPrediction | null>(null);
   const [allTurns, setAllTurns] = useState<TurnPrediction[]>([]);
@@ -63,10 +82,8 @@ const MapView = ({
     });
   }, [routePoints, destination]);
 
-  // Mettre à jour la position dans le RoadPredictor
-  useEffect(() => {
-    roadPredictor.updatePosition(currentPosition);
-  }, [currentPosition]);
+  // Note: La mise à jour de position est maintenant gérée dans MainLayout
+  // pour que ça fonctionne même quand on n'est pas sur la vue carte
 
   useEffect(() => {
     const observer = (prediction: TurnPrediction | null, turns: TurnPrediction[]) => {
@@ -77,6 +94,17 @@ const MapView = ({
 
     roadPredictor.addObserver(observer);
     return () => roadPredictor.removeObserver(observer);
+  }, []);
+
+  // Observer pour les changements de style de carte
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      const settings = settingsService.getSettings();
+      setMapTileConfig(getMapTileConfig(settings.mapStyle));
+    };
+
+    settingsService.addObserver(handleSettingsChange);
+    return () => settingsService.removeObserver(handleSettingsChange);
   }, []);
 
   // Gérer l'événement de recalcul d'itinéraire
@@ -101,28 +129,35 @@ const MapView = ({
     };
   }, []);
 
-  const heading = (window as any).globalVehicle?.heading || 0;
-
   return (
     <MapContainer
-      center={currentPosition}
+      center={vehicleState.position}
       zoom={17}
+      minZoom={2}
+      maxZoom={mapTileConfig.maxZoom || 19}
       className="w-full h-full"
       zoomControl={false}
       attributionControl={false}
     >
       <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        url={mapTileConfig.url}
+        attribution={mapTileConfig.attribution}
+        minZoom={2}
+        maxZoom={mapTileConfig.maxZoom || 19}
         className="map-tiles"
       />
       <MapEventHandlers 
-        position={currentPosition}
-        onRoadStatusChange={handleRoadStatusChange}
+        position={vehicleState.position}
+        onRoadStatusChange={onRoadStatusChange}
         onMapClick={onMapClick}
       />
-      <HistoryTrail positions={currentHistory} />
-      <PredictionOverlay position={currentPosition} speed={currentSpeed} routePoints={routePoints} />
-      <VehicleMarker position={currentPosition} isOnRoad={isOnRoad} heading={heading} />
+      <HistoryTrail positions={tripState.positions} />
+      <PredictionOverlay position={vehicleState.position} speed={vehicleState.speed} routePoints={routePoints} />
+      <VehicleMarker 
+        position={vehicleState.position}
+        heading={vehicleState.heading}
+        speed={vehicleState.speed}
+      />
       {destination && <DestinationMarker position={destination} />}
       {allTurns.map((turn, index) => (
         <TurnWarningMarker 

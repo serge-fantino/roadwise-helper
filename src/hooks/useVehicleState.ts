@@ -1,60 +1,61 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
+import { vehicleStateManager, VehicleState } from '../services/VehicleStateManager';
+import { tripService, TripState } from '../services/TripService';
 
-interface VehicleState {
+interface UseVehicleStateReturn {
   position: [number, number];
   speed: number;
   history: [number, number][];
   isOnRoad: boolean;
+  handleRoadStatusChange: (status: boolean) => void;
 }
 
+/**
+ * Hook pour accéder à l'état du véhicule via VehicleStateManager et TripService
+ * @param initialPosition Position initiale (optionnel, utilisé pour compatibilité)
+ * @param initialSpeed Vitesse initiale (optionnel, utilisé pour compatibilité)
+ * @param initialHistory Historique initial (optionnel, utilisé pour compatibilité)
+ * @param onRoadStatusChange Callback appelé quand le statut "sur route" change
+ * @returns État du véhicule avec position, vitesse, historique et statut "sur route"
+ */
 export const useVehicleState = (
-  initialPosition: [number, number],
-  initialSpeed: number,
-  initialHistory: [number, number][],
-  onRoadStatusChange: (status: boolean) => void
-) => {
-  const [state, setState] = useState<VehicleState>({
-    position: initialPosition,
-    speed: initialSpeed,
-    history: initialHistory,
-    isOnRoad: true
-  });
+  initialPosition?: [number, number],
+  initialSpeed?: number,
+  initialHistory?: [number, number][],
+  onRoadStatusChange?: (status: boolean) => void
+): UseVehicleStateReturn => {
+  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleStateManager.getState());
+  const [tripState, setTripState] = useState<TripState>(tripService.getState());
+  const [isOnRoad, setIsOnRoad] = useState(true);
 
-  const handleVehicleUpdate = useCallback((newPosition: [number, number], newSpeed: number) => {
-    const vehicle = (window as any).globalVehicle;
-    if (vehicle) {
-      setState(prev => ({
-        ...prev,
-        position: newPosition,
-        speed: newSpeed,
-        history: vehicle.positionHistory
-      }));
-    }
+  // Observer pour VehicleStateManager
+  useEffect(() => {
+    const handleVehicleUpdate = (state: VehicleState) => {
+      setVehicleState(state);
+    };
+
+    vehicleStateManager.addObserver(handleVehicleUpdate);
+    return () => vehicleStateManager.removeObserver(handleVehicleUpdate);
   }, []);
 
+  // Observer pour TripService
   useEffect(() => {
-    const vehicle = (window as any).globalVehicle;
-    if (vehicle) {
-      vehicle.addObserver(handleVehicleUpdate);
-      setState(prev => ({ 
-        ...prev, 
-        history: vehicle.positionHistory,
-        position: vehicle.position,
-        speed: vehicle.speed
-      }));
-      
-      return () => {
-        vehicle.removeObserver(handleVehicleUpdate);
-      };
-    }
-  }, [handleVehicleUpdate]);
+    const handleTripUpdate = (state: TripState) => {
+      setTripState(state);
+    };
 
-  // S'abonner aux mises à jour des informations routières
+    tripService.addObserver(handleTripUpdate);
+    return () => tripService.removeObserver(handleTripUpdate);
+  }, []);
+
+  // Observer pour roadInfoManager
   useEffect(() => {
     const observer = (roadInfo: { isOnRoad: boolean }) => {
-      setState(prev => ({ ...prev, isOnRoad: roadInfo.isOnRoad }));
-      onRoadStatusChange(roadInfo.isOnRoad);
+      setIsOnRoad(roadInfo.isOnRoad);
+      if (onRoadStatusChange) {
+        onRoadStatusChange(roadInfo.isOnRoad);
+      }
     };
 
     roadInfoManager.addObserver(observer);
@@ -62,10 +63,15 @@ export const useVehicleState = (
   }, [onRoadStatusChange]);
 
   return {
-    ...state,
+    position: vehicleState.position,
+    speed: vehicleState.speed,
+    history: tripState.positions,
+    isOnRoad,
     handleRoadStatusChange: (status: boolean) => {
-      setState(prev => ({ ...prev, isOnRoad: status }));
-      onRoadStatusChange(status);
+      setIsOnRoad(status);
+      if (onRoadStatusChange) {
+        onRoadStatusChange(status);
+      }
     }
   };
 };

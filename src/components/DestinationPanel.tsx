@@ -1,5 +1,5 @@
 import { Button } from './ui/button';
-import { Search, MapPin, X, Play, Square, Map, Car, Pause } from 'lucide-react';
+import { Search, MapPin, X, Play, Square, Map, Car, Pause, BookOpen } from 'lucide-react';
 import { roadPredictor } from '../services/prediction/RoadPredictor';
 import { useState, useEffect } from 'react';
 import { Toggle } from './ui/toggle';
@@ -9,9 +9,9 @@ interface DestinationPanelProps {
   onDestinationSelect: (location: [number, number], address: string) => void;
   onDestinationClick: () => void;
   onSearchModeChange: (isSearchMode: boolean) => void;
-  onViewModeChange: (mode: 'map' | 'drive') => void;
+  onViewModeChange: (mode: 'map' | 'drive' | 'roadbook') => void;
   isSearchMode: boolean;
-  viewMode: 'map' | 'drive';
+  viewMode: 'map' | 'drive' | 'roadbook';
 }
 
 const DestinationPanel = ({ 
@@ -67,7 +67,14 @@ const DestinationPanel = ({
   };
 
   const handleViewModeToggle = () => {
-    onViewModeChange(viewMode === 'map' ? 'drive' : 'map');
+    // Cycle entre map -> drive -> roadbook -> map
+    if (viewMode === 'map') {
+      onViewModeChange('drive');
+    } else if (viewMode === 'drive') {
+      onViewModeChange('roadbook');
+    } else {
+      onViewModeChange('map');
+    }
   };
 
   if (isSearchMode) {
@@ -119,12 +126,15 @@ const DestinationPanel = ({
           )}
         </Button>
         <Toggle
-          pressed={viewMode === 'drive'}
+          pressed={viewMode !== 'map'}
           onPressedChange={() => handleViewModeToggle()}
           className="text-white hover:text-white hover:bg-gray-800"
+          title={`Vue actuelle: ${viewMode === 'map' ? 'Carte' : viewMode === 'drive' ? '3D' : 'Road Book'}`}
         >
           {viewMode === 'map' ? (
             <Car className="h-5 w-5" />
+          ) : viewMode === 'drive' ? (
+            <BookOpen className="h-5 w-5" />
           ) : (
             <Map className="h-5 w-5" />
           )}

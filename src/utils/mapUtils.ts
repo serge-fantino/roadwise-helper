@@ -59,15 +59,29 @@ export const calculateAngleDifference = (angle1: number, angle2: number): number
   return diff;
 };
 
-export const predictRoadAhead = (position: [number, number], speed: number, heading: number = 0): [number, number][] => {
-  const vehicle = (window as any).globalVehicle;
-  if (!vehicle || !vehicle.positionHistory || vehicle.positionHistory.length < 2) {
+export const predictRoadAhead = (position: [number, number], speed: number, heading: number = 0, positionHistory?: [number, number][]): [number, number][] => {
+  // Utiliser l'historique passé en paramètre ou récupérer depuis tripService
+  let positions = positionHistory;
+  
+  if (!positions) {
+    // Import dynamique pour éviter les dépendances circulaires si nécessaire
+    try {
+      const { tripService } = require('../services/TripService');
+      positions = tripService.getState().positions;
+    } catch (e) {
+      // Si l'import échoue, on utilise juste la position actuelle
+      return [position, position];
+    }
+  }
+  
+  if (!positions || positions.length < 2) {
     return [position, position];
   }
 
-  // Get the last two positions
-  const currentPos = vehicle.positionHistory[0];
-  const prevPos = vehicle.positionHistory[1];
+  // Get the last two positions (positions are stored in reverse order, newest first)
+  // Si l'historique est passé en paramètre, il peut être dans l'ordre normal ou inversé
+  const currentPos = positions[0];
+  const prevPos = positions[1];
 
   if (!currentPos || !prevPos) {
     return [position, position];

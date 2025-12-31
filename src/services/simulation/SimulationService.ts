@@ -1,16 +1,18 @@
-import { Vehicle } from '../../models/Vehicle';
 import { calculateDistance } from '../../utils/mapUtils';
+import { vehicleStateManager } from '../VehicleStateManager';
+import { NavigationCalculator } from './utils/NavigationCalculator';
 
 export class SimulationService {
   private intervalId: NodeJS.Timeout | null = null;
   private currentRouteIndex = 0;
   private routePoints: [number, number][] = [];
-  private vehicle: Vehicle;
   private lastUpdateTime: number = 0;
   private lastPosition: [number, number] | null = null;
+  private navigationCalculator: NavigationCalculator;
 
-  constructor(vehicle: Vehicle) {
-    this.vehicle = vehicle;
+  constructor() {
+    // Plus besoin de Vehicle en paramètre
+    this.navigationCalculator = new NavigationCalculator();
   }
 
   startSimulation(routePoints: [number, number][]) {
@@ -19,10 +21,17 @@ export class SimulationService {
     this.currentRouteIndex = 0;
     this.lastUpdateTime = Date.now();
 
-    if (routePoints.length > 0) {
+    if (routePoints.length > 1) {
       // Initialisation avec la première position
       this.lastPosition = routePoints[0];
-      this.vehicle.reset(routePoints[0]);
+      const nextPosition = routePoints[1];
+      const heading = this.navigationCalculator.calculateHeadingAngle(this.navigationCalculator.calculateHeading(this.lastPosition, nextPosition));
+      vehicleStateManager.updateState({
+        position: routePoints[0],
+        speed: 0,
+        acceleration: 0,
+        heading: heading
+      });
       
       this.intervalId = setInterval(() => {
         const nextIndex = this.currentRouteIndex + 1;
@@ -42,25 +51,28 @@ export class SimulationService {
         const currentTime = Date.now();
         const elapsedTime = (currentTime - this.lastUpdateTime) / 1000;
         
-        // Calcul de la vitesse en m/s (avec un minimum de 0.1 seconde pour éviter division par 0)
+        // Calcul de la vitesse en m/s
         const speed = distance / Math.max(elapsedTime, 0.1);
         
         console.log('Simulation update:', {
           distance,
           elapsedTime,
           speed,
-          currentPosition: currentPosition,
-          nextPosition: nextPosition
+          currentPosition,
+          nextPosition
         });
 
-        // Mise à jour du véhicule avec la nouvelle position ET la vitesse
-        this.vehicle.update(nextPosition, speed);
+        // Mise à jour de l'état via le gestionnaire
+        vehicleStateManager.updateState({
+          position: nextPosition,
+          speed: speed
+        });
         
         // Mise à jour des variables pour le prochain calcul
         this.lastPosition = nextPosition;
         this.lastUpdateTime = currentTime;
         this.currentRouteIndex = nextIndex;
-      }, 1000); // Mise à jour toutes les secondes
+      }, 1000);
     }
   }
 
@@ -69,10 +81,13 @@ export class SimulationService {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    // Reset speed to 0 when stopping
-    if (this.vehicle) {
-      this.vehicle.update(this.vehicle.position, 0);
-    }
+    // Reset speed to 0
+    const currentState = vehicleStateManager.getState();
+    vehicleStateManager.updateState({
+      ...currentState,
+      speed: 0,
+      acceleration: 0
+    });
   }
 
   reset() {
@@ -80,11 +95,15 @@ export class SimulationService {
     this.currentRouteIndex = 0;
     this.lastPosition = null;
     if (this.routePoints.length > 0) {
-      this.vehicle.reset(this.routePoints[0]);
+      vehicleStateManager.updateState({
+        position: this.routePoints[0],
+        speed: 0,
+        acceleration: 0
+      });
     }
   }
 }
 
-export const createSimulationService = (vehicle: Vehicle) => {
-  return new SimulationService(vehicle);
+export const createSimulationService = () => {
+  return new SimulationService();
 };

@@ -1,7 +1,8 @@
-import { Vehicle } from '../../models/Vehicle';
 import { createSimulationService } from '../simulation/SimulationService';
 import { createSimulationServiceV2 } from '../simulation/SimulationServiceV2';
 import { settingsService } from '../SettingsService';
+import { vehicleStateManager } from '../VehicleStateManager';
+import { tripService } from '../TripService';
 
 type LocationMode = 'gps' | 'simulation';
 type LocationObserver = (position: [number, number], speed: number, accelerationInG: number) => void;
@@ -14,22 +15,22 @@ export class LocationService {
   private updateInterval: NodeJS.Timeout | null = null;
   private simulationService: ReturnType<typeof createSimulationService>;
   private simulationServiceV2: ReturnType<typeof createSimulationServiceV2>;
-  private vehicle: Vehicle;
-  private lastSpeed: number = 0; // en m/s
+  private lastSpeed: number = 0;
   private lastSpeedUpdateTime: number = null;
-  private lastAccelerationInG: number = 0; // en g
+  private lastAccelerationInG: number = 0;
 
-  private constructor(vehicle: Vehicle) {
-    this.vehicle = vehicle;
-    this.simulationService = createSimulationService(vehicle);
-    this.simulationServiceV2 = createSimulationServiceV2(vehicle);
+  private constructor() {
+    // Initialiser les services de simulation avec le nouveau gestionnaire d'état
+    this.simulationService = createSimulationService();
+    this.simulationServiceV2 = createSimulationServiceV2();
+    this.startUpdates();
   }
 
-  public static getInstance(vehicle?: Vehicle): LocationService {
-    if (!LocationService.instance && vehicle) {
-      LocationService.instance = new LocationService(vehicle);
+  public static getInstance(): LocationService {
+    if (!LocationService.instance) {
+      LocationService.instance = new LocationService();
     }
-    return LocationService.instance!;
+    return LocationService.instance;
   }
 
   public addObserver(observer: LocationObserver) {
@@ -73,6 +74,21 @@ export class LocationService {
     this.lastAccelerationInG = accelerationInG;
 
     return accelerationInG;
+  }
+
+  private handlePositionUpdate(position: [number, number], speed: number, accelerationInG: number) {
+    // Mettre à jour l'état du véhicule via le gestionnaire
+    vehicleStateManager.updateState({
+      position,
+      speed,
+      acceleration: accelerationInG * 9.81 // Convertir g en m/s²
+    });
+    
+    // Ajouter la position à l'historique
+    tripService.addPosition(position);
+    
+    // Notifier les observateurs existants
+    this.notifyObservers(position, speed, accelerationInG);
   }
 
   public setMode(mode: LocationMode) {
@@ -126,12 +142,11 @@ export class LocationService {
     }
 
     const handlePosition = (pos: GeolocationPosition) => {
+      console.log('[LocationService] GPS Position:', pos);
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
       const accelerationInG = this.calculateAccelerationInG(speed);
-      console.log('[LocationService] GPS update:', { position, speed, accelerationInG });
-      this.vehicle.update(position, speed, accelerationInG);
-      this.notifyObservers(position, speed, accelerationInG);
+      this.handlePositionUpdate(position, speed, accelerationInG);
     };
 
     const handleError = (error: GeolocationPositionError) => {

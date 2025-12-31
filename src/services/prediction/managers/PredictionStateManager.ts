@@ -44,18 +44,25 @@ export class PredictionStateManager {
     // Mettre à jour les virages existants
     this.turnPredictionManager.removePastTurns(currentIndex);
     this.turnPredictionManager.updateTurnDistances(currentPosition, currentIndex, routePoints);
+    
+    // Recalculer les vitesses optimales et décélérations pour les virages existants
+    // car la vitesse actuelle peut avoir changé
+    await this.turnPredictionManager.recalculateTurnSpeeds(currentSpeed, speedLimit, settings);
 
     // Chercher de nouveaux virages si nécessaire
+    // On commence à chercher AVANT la position actuelle pour détecter les virages devant nous
     const turns = this.turnPredictionManager.getTurns();
     const lastTurnIndex = turns.length > 0 
       ? Math.max(...turns.map(t => t.curveInfo.endIndex))
-      : currentIndex;
+      : Math.max(0, currentIndex - 5); // Commencer quelques points avant la position actuelle
 
-    if (turns.length <10) {
+    // Limiter à 5 virages max
+    if (turns.length < 5) {
       await this.turnPredictionManager.findNewTurns(
         enhancedPoints,
         lastTurnIndex,
         currentPosition,
+        currentIndex, // Passer l'index actuel pour filtrer les virages passés
         settings,
         currentSpeed,
         speedLimit

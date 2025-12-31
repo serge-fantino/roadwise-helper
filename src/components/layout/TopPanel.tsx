@@ -1,9 +1,9 @@
 import DestinationPanel from '../DestinationPanel';
 import SpeedPanel from '../SpeedPanel';
+import { TurnPrediction } from '@/services/prediction/PredictionTypes';
 
 interface TopPanelProps {
   speed: number;
-  recommendedSpeed: number;
   isOnRoad: boolean;
   isDebugMode?: boolean;
   destination: { address: string; location: [number, number] } | null;
@@ -11,13 +11,16 @@ interface TopPanelProps {
   onDestinationClick: () => void;
   onSearchModeChange: (isSearchMode: boolean) => void;
   isSearchMode: boolean;
-  onViewModeChange: (mode: 'map' | 'drive') => void;
-  viewMode: 'map' | 'drive';
+  onViewModeChange: (mode: 'map' | 'drive' | 'roadbook') => void;
+  viewMode: 'map' | 'drive' | 'roadbook';
+  speedLimit?: number;
+  optimalSpeed?: number;
+  prediction?: TurnPrediction;
+  isRoadPredictorActive: boolean;
 }
 
 const TopPanel = ({
   speed,
-  recommendedSpeed,
   isOnRoad,
   isDebugMode,
   destination,
@@ -26,7 +29,11 @@ const TopPanel = ({
   onSearchModeChange,
   isSearchMode,
   onViewModeChange,
-  viewMode
+  viewMode,
+  speedLimit,
+  optimalSpeed,
+  prediction,
+  isRoadPredictorActive
 }: TopPanelProps) => {
   return (
     <div className="relative z-10 bg-gray-900 shadow-lg">
@@ -34,8 +41,9 @@ const TopPanel = ({
         <div className="flex flex-col gap-4">
           <SpeedPanel
             currentSpeed={speed}
-            recommendedSpeed={recommendedSpeed}
-            isOnRoad={isOnRoad}
+            speedLimit={speedLimit}
+            optimalSpeed={optimalSpeed}
+            prediction={prediction}
             isDebugMode={isDebugMode}
           />
           <DestinationPanel

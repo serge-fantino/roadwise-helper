@@ -1,3 +1,5 @@
+import { vehicleStateManager } from "@/services/VehicleStateManager";
+
 export class SpeedController {
   private currentSpeed: number = 0;
   private currentAcceleration: number = 0;
@@ -14,6 +16,11 @@ export class SpeedController {
 
   setCurrentSpeed(speed: number) {
     this.currentSpeed = speed;
+    // Mettre à jour l'état global du véhicule
+    vehicleStateManager.updateState({
+      speed: speed,
+      acceleration: this.currentAcceleration
+    });
   }
 
   updateSpeed(

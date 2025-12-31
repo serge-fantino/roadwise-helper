@@ -14,7 +14,22 @@ const MapEventHandlers = ({ position, onRoadStatusChange, onMapClick }: MapEvent
   const map = useMap();
 
   useEffect(() => {
-    map.setView(position, map.getZoom());
+    // Vérifier que la position est valide avant de mettre à jour la vue
+    if (position && Array.isArray(position) && position.length === 2) {
+      const [lat, lng] = position;
+      if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && isFinite(lng)) {
+        const currentZoom = map.getZoom();
+        const maxZoom = map.getMaxZoom();
+        const minZoom = map.getMinZoom();
+        const safeZoom = Math.max(minZoom, Math.min(currentZoom, maxZoom));
+        
+        try {
+          map.setView([lat, lng], safeZoom, { animate: false });
+        } catch (error) {
+          console.error('[MapEventHandlers] Error setting view:', error);
+        }
+      }
+    }
   }, [position, map]);
 
   // Écouter les mises à jour du RoadInfoManager

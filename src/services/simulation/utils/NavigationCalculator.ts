@@ -1,6 +1,7 @@
 const METERS_PER_DEGREE_LAT = 111111;
 
 export class NavigationCalculator {
+
   calculateHeading(from: [number, number], to: [number, number]): [number, number] {
     const deltaLat = (to[0] - from[0]) * METERS_PER_DEGREE_LAT;
     const deltaLon = (to[1] - from[1]) * METERS_PER_DEGREE_LAT * Math.cos(from[0] * Math.PI / 180);
@@ -10,6 +11,10 @@ export class NavigationCalculator {
     if (distance === 0) return [0, 0];
     
     return [deltaLat / distance, deltaLon / distance];
+  }
+
+  calculateHeadingAngle(heading: [number, number]): number {
+    return Math.atan2(heading[0], heading[1]) * 180 / Math.PI;
   }
 
   calculateNextPosition(currentPosition: [number, number], heading: [number, number], distance: number): [number, number] {

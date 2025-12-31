@@ -1,18 +1,18 @@
-import { Vehicle } from '../../../models/Vehicle';
 import { NavigationCalculator } from '../utils/NavigationCalculator';
 import { RouteManager } from '../utils/RouteManager';
 import { SpeedController } from '../utils/SpeedController';
+import { vehicleStateManager } from '../../VehicleStateManager';
 
 export class SimulationUpdateManager {
   constructor(
-    private vehicle: Vehicle,
     private navigationCalculator: NavigationCalculator,
     private speedController: SpeedController,
     private routeManager: RouteManager
   ) {}
 
   updateVehicleState(optimalSpeed: number, requiredDeceleration: number | null): boolean {
-    const currentPosition = this.vehicle.position;
+    const currentState = vehicleStateManager.getState();
+    const currentPosition = currentState.position;
     
     const { speed: newSpeed, acceleration } = this.speedController.updateSpeed(
       1, // TIME_STEP
@@ -47,7 +47,14 @@ export class SimulationUpdateManager {
       this.routeManager.updateCurrentIndex(targetIndex);
     }
 
-    this.vehicle.update(newPosition, newSpeed, acceleration);
+    // Mise à jour de l'état via le gestionnaire
+    vehicleStateManager.updateState({
+      position: newPosition,
+      speed: newSpeed,
+      acceleration: acceleration,
+      heading: this.navigationCalculator.calculateHeadingAngle(heading)
+    });
+
     return true;
   }
 }
