@@ -23,7 +23,6 @@ export class RouteManager {
     distanceToTravel: number
   ): number {
     let targetIndex = this.currentRouteIndex;
-    const accumulatedDistance = 0; // Réassigné dans la boucle
 
     console.log('[RouteManager] Finding next target:', {
       currentPosition,
