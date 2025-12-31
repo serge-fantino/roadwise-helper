@@ -34,7 +34,7 @@ import { useEffect, useRef } from 'react';
 import { DriveViewModel, DriveViewState } from '../../models/DriveViewModel';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
 import { vehicleStateManager } from '../../services/VehicleStateManager';
-import { SmoothGPSTracker } from '../../utils/SmoothGPSTracker';
+import { RouteFollowingTracker } from '../../utils/RouteFollowingTracker';
 import * as THREE from 'three';
 import { CartesianPoint } from '../../services/route/RouteProjectionService';
 
@@ -321,9 +321,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     const currentInterpolatedPosition = new THREE.Vector3(0, 1.5, 0);
     const currentInterpolatedLookAt = new THREE.Vector3(0, 0, -5);
     
-    // Initialiser le tracker GPS avec filtre de Kalman
-    // useKalman=true pour mode robuste, false pour mode simple
-    let gpsTracker: SmoothGPSTracker | null = null;
+    // Tracker qui suit la route de manière contrainte
+    let routeTracker: RouteFollowingTracker | null = null;
     let lastProcessedIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
 
     // Animation loop
@@ -335,39 +334,37 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       const deltaTime = (currentTime - lastFrameTime) / 1000; // en secondes
       lastFrameTime = currentTime;
 
-      // Initialiser le tracker GPS au premier passage
-      if (!gpsTracker && state.path.length > 0) {
-        const firstPoint = state.path[0];
-        gpsTracker = new SmoothGPSTracker(
-          [firstPoint.x, firstPoint.y, 0], // z=0 pour la hauteur
-          true,  // useKalman = true (plus robuste)
-          0.1,   // Q = bruit du modèle (accélération attendue)
-          5.0    // R = incertitude GPS en mètres²
-        );
+      // Initialiser le tracker au premier passage
+      if (!routeTracker && state.path.length > 0) {
+        routeTracker = new RouteFollowingTracker(state.path, 0);
         lastProcessedIndex = 0;
-        console.log('[DriveView] GPS Tracker initialisé avec filtre de Kalman');
+        console.log('[DriveView] Route Tracker initialisé avec', state.path.length, 'points');
+      }
+
+      // Mettre à jour la route si elle a changé
+      if (routeTracker && state.path.length > 0) {
+        routeTracker.updateRoute(state.path);
       }
 
       // Détecter nouvelle mesure GPS via VehicleStateManager
       const vehicleState = vehicleStateManager.getState();
       const newGPSMeasurement = state.currentIndex !== lastProcessedIndex;
 
-      if (newGPSMeasurement && gpsTracker && state.path.length > 0 && state.currentIndex < state.path.length) {
+      if (newGPSMeasurement && routeTracker && state.path.length > 0 && state.currentIndex < state.path.length) {
         // Nouvelle mesure GPS reçue
         const gpsPosition = state.path[state.currentIndex];
         
-        // Mettre à jour le tracker avec les données du VehicleStateManager
-        gpsTracker.updateGPSMeasurement(
-          [gpsPosition.x, gpsPosition.y, 0],
-          vehicleState.speed,    // vitesse en m/s
-          vehicleState.heading   // direction en degrés
+        // Mettre à jour le tracker avec la position GPS projetée sur la route
+        routeTracker.updateGPSMeasurement(
+          [gpsPosition.x, gpsPosition.y],
+          vehicleState.speed  // vitesse en m/s
         );
         
         lastProcessedIndex = state.currentIndex;
         console.log('[DriveView] GPS mis à jour:', {
           position: [gpsPosition.x, gpsPosition.y],
           speed: vehicleState.speed,
-          heading: vehicleState.heading
+          distance: routeTracker.getCurrentDistance()
         });
       }
 
@@ -403,39 +400,24 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
       // Mettre à jour la position interpolée avec le tracker GPS
       // Mettre à jour la position interpolée avec le tracker GPS (60 FPS)
-      if (gpsTracker) {
-        // Prédiction Kalman ou interpolation simple
-        const smoothedPos = gpsTracker.updateFrame(deltaTime);
-        const velocity = gpsTracker.getCurrentVelocity();
+      // Mettre à jour la position interpolée avec le tracker de route (60 FPS)
+      if (routeTracker) {
+        // Avancer le long de la route et converger vers la position GPS
+        const { point, lookAhead } = routeTracker.updateFrame(deltaTime);
         
-        // Mettre à jour la position de la caméra
+        // Mettre à jour la position de la caméra (sur la route)
         currentInterpolatedPosition.set(
-          smoothedPos[0],
+          point.x,
           1.5, // hauteur de la caméra
-          -smoothedPos[1] // inverser Y pour coordonnées Three.js
+          -point.y // inverser Y pour coordonnées Three.js
         );
         
-        // Calculer le point de visée (regarder devant)
-        const vehicleState = vehicleStateManager.getState();
-        const speed = Math.sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
-        const lookAheadDistance = Math.max(10, speed * 2); // au moins 10m, sinon 2 secondes devant
-        
-        // Direction selon la vitesse
-        if (speed > 0.5) {
-          // Utiliser la direction de la vitesse estimée
-          const vx = velocity[0];
-          const vy = velocity[1];
-          const norm = Math.sqrt(vx * vx + vy * vy);
-          const lookX = smoothedPos[0] + (vx / norm) * lookAheadDistance;
-          const lookY = smoothedPos[1] + (vy / norm) * lookAheadDistance;
-          currentInterpolatedLookAt.set(lookX, 1.2, -lookY);
-        } else {
-          // Si vitesse faible, utiliser le heading du véhicule
-          const bearingRad = vehicleState.heading * Math.PI / 180;
-          const lookX = smoothedPos[0] + Math.sin(bearingRad) * 10;
-          const lookY = smoothedPos[1] + Math.cos(bearingRad) * 10;
-          currentInterpolatedLookAt.set(lookX, 1.2, -lookY);
-        }
+        // Point de visée (regarder devant sur la route)
+        currentInterpolatedLookAt.set(
+          lookAhead.x,
+          1.2,
+          -lookAhead.y
+        );
       } else {
         // Fallback : utiliser position actuelle (ne devrait pas arriver)
         const currentPoint = state.path[state.currentIndex] || state.path[0];
