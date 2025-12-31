@@ -17,9 +17,12 @@ const App = () => {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
+  // Determine basename based on environment
+  const basename = import.meta.env.PROD ? '/roadwise-helper' : '';
+
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <TooltipProvider>
           <Routes>
             <Route path="/" element={<Index />} />

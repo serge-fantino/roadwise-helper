@@ -9,16 +9,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RoadWise" />
-    <link rel="manifest" href="/roadwise-helper/manifest.json" />
-    <link rel="icon" href="/roadwise-helper/favicon.ico" />
-    <link rel="apple-touch-icon" href="/roadwise-helper/pwa-192x192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
   </head>
   <body>
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/roadwise-helper/sw.js')
+          const base = import.meta.env.BASE_URL || '/';
+          navigator.serviceWorker.register(base + 'sw.js')
             .then(registration => {
               console.log('ServiceWorker registration successful');
               // Vérifie les mises à jour toutes les heures
