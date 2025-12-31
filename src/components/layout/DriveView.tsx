@@ -324,7 +324,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     // Initialiser le tracker GPS avec filtre de Kalman
     // useKalman=true pour mode robuste, false pour mode simple
     let gpsTracker: SmoothGPSTracker | null = null;
-    let lastGPSIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
+    let lastProcessedIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
 
     // Animation loop
     const animate = () => {
