@@ -321,6 +321,10 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     const currentInterpolatedLookAt = new THREE.Vector3(0, 0, -5);
     let accumulatedDistance = 0; // Distance accumulée depuis la dernière frame
     let currentSegmentIndex = 0; // Index du segment actuel sur lequel on interpole
+    
+    // Point de convergence vers la position GPS réelle
+    let convergenceTarget: CartesianPoint | null = null;
+    let convergenceProgress = 1.0; // 1.0 = convergence atteinte
 
     // Fonction pour calculer la distance entre deux points
     const distanceBetween = (p1: CartesianPoint, p2: CartesianPoint): number => {
@@ -342,10 +346,29 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           lastFrameState.bearing !== state.bearing;
 
       if (newFrameReceived) {
-        // Nouvelle frame reçue : réinitialiser l'accumulation et mettre à jour la géométrie
-        accumulatedDistance = 0;
-        currentSegmentIndex = state.currentIndex; // Commencer au segment actuel
+        // Nouvelle frame reçue : calculer un point de convergence
         lastFrameState = { ...state };
+        
+        // Calculer le point de convergence entre position interpolée et nouvelle position GPS
+        if (state.path.length > 0 && state.currentIndex < state.path.length) {
+          const gpsPosition = state.path[state.currentIndex];
+          
+          // Si on est loin de la position GPS, créer un point de convergence
+          const currentPos = { x: currentInterpolatedPosition.x, y: -currentInterpolatedPosition.z };
+          const distance = Math.sqrt(
+            Math.pow(gpsPosition.x - currentPos.x, 2) + 
+            Math.pow(gpsPosition.y - currentPos.y, 2)
+          );
+          
+          // Si la distance est significative (> 5m), créer un point de convergence
+          if (distance > 5) {
+            convergenceTarget = gpsPosition;
+            convergenceProgress = 0.0;
+            
+            // Ajuster currentSegmentIndex pour être proche de la position GPS
+            currentSegmentIndex = Math.max(0, state.currentIndex - 5);
+          }
+        }
 
         // Nettoyer les anciens éléments de piste (garder le sol et les lumières)
         scene.children = scene.children.filter(child => 
@@ -376,7 +399,28 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         
         // Calculer la distance parcourue depuis la dernière frame
         const distanceTraveled = speed * deltaTime;
-        accumulatedDistance += distanceTraveled;
+        
+        // Si on a un point de convergence, progresser vers lui
+        if (convergenceTarget && convergenceProgress < 1.0) {
+          // Convergence progressive (sur ~2 secondes)
+          convergenceProgress = Math.min(1.0, convergenceProgress + deltaTime * 0.5);
+          
+          // Interpoler vers le point de convergence
+          const currentPos = { x: currentInterpolatedPosition.x, y: -currentInterpolatedPosition.z };
+          const targetX = currentPos.x + (convergenceTarget.x - currentPos.x) * convergenceProgress;
+          const targetY = currentPos.y + (convergenceTarget.y - currentPos.y) * convergenceProgress;
+          
+          currentInterpolatedPosition.set(targetX, 1.5, -targetY);
+          
+          // Une fois la convergence atteinte, reprendre l'avancement normal
+          if (convergenceProgress >= 1.0) {
+            convergenceTarget = null;
+            accumulatedDistance = 0;
+          }
+        } else {
+          // Avancement normal le long de la route
+          accumulatedDistance += distanceTraveled;
+        }
         
         // Trouver la position interpolée le long de la route
         let remainingDistance = accumulatedDistance;
