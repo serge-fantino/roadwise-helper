@@ -17,8 +17,8 @@ const App = () => {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
-  // Determine basename based on environment
-  const basename = import.meta.env.PROD ? '/roadwise-helper' : '';
+  // Determine basename based on current URL (works in both dev and prod)
+  const basename = window.location.pathname.startsWith('/roadwise-helper') ? '/roadwise-helper' : '';
 
   return (
     <QueryClientProvider client={queryClient}>
