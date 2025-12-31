@@ -324,6 +324,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     // Tracker qui suit la route de manière contrainte
     let routeTracker: RouteFollowingTracker | null = null;
     let lastProcessedIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
+    let trackerInitialized = false; // Pour forcer la réinitialisation au premier rendu
 
     // Animation loop
     const animate = () => {
