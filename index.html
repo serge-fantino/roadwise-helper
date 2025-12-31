@@ -16,10 +16,11 @@
   <body>
     <div id="root"></div>
     <script>
+      // BASE_URL sera défini par Vite lors du build
+      const BASE_URL = '%BASE_URL%';
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          const base = import.meta.env.BASE_URL || '/';
-          navigator.serviceWorker.register(base + 'sw.js')
+          navigator.serviceWorker.register(BASE_URL + 'sw.js')
             .then(registration => {
               console.log('ServiceWorker registration successful');
               // Vérifie les mises à jour toutes les heures
