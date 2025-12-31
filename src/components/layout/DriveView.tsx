@@ -325,6 +325,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     let routeTracker: RouteFollowingTracker | null = null;
     let lastProcessedIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
     let trackerInitialized = false; // Pour forcer la réinitialisation au premier rendu
+    let trackerInitialized = false; // Pour forcer la réinitialisation au premier rendu
 
     // Animation loop
     const animate = () => {
@@ -351,7 +352,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       const vehicleState = vehicleStateManager.getState();
       const newGPSMeasurement = state.currentIndex !== lastProcessedIndex;
 
-      if (newGPSMeasurement && routeTracker && state.path.length > 0 && state.currentIndex < state.path.length) {
+      if (newGPSMeasurement && routeTracker && trackerInitialized && state.path.length > 0 && state.currentIndex < state.path.length) {
         // Nouvelle mesure GPS reçue
         const gpsPosition = state.path[state.currentIndex];
         
