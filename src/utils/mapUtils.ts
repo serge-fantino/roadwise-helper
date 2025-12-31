@@ -66,6 +66,7 @@ export const predictRoadAhead = (position: [number, number], speed: number, head
   if (!positions) {
     // Import dynamique pour éviter les dépendances circulaires si nécessaire
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { tripService } = require('../services/TripService');
       positions = tripService.getState().positions;
     } catch (e) {

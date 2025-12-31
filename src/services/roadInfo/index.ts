@@ -41,6 +41,7 @@ class RoadInfoService {
     return this.currentService.getCurrentRoadSegment(lat, lon);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getRoadData(lat: number, lon: number): Promise<any> {
     return this.currentService.getRoadData(lat, lon);
   }

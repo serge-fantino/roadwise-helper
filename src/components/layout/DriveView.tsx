@@ -317,8 +317,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     // Variables pour l'interpolation basée sur le temps et la vitesse
     let lastFrameState: DriveViewState | null = null;
     let lastFrameTime = performance.now();
-    let currentInterpolatedPosition = new THREE.Vector3(0, 1.5, 0);
-    let currentInterpolatedLookAt = new THREE.Vector3(0, 0, -5);
+    const currentInterpolatedPosition = new THREE.Vector3(0, 1.5, 0);
+    const currentInterpolatedLookAt = new THREE.Vector3(0, 0, -5);
     let accumulatedDistance = 0; // Distance accumulée depuis la dernière frame
     let currentSegmentIndex = 0; // Index du segment actuel sur lequel on interpole
 

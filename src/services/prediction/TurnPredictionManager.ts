@@ -23,7 +23,7 @@ export class TurnPredictionManager {
     currentIndex: number,
     routePoints: [number, number][]
   ): void {
-    for (let turn of this.turns) {
+    for (const turn of this.turns) {
         turn.distance = this.calculateRoadDistanceToIndex(
             currentPosition, 
             currentIndex, 

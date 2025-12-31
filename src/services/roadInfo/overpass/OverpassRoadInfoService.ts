@@ -44,9 +44,11 @@ export class OverpassRoadInfoService implements RoadInfoAPIService {
     const road = data.elements[0];
     if (!road.geometry) return [[lat, lon]];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return road.geometry.map((node: any) => [node.lat, node.lon]);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getRoadData(lat: number, lon: number): Promise<any> {
     return this.api.queryNearbyRoads(lat, lon);
   }

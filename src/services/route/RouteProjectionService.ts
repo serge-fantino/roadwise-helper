@@ -172,8 +172,8 @@ export function generateBorders(cartesianPath: CartesianPoint[]): { path: Cartes
         return { path: [], leftBorder: [], rightBorder: [] };
     }
 
-    let leftBorder: CartesianPoint[] = [];
-    let rightBorder: CartesianPoint[] = [];
+    const leftBorder: CartesianPoint[] = [];
+    const rightBorder: CartesianPoint[] = [];
     const segmentsBorders: SegmentBorders[] = [];
 
     for (let i = 0; i < cartesianPath.length - 1; i++) {
@@ -197,10 +197,13 @@ export function generateBorders(cartesianPath: CartesianPoint[]): { path: Cartes
         const centerPoint = segmentA.middleTop
         const angle = angleBetweenSegments(segmentA.middleBottom, segmentA.middleTop, segmentB.middleTop); // Utiliser le point suivant s'il existe
 
-        if (false && angle === 0) {
-            leftBorder.push(segmentA.leftTop);
-            rightBorder.push(segmentA.rightTop);
-        } else {
+        // Code désactivé pour l'instant - condition toujours false
+        // TODO: Réactiver cette logique si nécessaire
+        // if (angle === 0) {
+        //     leftBorder.push(segmentA.leftTop);
+        //     rightBorder.push(segmentA.rightTop);
+        // } else {
+        {
             let outerTop: CartesianPoint, outerBottomNext: CartesianPoint;
             let outerBorder: CartesianPoint[];
             let innerBorder: CartesianPoint[];

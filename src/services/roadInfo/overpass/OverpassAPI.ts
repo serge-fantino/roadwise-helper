@@ -2,6 +2,7 @@ const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
 const FALLBACK_API = 'https://overpass.kumi.systems/api/interpreter';
 
 export class OverpassAPI {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async queryNearbyRoads(lat: number, lon: number): Promise<any> {
     const query = `
       [out:json];
@@ -13,6 +14,7 @@ export class OverpassAPI {
     return this.queryOverpass(query);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async queryOverpass(query: string): Promise<any> {
     console.log('[OverpassAPI] Sending query:', query);
     
@@ -51,6 +53,7 @@ export class OverpassAPI {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async queryOverpassFallback(query: string): Promise<any> {
     const response = await fetch(FALLBACK_API, {
       method: 'POST',
