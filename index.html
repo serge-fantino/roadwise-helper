@@ -16,11 +16,11 @@
   <body>
     <div id="root"></div>
     <script>
-      // BASE_URL sera défini par Vite lors du build
-      const BASE_URL = '%BASE_URL%';
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register(BASE_URL + 'sw.js')
+          // Utiliser le base path depuis window.location si disponible, sinon '/'
+          const base = window.location.pathname.startsWith('/roadwise-helper') ? '/roadwise-helper/' : '/';
+          navigator.serviceWorker.register(base + 'sw.js')
             .then(registration => {
               console.log('ServiceWorker registration successful');
               // Vérifie les mises à jour toutes les heures
