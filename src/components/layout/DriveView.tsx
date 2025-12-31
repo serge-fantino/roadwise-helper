@@ -34,6 +34,7 @@ import { useEffect, useRef } from 'react';
 import { DriveViewModel, DriveViewState } from '../../models/DriveViewModel';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
 import { vehicleStateManager } from '../../services/VehicleStateManager';
+import { SmoothGPSTracker } from '../../utils/SmoothGPSTracker';
 import * as THREE from 'three';
 import { CartesianPoint } from '../../services/route/RouteProjectionService';
 
@@ -319,17 +320,11 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     let lastFrameTime = performance.now();
     const currentInterpolatedPosition = new THREE.Vector3(0, 1.5, 0);
     const currentInterpolatedLookAt = new THREE.Vector3(0, 0, -5);
-    let accumulatedDistance = 0; // Distance accumulée depuis la dernière frame
-    let currentSegmentIndex = 0; // Index du segment actuel sur lequel on interpole
     
-    // Point de convergence vers la position GPS réelle
-    let convergenceTarget: CartesianPoint | null = null;
-    let convergenceProgress = 1.0; // 1.0 = convergence atteinte
-
-    // Fonction pour calculer la distance entre deux points
-    const distanceBetween = (p1: CartesianPoint, p2: CartesianPoint): number => {
-      return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-    };
+    // Initialiser le tracker GPS avec filtre de Kalman
+    // useKalman=true pour mode robuste, false pour mode simple
+    let gpsTracker: SmoothGPSTracker | null = null;
+    let lastGPSIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
 
     // Animation loop
     const animate = () => {
@@ -340,35 +335,49 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       const deltaTime = (currentTime - lastFrameTime) / 1000; // en secondes
       lastFrameTime = currentTime;
 
-      // Vérifier si on a reçu une nouvelle frame (état changé)
-      const newFrameReceived = !lastFrameState || 
+      // Initialiser le tracker GPS au premier passage
+      if (!gpsTracker && state.path.length > 0) {
+        const firstPoint = state.path[0];
+        gpsTracker = new SmoothGPSTracker(
+          [firstPoint.x, firstPoint.y, 0], // z=0 pour la hauteur
+          true,  // useKalman = true (plus robuste)
+          0.1,   // Q = bruit du modèle (accélération attendue)
+          5.0    // R = incertitude GPS en mètres²
+        );
+        lastProcessedIndex = 0;
+        console.log('[DriveView] GPS Tracker initialisé avec filtre de Kalman');
+      }
+
+      // Détecter nouvelle mesure GPS via VehicleStateManager
+      const vehicleState = vehicleStateManager.getState();
+      const newGPSMeasurement = state.currentIndex !== lastProcessedIndex;
+
+      if (newGPSMeasurement && gpsTracker && state.path.length > 0 && state.currentIndex < state.path.length) {
+        // Nouvelle mesure GPS reçue
+        const gpsPosition = state.path[state.currentIndex];
+        
+        // Mettre à jour le tracker avec les données du VehicleStateManager
+        gpsTracker.updateGPSMeasurement(
+          [gpsPosition.x, gpsPosition.y, 0],
+          vehicleState.speed,    // vitesse en m/s
+          vehicleState.heading   // direction en degrés
+        );
+        
+        lastProcessedIndex = state.currentIndex;
+        console.log('[DriveView] GPS mis à jour:', {
+          position: [gpsPosition.x, gpsPosition.y],
+          speed: vehicleState.speed,
+          heading: vehicleState.heading
+        });
+      }
+
+      // Vérifier si on doit reconstruire la géométrie de la piste
+      const geometryNeedsUpdate = !lastFrameState || 
           lastFrameState.currentIndex !== state.currentIndex ||
           lastFrameState.bearing !== state.bearing;
 
-      if (newFrameReceived) {
-        // Nouvelle frame reçue : calculer un point de convergence
+      if (geometryNeedsUpdate) {
         lastFrameState = { ...state };
-        
-        // Calculer le point de convergence entre position interpolée et nouvelle position GPS
-        if (state.path.length > 0 && state.currentIndex < state.path.length) {
-          const gpsPosition = state.path[state.currentIndex];
-          
-          // Si on est loin de la position GPS, créer un point de convergence
-          const currentPos = { x: currentInterpolatedPosition.x, y: -currentInterpolatedPosition.z };
-          const distance = Math.sqrt(
-            Math.pow(gpsPosition.x - currentPos.x, 2) + 
-            Math.pow(gpsPosition.y - currentPos.y, 2)
-          );
-          
-          // Si la distance est significative (> 5m), créer un point de convergence
-          if (distance > 5) {
-            convergenceTarget = gpsPosition;
-            convergenceProgress = 0.0;
-            
-            // Ajuster currentSegmentIndex pour être proche de la position GPS
-            currentSegmentIndex = Math.max(0, state.currentIndex - 5);
-          }
-        }
 
         // Nettoyer les anciens éléments de piste (garder le sol et les lumières)
         scene.children = scene.children.filter(child => 
@@ -392,35 +401,17 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         scene.add(roadMarkings);
       }
 
-      // Interpoler la position le long de la route réelle
-      if (state.path.length > 1 && currentSegmentIndex < state.path.length - 1) {
-        const vehicleState = vehicleStateManager.getState();
-        const speed = vehicleState.speed; // en m/s
+      // Mettre à jour la position interpolée avec le tracker GPS
+      if (gpsTracker) {
+        // Mise à jour du tracker (prédiction Kalman ou interpolation simple)
+        const smoothedPos = gpsTracker.updateFrame(deltaTime);
         
-        // Calculer la distance parcourue depuis la dernière frame
-        const distanceTraveled = speed * deltaTime;
-        
-        // Si on a un point de convergence, progresser vers lui
-        if (convergenceTarget && convergenceProgress < 1.0) {
-          // Convergence progressive (sur ~2 secondes)
-          convergenceProgress = Math.min(1.0, convergenceProgress + deltaTime * 0.5);
-          
-          // Interpoler vers le point de convergence
-          const currentPos = { x: currentInterpolatedPosition.x, y: -currentInterpolatedPosition.z };
-          const targetX = currentPos.x + (convergenceTarget.x - currentPos.x) * convergenceProgress;
-          const targetY = currentPos.y + (convergenceTarget.y - currentPos.y) * convergenceProgress;
-          
-          currentInterpolatedPosition.set(targetX, 1.5, -targetY);
-          
-          // Une fois la convergence atteinte, reprendre l'avancement normal
-          if (convergenceProgress >= 1.0) {
-            convergenceTarget = null;
-            accumulatedDistance = 0;
-          }
-        } else {
-          // Avancement normal le long de la route
-          accumulatedDistance += distanceTraveled;
-        }
+        // Mettre à jour la position de la caméra
+        currentInterpolatedPosition.set(
+          smoothedPos[0],
+          1.5, // hauteur de la caméra
+          -smoothedPos[1] // inverser Y pour coordonnées Three.js
+        );
         
         // Trouver la position interpolée le long de la route
         let remainingDistance = accumulatedDistance;
