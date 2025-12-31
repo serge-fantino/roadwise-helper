@@ -402,9 +402,11 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       }
 
       // Mettre à jour la position interpolée avec le tracker GPS
+      // Mettre à jour la position interpolée avec le tracker GPS (60 FPS)
       if (gpsTracker) {
-        // Mise à jour du tracker (prédiction Kalman ou interpolation simple)
+        // Prédiction Kalman ou interpolation simple
         const smoothedPos = gpsTracker.updateFrame(deltaTime);
+        const velocity = gpsTracker.getCurrentVelocity();
         
         // Mettre à jour la position de la caméra
         currentInterpolatedPosition.set(
@@ -413,67 +415,37 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           -smoothedPos[1] // inverser Y pour coordonnées Three.js
         );
         
-        // Trouver la position interpolée le long de la route
-        let remainingDistance = accumulatedDistance;
-        let segmentIdx = currentSegmentIndex;
-        let interpolatedPoint: CartesianPoint | null = null;
+        // Calculer le point de visée (regarder devant)
+        const vehicleState = vehicleStateManager.getState();
+        const speed = Math.sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
+        const lookAheadDistance = Math.max(10, speed * 2); // au moins 10m, sinon 2 secondes devant
         
-        // Parcourir les segments jusqu'à épuiser la distance
-        while (segmentIdx < state.path.length - 1 && remainingDistance > 0) {
-          const p1 = state.path[segmentIdx];
-          const p2 = state.path[segmentIdx + 1];
-          const segmentLength = distanceBetween(p1, p2);
-          
-          if (remainingDistance <= segmentLength) {
-            // On est dans ce segment, interpoler
-            const t = remainingDistance / segmentLength;
-            interpolatedPoint = {
-              x: p1.x + (p2.x - p1.x) * t,
-              y: p1.y + (p2.y - p1.y) * t
-            };
-            currentSegmentIndex = segmentIdx; // Mettre à jour le segment actuel
-            break;
-          } else {
-            // On dépasse ce segment, passer au suivant
-            remainingDistance -= segmentLength;
-            segmentIdx++;
-            currentSegmentIndex = segmentIdx;
-          }
+        // Direction selon la vitesse
+        if (speed > 0.5) {
+          // Utiliser la direction de la vitesse estimée
+          const vx = velocity[0];
+          const vy = velocity[1];
+          const norm = Math.sqrt(vx * vx + vy * vy);
+          const lookX = smoothedPos[0] + (vx / norm) * lookAheadDistance;
+          const lookY = smoothedPos[1] + (vy / norm) * lookAheadDistance;
+          currentInterpolatedLookAt.set(lookX, 1.2, -lookY);
+        } else {
+          // Si vitesse faible, utiliser le heading du véhicule
+          const bearingRad = vehicleState.heading * Math.PI / 180;
+          const lookX = smoothedPos[0] + Math.sin(bearingRad) * 10;
+          const lookY = smoothedPos[1] + Math.cos(bearingRad) * 10;
+          currentInterpolatedLookAt.set(lookX, 1.2, -lookY);
         }
-        
-        // Si on a dépassé tous les segments, rester au dernier point
-        if (!interpolatedPoint && state.path.length > 0) {
-          const lastPoint = state.path[state.path.length - 1];
-          interpolatedPoint = lastPoint;
-          accumulatedDistance = 0; // Réinitialiser pour éviter l'accumulation infinie
-        }
-        
-        if (interpolatedPoint) {
-          currentInterpolatedPosition.set(interpolatedPoint.x, 1.5, -interpolatedPoint.y);
+      } else {
+        // Fallback : utiliser position actuelle (ne devrait pas arriver)
+        const currentPoint = state.path[state.currentIndex] || state.path[0];
+        if (currentPoint) {
+          currentInterpolatedPosition.set(currentPoint.x, 1.5, -currentPoint.y);
           
-          // Calculer le point de regard - regarder quelques segments devant
-          const lookAheadIndex = Math.min(currentSegmentIndex + 3, state.path.length - 1);
-          if (lookAheadIndex < state.path.length) {
-            const lookAheadPoint = state.path[lookAheadIndex];
-            currentInterpolatedLookAt.set(lookAheadPoint.x, 1.2, -lookAheadPoint.y);
-          } else {
-            // Si on est à la fin, regarder dans la direction du dernier segment
-            if (state.path.length >= 2) {
-              const lastPoint = state.path[state.path.length - 1];
-              const prevPoint = state.path[state.path.length - 2];
-              const dx = lastPoint.x - prevPoint.x;
-              const dy = lastPoint.y - prevPoint.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist > 0) {
-                const lookAheadDist = 10;
-                currentInterpolatedLookAt.set(
-                  interpolatedPoint.x + (dx / dist) * lookAheadDist,
-                  1.2,
-                  -interpolatedPoint.y - (dy / dist) * lookAheadDist
-                );
-              }
-            }
-          }
+          const bearingRad = state.bearing * Math.PI / 180;
+          const lookX = currentPoint.x + Math.sin(bearingRad) * 10;
+          const lookY = currentPoint.y + Math.cos(bearingRad) * 10;
+          currentInterpolatedLookAt.set(lookX, 1.2, -lookY);
         }
       }
 
