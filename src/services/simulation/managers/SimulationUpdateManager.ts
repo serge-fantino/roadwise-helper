@@ -51,6 +51,7 @@ export class SimulationUpdateManager {
     let newRouteIndex = this.routeManager.getCurrentIndex();
     let newPosition: [number, number] = currentPosition;
     let segmentHeading = 0;
+    let segmentRatio = 0; // Position sur le segment (0 à 1)
 
     while (remainingDistance > 0 && newRouteIndex < this.routeManager.getRouteLength() - 1) {
       // Partir de la position actuelle pour le premier segment, puis des points de route
@@ -60,25 +61,59 @@ export class SimulationUpdateManager {
       if (!startPoint || !nextRoutePoint) break;
 
       const segmentDistance = this.navigationCalculator.calculateDistance(startPoint, nextRoutePoint);
-      
-      // Calculer le heading du segment (tangente)
-      const heading = this.navigationCalculator.calculateHeading(startPoint, nextRoutePoint);
-      segmentHeading = this.navigationCalculator.calculateHeadingAngle(heading);
 
       if (remainingDistance >= segmentDistance) {
         // On peut atteindre le point suivant
         remainingDistance -= segmentDistance;
         newRouteIndex++;
         newPosition = nextRoutePoint;
+        segmentRatio = 1.0; // À la fin du segment
       } else {
         // On s'arrête au milieu du segment (interpolation linéaire)
-        const ratio = remainingDistance / segmentDistance;
+        segmentRatio = remainingDistance / segmentDistance;
         newPosition = [
-          startPoint[0] + (nextRoutePoint[0] - startPoint[0]) * ratio,
-          startPoint[1] + (nextRoutePoint[1] - startPoint[1]) * ratio
+          startPoint[0] + (nextRoutePoint[0] - startPoint[0]) * segmentRatio,
+          startPoint[1] + (nextRoutePoint[1] - startPoint[1]) * segmentRatio
         ];
         remainingDistance = 0;
       }
+    }
+
+    // Calculer le heading interpolé sur le segment
+    // Direction d'entrée = tronçon N-1 (ou N si N-1 n'existe pas)
+    const prevRoutePoint = this.routeManager.getRoutePoint(Math.max(0, newRouteIndex - 1));
+    const currentRoutePoint = this.routeManager.getRoutePoint(newRouteIndex);
+    const nextRoutePoint = this.routeManager.getRoutePoint(Math.min(newRouteIndex + 1, this.routeManager.getRouteLength() - 1));
+    const nextNextRoutePoint = this.routeManager.getRoutePoint(Math.min(newRouteIndex + 2, this.routeManager.getRouteLength() - 1));
+
+    if (prevRoutePoint && currentRoutePoint && nextRoutePoint) {
+      // Direction d'entrée du segment
+      let entryHeading;
+      if (newRouteIndex > 0) {
+        const h = this.navigationCalculator.calculateHeading(prevRoutePoint, currentRoutePoint);
+        entryHeading = this.navigationCalculator.calculateHeadingAngle(h);
+      } else {
+        const h = this.navigationCalculator.calculateHeading(currentRoutePoint, nextRoutePoint);
+        entryHeading = this.navigationCalculator.calculateHeadingAngle(h);
+      }
+
+      // Direction de sortie du segment
+      let exitHeading;
+      if (newRouteIndex < this.routeManager.getRouteLength() - 2) {
+        const h = this.navigationCalculator.calculateHeading(nextRoutePoint, nextNextRoutePoint);
+        exitHeading = this.navigationCalculator.calculateHeadingAngle(h);
+      } else {
+        const h = this.navigationCalculator.calculateHeading(currentRoutePoint, nextRoutePoint);
+        exitHeading = this.navigationCalculator.calculateHeadingAngle(h);
+      }
+
+      // Interpolation linéaire du heading (gérer le cas 0°/360°)
+      let headingDiff = exitHeading - entryHeading;
+      if (headingDiff > 180) headingDiff -= 360;
+      if (headingDiff < -180) headingDiff += 360;
+      
+      segmentHeading = entryHeading + segmentRatio * headingDiff;
+      segmentHeading = (segmentHeading + 360) % 360; // Normaliser 0-360
     }
 
     // Mettre à jour l'index de la route
