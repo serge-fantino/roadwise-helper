@@ -736,6 +736,14 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
   return (
     <div className="relative w-full h-full">
+      {/* Bouton toggle vue subjective/drone */}
+      <button
+        onClick={() => setViewMode(prev => prev === 'subjective' ? 'drone' : 'subjective')}
+        className="absolute top-5 right-5 z-[1000] px-6 py-3 bg-black/70 text-white border-2 border-white rounded-lg cursor-pointer font-bold text-sm flex items-center gap-2 hover:bg-black/90 transition-colors"
+      >
+        {viewMode === 'subjective' ? '🚗 Vue Subjective' : '🚁 Vue Drone'}
+      </button>
+      
       {/* Container WebGL */}
       <div ref={containerRef} className="absolute inset-0 bg-black" />
       
