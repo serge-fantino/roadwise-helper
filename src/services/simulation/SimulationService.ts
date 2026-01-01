@@ -34,7 +34,8 @@ export class SimulationService {
       });
       
       this.intervalId = setInterval(() => {
-        const nextIndex = this.currentRouteIndex + 1;
+        // Avancer de 10 points à chaque fois pour compenser la fréquence 10x plus élevée
+        const nextIndex = this.currentRouteIndex + 10;
         
         if (nextIndex >= this.routePoints.length) {
           this.stopSimulation();
@@ -44,8 +45,11 @@ export class SimulationService {
         const currentPosition = this.routePoints[this.currentRouteIndex];
         const nextPosition = this.routePoints[nextIndex];
         
-        // Calcul de la distance en mètres
-        const distance = calculateDistance(currentPosition, nextPosition);
+        // Calcul de la distance en mètres (sur 10 points)
+        let distance = 0;
+        for (let i = this.currentRouteIndex; i < nextIndex && i < this.routePoints.length - 1; i++) {
+          distance += calculateDistance(this.routePoints[i], this.routePoints[i + 1]);
+        }
         
         // Calcul du temps écoulé en secondes
         const currentTime = Date.now();

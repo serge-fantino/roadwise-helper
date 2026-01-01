@@ -60,6 +60,77 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const minimapRouteRef = useRef<L.Polyline | null>(null);
   const [minimapVisible, setMinimapVisible] = useState(true);
 
+  // Créer des panneaux de distance tous les 500m
+  const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
+    const signsGroup = new THREE.Group();
+    const signInterval = 500; // Tous les 500m
+    
+    const distanceBetween = (p1: CartesianPoint, p2: CartesianPoint): number => {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+    
+    let accumulatedDistance = 0;
+    let nextSignDistance = signInterval;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const p1 = path[i];
+      const p2 = path[i + 1];
+      const segmentLength = distanceBetween(p1, p2);
+
+      while (accumulatedDistance + segmentLength >= nextSignDistance) {
+        const distanceInSegment = nextSignDistance - accumulatedDistance;
+        const t = distanceInSegment / segmentLength;
+        const x = p1.x + (p2.x - p1.x) * t;
+        const y = p1.y + (p2.y - p1.y) * t;
+
+        // Créer le poteau (bleu)
+        const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3, 8);
+        const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x0066ff });
+        const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+        pole.position.set(x + 5, 1.5, -y); // 5m sur le côté droit
+        signsGroup.add(pole);
+
+        // Créer le panneau (blanc avec texte)
+        const signGeometry = new THREE.BoxGeometry(2, 1, 0.1);
+        const signMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const sign = new THREE.Mesh(signGeometry, signMaterial);
+        sign.position.set(x + 5, 3, -y);
+        signsGroup.add(sign);
+
+        // Ajouter le texte de distance (en noir sur fond blanc)
+        const distanceKm = nextSignDistance / 1000;
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 128;
+        const context = canvas.getContext('2d')!;
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, 256, 128);
+        context.fillStyle = '#000000';
+        context.font = 'bold 48px Arial';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(`${distanceKm.toFixed(1)} km`, 128, 64);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const textMaterial = new THREE.MeshBasicMaterial({ map: texture });
+        const textMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.8, 0.9),
+          textMaterial
+        );
+        textMesh.position.set(x + 5, 3, -y + 0.06);
+        signsGroup.add(textMesh);
+
+        nextSignDistance += signInterval;
+      }
+
+      accumulatedDistance += segmentLength;
+    }
+
+    return signsGroup;
+  };
+
   // Simplified: update view model with current position (no interpolation)
   useEffect(() => {
     const routeState = routePlannerService.getState();
