@@ -562,14 +562,16 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           y: (position[0] - sceneOriginRef.current.origin[0]) * scale
         };
         
-        // DEBUG: toujours afficher pour voir si ça change
-        console.log('[DriveView] Vehicle position UPDATE:', {
-          gps: [position[0].toFixed(6), position[1].toFixed(6)],
-          sceneOrigin: [sceneOriginRef.current.origin[0].toFixed(6), sceneOriginRef.current.origin[1].toFixed(6)],
-          delta: [(position[0] - sceneOriginRef.current.origin[0]).toFixed(8), (position[1] - sceneOriginRef.current.origin[1]).toFixed(8)],
-          cartesian: [vehicleCartesian.x.toFixed(2), vehicleCartesian.y.toFixed(2)],
-          threeJs: [vehicleCartesian.x.toFixed(2), (-vehicleCartesian.y).toFixed(2)]
-        });
+        // DEBUG: log toutes les secondes
+        if (frameCount % 60 === 0) {
+          console.log('[DriveView] Vehicle position:', {
+            gps: [position[0].toFixed(6), position[1].toFixed(6)],
+            sceneOrigin: [sceneOriginRef.current.origin[0].toFixed(6), sceneOriginRef.current.origin[1].toFixed(6)],
+            delta: [(position[0] - sceneOriginRef.current.origin[0]).toFixed(8), (position[1] - sceneOriginRef.current.origin[1]).toFixed(8)],
+            cartesian: [vehicleCartesian.x.toFixed(2), vehicleCartesian.y.toFixed(2)],
+            threeJs: [vehicleCartesian.x.toFixed(2), (-vehicleCartesian.y).toFixed(2)]
+          });
+        }
         
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
