@@ -10,7 +10,6 @@ export class SceneCoordinateSystem {
   constructor(origin: [number, number]) {
     this.origin = origin;
     this.cosLat = Math.cos((origin[0] * Math.PI) / 180);
-    console.log('[SceneCoordinateSystem] Created with origin:', origin, 'cosLat:', this.cosLat.toFixed(6));
   }
 
   /**
