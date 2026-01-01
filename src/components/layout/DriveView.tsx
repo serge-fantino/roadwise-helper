@@ -53,6 +53,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const lastStateRef = useRef<DriveViewState | null>(null);
   const vehicleMeshRef = useRef<THREE.Mesh | null>(null); // Cube représentant le véhicule
+  const sceneOriginRef = useRef<{ origin: [number, number]; cosLat: number } | null>(null); // Origine de la scène 3D
   
   // Mini-map state and refs
   const minimapRef = useRef<HTMLDivElement>(null);
@@ -510,6 +511,13 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       if (state.path.length > 0 && state.path.length !== lastPathLength) {
         lastPathLength = state.path.length;
 
+        // STOCKER L'ORIGINE de cette scène 3D
+        sceneOriginRef.current = {
+          origin: state.origin,
+          cosLat: state.cosLat
+        };
+        console.log('[DriveView] Scene origin stored:', sceneOriginRef.current.origin);
+
         // Nettoyer l'ancienne piste proprement
         clearTrack();
 
@@ -536,9 +544,14 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       }
 
       // Position caméra et véhicule
-      if (state.path.length > 0 && state.currentIndex < state.path.length) {
-        // Calculer la position EXACTE du véhicule dans le système de coordonnées de la scène 3D
-        const vehicleCartesian = viewModel.current.gpsToCartesian(position);
+      if (state.path.length > 0 && state.currentIndex < state.path.length && sceneOriginRef.current) {
+        // Convertir la position GPS ACTUELLE du véhicule en coordonnées cartésiennes
+        // en utilisant la MÊME ORIGINE que celle utilisée pour construire la scène
+        const scale = 111000; // mètres par degré
+        const vehicleCartesian = {
+          x: (position[1] - sceneOriginRef.current.origin[1]) * scale * sceneOriginRef.current.cosLat,
+          y: (position[0] - sceneOriginRef.current.origin[0]) * scale
+        };
         
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
@@ -552,6 +565,16 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           const geoHeading = 90 - vehicleState.heading;
           const headingRad = geoHeading * Math.PI / 180;
           vehicleMeshRef.current.rotation.y = -headingRad; // Rotation autour de l'axe Y
+          
+          // DEBUG
+          if (frameCount % 60 === 0) {
+            console.log('[DriveView] Vehicle position:', {
+              gps: position,
+              sceneOrigin: sceneOriginRef.current.origin,
+              cartesian: vehicleCartesian,
+              threeJs: { x: vehicleCartesian.x, z: -vehicleCartesian.y }
+            });
+          }
         }
         
         // Position de la caméra (pour les vues)
