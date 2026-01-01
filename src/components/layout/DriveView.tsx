@@ -354,11 +354,24 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     };
 
     // Animation loop - VERSION OPTIMISÉE
+    let frameCount = 0;
     const animate = () => {
       requestAnimationFrame(animate);
 
       const state = viewModel.current.getState();
       const vehicleState = vehicleStateManager.getState();
+      
+      // Log périodique pour debug
+      frameCount++;
+      if (frameCount % 60 === 0) { // Log toutes les secondes (60 FPS)
+        console.log('[DriveView] animate frame:', {
+          pathLength: state.path.length,
+          currentIndex: state.currentIndex,
+          bearing: state.bearing,
+          heading: vehicleState.heading,
+          cameraPos: camera.position.toArray()
+        });
+      }
 
       // Reconstruire la piste SEULEMENT si la ROUTE a changé (pas juste la position)
       if (state.path.length > 0 && state.path.length !== lastPathLength) {
