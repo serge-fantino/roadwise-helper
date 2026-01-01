@@ -29,35 +29,20 @@ export class SimulationUpdateManager {
     
     console.log('[SimulationUpdateManager] timeStep:', timeStep.toFixed(3), 's');
     
+    // Calculer la nouvelle vitesse avec le SpeedController
     const { speed: newSpeed, acceleration } = this.speedController.updateSpeed(
       timeStep, // Utiliser le temps écoulé réel
       optimalSpeed,
       requiredDeceleration
     );
     
-    const distanceToTravel = newSpeed * timeStep; // Distance = vitesse × temps
+    // Distance à parcourir = vitesse × temps
+    const distanceToTravel = newSpeed * timeStep;
     
     console.log('[SimulationUpdateManager] Speed and distance:', {
       newSpeed: (newSpeed * 3.6).toFixed(1) + ' km/h',
       distanceToTravel: distanceToTravel.toFixed(2) + ' m',
       timeStep: timeStep.toFixed(3) + ' s'
-    });
-    const targetIndex = this.routeManager.findNextValidTarget(currentPosition, distanceToTravel);
-    const nextPosition = this.routeManager.getRoutePoint(targetIndex);
-    
-    if (!nextPosition) {
-      console.error('[SimulationUpdateManager] No valid next position found');
-      return false;
-    }
-
-    console.log('[SimulationUpdateManager] Current state:', {
-      currentRouteIndex: this.routeManager.getCurrentIndex(),
-      targetIndex,
-      currentPosition,
-      nextPosition,
-      currentSpeed: newSpeed * 3.6,
-      acceleration,
-      distanceToTravel
     });
 
     // MODE DEBUG : Le véhicule suit la route comme un train sur des rails
