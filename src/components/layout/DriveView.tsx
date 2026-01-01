@@ -52,6 +52,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const lastStateRef = useRef<DriveViewState | null>(null);
+  const vehicleMeshRef = useRef<THREE.Mesh | null>(null); // Cube représentant le véhicule
   
   // Mini-map state and refs
   const minimapRef = useRef<HTMLDivElement>(null);
@@ -430,6 +431,20 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     directionalLight.position.set(50, 100, 50);
     // Ombres désactivées
     scene.add(directionalLight);
+
+    // Créer le cube représentant le véhicule (rouge vif pour être visible)
+    const vehicleGeometry = new THREE.BoxGeometry(2, 1.5, 4); // 2m large, 1.5m haut, 4m long
+    const vehicleMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff0000, // Rouge vif
+      emissive: 0xff0000,
+      emissiveIntensity: 0.3,
+      metalness: 0.7,
+      roughness: 0.3
+    });
+    const vehicleMesh = new THREE.Mesh(vehicleGeometry, vehicleMaterial);
+    vehicleMesh.position.set(0, 0.75, 0); // 0.75m au-dessus du sol (moitié de sa hauteur)
+    scene.add(vehicleMesh);
+    vehicleMeshRef.current = vehicleMesh;
     
     // Sol (herbe/terrain autour de la piste)
     const groundGeometry = new THREE.PlaneGeometry(2000, 2000);
@@ -520,9 +535,23 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         console.log('[DriveView] Piste construite avec', state.path.length, 'points');
       }
 
-      // Position caméra = position GPS directe (pas d'interpolation)
+      // Position caméra et véhicule = position GPS directe (pas d'interpolation)
       if (state.path.length > 0 && state.currentIndex < state.path.length) {
         const currentPoint = state.path[state.currentIndex];
+        
+        // Mettre à jour la position du cube véhicule
+        if (vehicleMeshRef.current) {
+          vehicleMeshRef.current.position.set(
+            currentPoint.x,
+            0.75, // 0.75m au-dessus du sol
+            -currentPoint.y
+          );
+          
+          // Orienter le véhicule selon le heading
+          const geoHeading = 90 - vehicleState.heading;
+          const headingRad = geoHeading * Math.PI / 180;
+          vehicleMeshRef.current.rotation.y = -headingRad; // Rotation autour de l'axe Y
+        }
         
         // DEBUG: vérifier la progression
         if (frameCount % 60 === 0) {
