@@ -62,6 +62,12 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const [viewMode, setViewMode] = useState<'subjective' | 'drone'>('drone'); // Mode drone par défaut
   const viewModeRef = useRef<'subjective' | 'drone'>('drone'); // Ref pour accès dans animate
 
+  // Sync viewMode state with ref
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    console.log('[DriveView] View mode changed to:', viewMode);
+  }, [viewMode]);
+
   // Créer des panneaux de distance tous les 500m et poteaux tous les 30m
   const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
     const signsGroup = new THREE.Group();
