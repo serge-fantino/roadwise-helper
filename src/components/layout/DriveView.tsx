@@ -326,23 +326,27 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     const groundRef = ground;
 
     // VERSION SIMPLIFIÉE: pas d'interpolation, pas de Kalman
+    let lastRenderedIndex = -1; // Pour savoir quand reconstruire la géométrie
 
-    // Animation loop - VERSION SIMPLIFIÉE
+    // Animation loop - VERSION SIMPLIFIÉE avec optimisation
     const animate = () => {
       requestAnimationFrame(animate);
 
       const state = viewModel.current.getState();
       const vehicleState = vehicleStateManager.getState();
 
-      // Nettoyer la scène (garder seulement les lumières et le sol)
-      scene.children = scene.children.filter(child => 
-        child instanceof THREE.AmbientLight || 
-        child instanceof THREE.DirectionalLight ||
-        (child instanceof THREE.Mesh && child === groundRef)
-      );
+      // Reconstruire la piste SEULEMENT si la position GPS a changé
+      if (state.currentIndex !== lastRenderedIndex && state.path.length > 0) {
+        lastRenderedIndex = state.currentIndex;
 
-      // Reconstruire la piste à chaque frame
-      if (state.path.length > 0) {
+        // Nettoyer la scène (garder seulement les lumières et le sol)
+        scene.children = scene.children.filter(child => 
+          child instanceof THREE.AmbientLight || 
+          child instanceof THREE.DirectionalLight ||
+          (child instanceof THREE.Mesh && child === groundRef)
+        );
+
+        // Reconstruire la géométrie de la piste
         const trackSurface = createTrackSurface(state.leftBorder, state.rightBorder);
         scene.add(trackSurface);
 
