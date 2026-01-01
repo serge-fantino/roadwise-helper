@@ -60,6 +60,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const minimapRouteRef = useRef<L.Polyline | null>(null);
   const [minimapVisible, setMinimapVisible] = useState(true);
 
+  // Simplified: update view model with current position (no interpolation)
   useEffect(() => {
     const routeState = routePlannerService.getState();
     viewModel.current.updateFromPosition(position, routeState.enhancedPoints);
