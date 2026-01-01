@@ -35,6 +35,7 @@ import { DriveViewModel, DriveViewState } from '../../models/DriveViewModel';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
 import { vehicleStateManager } from '../../services/VehicleStateManager';
 import { RouteFollowingTracker } from '../../utils/RouteFollowingTracker';
+import { SceneCoordinateSystem } from '../../utils/SceneCoordinateSystem';
 import * as THREE from 'three';
 import { CartesianPoint } from '../../services/route/RouteProjectionService';
 import L from 'leaflet';
@@ -53,7 +54,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const lastStateRef = useRef<DriveViewState | null>(null);
   const vehicleMeshRef = useRef<THREE.Mesh | null>(null); // Cube représentant le véhicule
-  const sceneOriginRef = useRef<{ origin: [number, number]; cosLat: number } | null>(null); // Origine de la scène 3D
+  const coordinateSystemRef = useRef<SceneCoordinateSystem | null>(null); // Système de coordonnées de la scène 3D
   
   // Mini-map state and refs
   const minimapRef = useRef<HTMLDivElement>(null);
@@ -507,26 +508,15 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         });
       }
 
-      // Initialiser l'origine si pas encore fait - GARDER L'ORIGINE FIXE !
-      if (state.path.length > 0 && !sceneOriginRef.current) {
-        sceneOriginRef.current = {
-          origin: state.origin,
-          cosLat: state.cosLat
-        };
-        console.log('[DriveView] Scene origin FIXED at:', sceneOriginRef.current.origin);
-      }
-
       // Construire la piste UNE SEULE FOIS quand la route change
+      // C'est le SEUL moment où on met à jour le système de coordonnées
       if (state.path.length > 0 && state.path.length !== lastPathLength) {
         lastPathLength = state.path.length;
         
-        // METTRE À JOUR l'origine car la piste est reconstruite avec une nouvelle origine
-        const oldOrigin = sceneOriginRef.current?.origin;
-        sceneOriginRef.current = {
-          origin: state.origin,
-          cosLat: state.cosLat
-        };
-        console.log('[DriveView] Track rebuilt - origin updated from:', oldOrigin, 'to:', state.origin);
+        // Créer/mettre à jour le système de coordonnées
+        const oldOrigin = coordinateSystemRef.current?.getOrigin();
+        coordinateSystemRef.current = new SceneCoordinateSystem(state.origin);
+        console.log('[DriveView] Track rebuilt - coordinate system updated from:', oldOrigin, 'to:', state.origin);
 
         // Nettoyer l'ancienne piste proprement
         clearTrack();
@@ -554,38 +544,29 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       }
 
       // Position caméra et véhicule
-      if (state.path.length > 0 && sceneOriginRef.current) {
-        // Convertir la position GPS ACTUELLE du véhicule en coordonnées cartésiennes
-        // en utilisant la MÊME ORIGINE que celle utilisée pour construire la scène
-        const scale = 111000; // mètres par degré
-        const vehicleCartesian = {
-          x: (position[1] - sceneOriginRef.current.origin[1]) * scale * sceneOriginRef.current.cosLat,
-          y: (position[0] - sceneOriginRef.current.origin[0]) * scale
-        };
+      if (state.path.length > 0 && coordinateSystemRef.current) {
+        // Convertir la position GPS ACTUELLE du véhicule en Three.js en utilisant le système de coordonnées
+        const vehiclePos3D = coordinateSystemRef.current.gpsToThreeJS(position, 0.75);
         
         // DEBUG: log toutes les secondes
         if (frameCount % 60 === 0) {
+          const cartesian = coordinateSystemRef.current.gpsToCartesian(position);
           console.log('[DriveView] Vehicle position:', {
             gps: [position[0].toFixed(6), position[1].toFixed(6)],
-            sceneOrigin: [sceneOriginRef.current.origin[0].toFixed(6), sceneOriginRef.current.origin[1].toFixed(6)],
-            delta: [(position[0] - sceneOriginRef.current.origin[0]).toFixed(8), (position[1] - sceneOriginRef.current.origin[1]).toFixed(8)],
-            cartesian: [vehicleCartesian.x.toFixed(2), vehicleCartesian.y.toFixed(2)],
-            threeJs: [vehicleCartesian.x.toFixed(2), (-vehicleCartesian.y).toFixed(2)]
+            sceneOrigin: coordinateSystemRef.current.getOrigin().map(v => v.toFixed(6)),
+            cartesian: [cartesian.x.toFixed(2), cartesian.y.toFixed(2)],
+            threeJs: [vehiclePos3D.x.toFixed(2), vehiclePos3D.y.toFixed(2), vehiclePos3D.z.toFixed(2)]
           });
         }
         
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
-          vehicleMeshRef.current.position.set(
-            vehicleCartesian.x,
-            0.75, // 0.75m au-dessus du sol
-            -vehicleCartesian.y
-          );
+          vehicleMeshRef.current.position.set(vehiclePos3D.x, vehiclePos3D.y, vehiclePos3D.z);
           
           // Orienter le véhicule selon le heading
           const geoHeading = 90 - vehicleState.heading;
           const headingRad = geoHeading * Math.PI / 180;
-          vehicleMeshRef.current.rotation.y = -headingRad; // Rotation autour de l'axe Y
+          vehicleMeshRef.current.rotation.y = -headingRad;
         }
         
         // DEBUG: vérifier la progression
@@ -610,42 +591,34 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         
         if (viewModeRef.current === 'subjective') {
           // Vue subjective (première personne) - caméra à la position du véhicule
-          camera.position.set(
-            vehicleCartesian.x,
-            1.5, // 1.5m au-dessus du sol
-            -vehicleCartesian.y
-          );
+          const cameraPos = coordinateSystemRef.current.gpsToThreeJS(position, 1.5);
+          camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
 
           // Regarder devant
           const lookAheadDistance = 10; // Regarder 10m devant
           const directionX = Math.sin(headingRad); // Est/Ouest
           const directionY = Math.cos(headingRad); // Nord/Sud
           
-          const lookAtX = vehicleCartesian.x + directionX * lookAheadDistance;
-          const lookAtY = vehicleCartesian.y + directionY * lookAheadDistance;
+          const lookAtX = cameraPos.x + directionX * lookAheadDistance;
+          const lookAtZ = cameraPos.z - directionY * lookAheadDistance; // z inversé
 
-          camera.lookAt(lookAtX, 1.2, -lookAtY);
+          camera.lookAt(lookAtX, 1.2, lookAtZ);
         } else {
           // Vue drone (exactement au-dessus du véhicule)
           const droneHeight = 80; // 80m de hauteur pour bien voir
-          
-          // Caméra EXACTEMENT au-dessus du véhicule
-          camera.position.set(
-            vehicleCartesian.x,
-            droneHeight,
-            -vehicleCartesian.y
-          );
+          const cameraPos = coordinateSystemRef.current.gpsToThreeJS(position, droneHeight);
+          camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
 
           // Calculer le point devant le véhicule pour orienter la vue
           const lookAheadDistance = 50;
           const directionX = Math.sin(headingRad);
           const directionY = Math.cos(headingRad);
           
-          const lookAtX = vehicleCartesian.x + directionX * lookAheadDistance;
-          const lookAtY = vehicleCartesian.y + directionY * lookAheadDistance;
+          const lookAtX = cameraPos.x + directionX * lookAheadDistance;
+          const lookAtZ = cameraPos.z - directionY * lookAheadDistance; // z inversé
           
           // Regarder devant le véhicule (map orientée avec véhicule vers le haut)
-          camera.lookAt(lookAtX, 0, -lookAtY);
+          camera.lookAt(lookAtX, 0, lookAtZ);
         }
         
         // Log pour debug
