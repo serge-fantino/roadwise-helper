@@ -60,20 +60,41 @@ export class SimulationUpdateManager {
       distanceToTravel
     });
 
-    const heading = this.navigationCalculator.calculateHeading(currentPosition, nextPosition);
-    const newPosition = this.navigationCalculator.calculateNextPosition(currentPosition, heading, distanceToTravel);
+    // Calculer le heading basé sur la tangente de la route (pas la direction vers nextPosition)
+    // Utiliser les points de route avant et après la position actuelle pour avoir la tangente
+    const currentRouteIndex = this.routeManager.getCurrentIndex();
+    const currentRoutePoint = this.routeManager.getRoutePoint(currentRouteIndex);
+    const nextRoutePoint = this.routeManager.getRoutePoint(Math.min(currentRouteIndex + 1, this.routeManager.getRouteLength() - 1));
+    
+    let routeHeading;
+    if (currentRoutePoint && nextRoutePoint) {
+      // Heading = tangente de la route (direction entre deux points de route consécutifs)
+      routeHeading = this.navigationCalculator.calculateHeading(currentRoutePoint, nextRoutePoint);
+    } else {
+      // Fallback
+      routeHeading = this.navigationCalculator.calculateHeading(currentPosition, nextPosition);
+    }
+    
+    const newPosition = this.navigationCalculator.calculateNextPosition(currentPosition, routeHeading, distanceToTravel);
 
     if (targetIndex > this.routeManager.getCurrentIndex()) {
       console.log('[SimulationUpdateManager] Updating route index from', this.routeManager.getCurrentIndex(), 'to', targetIndex);
       this.routeManager.updateCurrentIndex(targetIndex);
     }
 
+    const headingAngle = this.navigationCalculator.calculateHeadingAngle(routeHeading);
+    console.log('[SimulationUpdateManager] Heading:', {
+      currentRouteIndex,
+      headingAngle: headingAngle.toFixed(1) + '°',
+      routePoints: [currentRoutePoint, nextRoutePoint]
+    });
+
     // Mise à jour de l'état via le gestionnaire
     vehicleStateManager.updateState({
       position: newPosition,
       speed: newSpeed,
       acceleration: acceleration,
-      heading: this.navigationCalculator.calculateHeadingAngle(heading)
+      heading: headingAngle
     });
 
     return true;

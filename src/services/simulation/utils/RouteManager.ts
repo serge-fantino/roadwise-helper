@@ -81,4 +81,8 @@ export class RouteManager {
   hasReachedEnd(): boolean {
     return this.currentRouteIndex >= this.routePoints.length - 1;
   }
+
+  getRouteLength(): number {
+    return this.routePoints.length;
+  }
 }
