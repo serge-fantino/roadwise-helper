@@ -52,6 +52,13 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const lastStateRef = useRef<DriveViewState | null>(null);
+  
+  // Mini-map state and refs
+  const minimapRef = useRef<HTMLDivElement>(null);
+  const minimapInstanceRef = useRef<L.Map | null>(null);
+  const minimapMarkerRef = useRef<L.Marker | null>(null);
+  const minimapRouteRef = useRef<L.Polyline | null>(null);
+  const [minimapVisible, setMinimapVisible] = useState(true);
 
   useEffect(() => {
     const routeState = routePlannerService.getState();
