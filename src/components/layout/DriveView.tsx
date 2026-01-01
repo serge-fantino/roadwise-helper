@@ -392,6 +392,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    const mountEl = containerRef.current;
 
     // Initialisation de la scène Three.js
     const scene = new THREE.Scene();
@@ -401,15 +402,17 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     
     const camera = new THREE.PerspectiveCamera(
       75, // FOV
-      containerRef.current.clientWidth / containerRef.current.clientHeight,
+      mountEl.clientWidth / mountEl.clientHeight,
       0.1,
       3000
     );
     
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    renderer.setSize(mountEl.clientWidth, mountEl.clientHeight);
     // Ombres désactivées
-    containerRef.current.appendChild(renderer.domElement);
+    // En dev (React StrictMode) l'effet peut monter/démonter 2x: on nettoie avant d'ajouter
+    mountEl.innerHTML = '';
+    mountEl.appendChild(renderer.domElement);
 
     // Position initiale de la caméra
     camera.position.set(0, 1.5, 0); // Légèrement surélevée
@@ -482,8 +485,11 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
     // Animation loop - VERSION OPTIMISÉE
     let frameCount = 0;
+    let rafId = 0;
+    let stopped = false;
     const animate = () => {
-      requestAnimationFrame(animate);
+      if (stopped) return;
+      rafId = requestAnimationFrame(animate);
 
       const currentVehicle = vehicleRef.current;
       const currentGpsPosition = currentVehicle.position;
@@ -582,17 +588,16 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
         }
       }
 
-      frameCount++;
       renderer.render(scene, camera);
+      frameCount++;
     };
 
     animate();
 
     // Gestion du redimensionnement
     const handleResize = () => {
-      if (!containerRef.current) return;
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
+      const width = mountEl.clientWidth;
+      const height = mountEl.clientHeight;
 
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -602,7 +607,12 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      containerRef.current?.removeChild(renderer.domElement);
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (renderer.domElement.parentElement === mountEl) {
+        mountEl.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
     };
   }, []);
 
