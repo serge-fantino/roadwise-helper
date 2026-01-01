@@ -85,42 +85,55 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         const x = p1.x + (p2.x - p1.x) * t;
         const y = p1.y + (p2.y - p1.y) * t;
 
-        // Créer le poteau (bleu)
-        const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3, 8);
-        const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x0066ff });
+        // Créer le poteau (bleu, plus gros)
+        const poleGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+        const poleMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0x0066ff,
+          emissive: 0x003399,
+          emissiveIntensity: 0.3
+        });
         const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-        pole.position.set(x + 5, 1.5, -y); // 5m sur le côté droit
+        pole.position.set(x - 8, 1.5, -y); // 8m sur le côté GAUCHE (plus visible)
         signsGroup.add(pole);
 
-        // Créer le panneau (blanc avec texte)
-        const signGeometry = new THREE.BoxGeometry(2, 1, 0.1);
-        const signMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        // Créer le panneau (blanc avec texte, plus gros)
+        const signGeometry = new THREE.BoxGeometry(4, 2, 0.2);
+        const signMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0xffffff,
+          emissive: 0xffffff,
+          emissiveIntensity: 0.2
+        });
         const sign = new THREE.Mesh(signGeometry, signMaterial);
-        sign.position.set(x + 5, 3, -y);
+        sign.position.set(x - 8, 3.5, -y);
         signsGroup.add(sign);
 
-        // Ajouter le texte de distance (en noir sur fond blanc)
+        // Ajouter le texte de distance (en noir sur fond blanc, plus gros)
         const distanceKm = nextSignDistance / 1000;
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 128;
+        canvas.width = 512;
+        canvas.height = 256;
         const context = canvas.getContext('2d')!;
         context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, 256, 128);
+        context.fillRect(0, 0, 512, 256);
         context.fillStyle = '#000000';
-        context.font = 'bold 48px Arial';
+        context.font = 'bold 96px Arial';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(`${distanceKm.toFixed(1)} km`, 128, 64);
+        context.fillText(`${distanceKm.toFixed(1)} km`, 256, 128);
         
         const texture = new THREE.CanvasTexture(canvas);
-        const textMaterial = new THREE.MeshBasicMaterial({ map: texture });
+        const textMaterial = new THREE.MeshBasicMaterial({ 
+          map: texture,
+          side: THREE.DoubleSide // Visible des deux côtés
+        });
         const textMesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.8, 0.9),
+          new THREE.PlaneGeometry(3.6, 1.8),
           textMaterial
         );
-        textMesh.position.set(x + 5, 3, -y + 0.06);
+        textMesh.position.set(x - 8, 3.5, -y + 0.15);
         signsGroup.add(textMesh);
+        
+        console.log(`[DriveView] Panneau créé à ${distanceKm.toFixed(1)} km, position:`, x, y);
 
         nextSignDistance += signInterval;
       }
