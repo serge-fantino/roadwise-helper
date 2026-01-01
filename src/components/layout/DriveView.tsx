@@ -326,37 +326,54 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     const groundRef = ground;
 
     // VERSION SIMPLIFIÉE: pas d'interpolation, pas de Kalman
-    let lastRenderedIndex = -1; // Pour savoir quand reconstruire la géométrie
+    // Garder les références aux objets de la piste pour pouvoir les supprimer proprement
+    let trackObjects: THREE.Object3D[] = [];
+    let lastPathLength = 0; // Pour détecter si la route a changé
 
-    // Animation loop - VERSION SIMPLIFIÉE avec optimisation
+    // Fonction pour nettoyer la piste
+    const clearTrack = () => {
+      trackObjects.forEach(obj => {
+        scene.remove(obj);
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach(mat => mat.dispose());
+          } else {
+            obj.material.dispose();
+          }
+        }
+      });
+      trackObjects = [];
+    };
+
+    // Animation loop - VERSION OPTIMISÉE
     const animate = () => {
       requestAnimationFrame(animate);
 
       const state = viewModel.current.getState();
       const vehicleState = vehicleStateManager.getState();
 
-      // Reconstruire la piste SEULEMENT si la position GPS a changé
-      if (state.currentIndex !== lastRenderedIndex && state.path.length > 0) {
-        lastRenderedIndex = state.currentIndex;
+      // Reconstruire la piste SEULEMENT si la ROUTE a changé (pas juste la position)
+      if (state.path.length > 0 && state.path.length !== lastPathLength) {
+        lastPathLength = state.path.length;
 
-        // Nettoyer la scène (garder seulement les lumières et le sol)
-        scene.children = scene.children.filter(child => 
-          child instanceof THREE.AmbientLight || 
-          child instanceof THREE.DirectionalLight ||
-          (child instanceof THREE.Mesh && child === groundRef)
-        );
+        // Nettoyer l'ancienne piste proprement
+        clearTrack();
 
-        // Reconstruire la géométrie de la piste
+        // Créer la nouvelle géométrie de la piste
         const trackSurface = createTrackSurface(state.leftBorder, state.rightBorder);
         scene.add(trackSurface);
+        trackObjects.push(trackSurface);
 
         const leftBorders = createTrackBorders(state.leftBorder, 'left');
         const rightBorders = createTrackBorders(state.rightBorder, 'right');
         scene.add(leftBorders);
         scene.add(rightBorders);
+        trackObjects.push(leftBorders, rightBorders);
 
         const roadMarkings = createRoadMarkings(state.path);
         scene.add(roadMarkings);
+        trackObjects.push(roadMarkings);
       }
 
       // Position caméra = position GPS directe (pas d'interpolation)
