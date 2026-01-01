@@ -519,6 +519,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         // DEBUG: vérifier la progression
         if (frameCount % 60 === 0) {
           console.log('[DriveView] Position tracking:', {
+            viewMode: viewMode,
             gpsLat: position[0].toFixed(6),
             gpsLon: position[1].toFixed(6),
             cartesianX: currentPoint.x.toFixed(2) + 'm (lon)',
@@ -530,36 +531,59 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           });
         }
         
-        camera.position.set(
-          currentPoint.x,
-          1.5, // 1.5m au-dessus du sol
-          -currentPoint.y // Inverser Y pour Three.js
-        );
-
         // Orientation = heading du véhicule (tangente à la route)
         // NavigationCalculator: 0°=Est, 90°=Nord → conversion nécessaire
-        // FIX: on avançait à reculons → inverser de 180°
-        const geoHeading = 90 - vehicleState.heading + 180; // Convention géographique + inversion
+        const geoHeading = 90 - vehicleState.heading; // Convention géographique
         const headingRad = geoHeading * Math.PI / 180;
-        const lookAheadDistance = 10; // Regarder 10m devant
         
-        // Calculer le vecteur de direction en coordonnées cartésiennes (géo)
-        const directionX = Math.sin(headingRad); // Est/Ouest
-        const directionY = Math.cos(headingRad); // Nord/Sud
-        
-        const lookAtX = currentPoint.x + directionX * lookAheadDistance;
-        const lookAtY = currentPoint.y + directionY * lookAheadDistance;
+        if (viewMode === 'subjective') {
+          // Vue subjective (première personne)
+          camera.position.set(
+            currentPoint.x,
+            1.5, // 1.5m au-dessus du sol
+            -currentPoint.y // Inverser Y pour Three.js
+          );
 
-        camera.lookAt(lookAtX, 1.2, -lookAtY);
+          // Regarder devant
+          const lookAheadDistance = 10; // Regarder 10m devant
+          const directionX = Math.sin(headingRad); // Est/Ouest
+          const directionY = Math.cos(headingRad); // Nord/Sud
+          
+          const lookAtX = currentPoint.x + directionX * lookAheadDistance;
+          const lookAtY = currentPoint.y + directionY * lookAheadDistance;
+
+          camera.lookAt(lookAtX, 1.2, -lookAtY);
+        } else {
+          // Vue drone (de dessus)
+          // Caméra à 50m au-dessus, derrière le véhicule
+          const droneHeight = 50;
+          const droneBehindDistance = 30; // 30m derrière
+          
+          // Position de la caméra: derrière et au-dessus
+          const camDirectionX = Math.sin(headingRad);
+          const camDirectionY = Math.cos(headingRad);
+          
+          camera.position.set(
+            currentPoint.x - camDirectionX * droneBehindDistance,
+            droneHeight,
+            -currentPoint.y + camDirectionY * droneBehindDistance
+          );
+
+          // Regarder vers la position du véhicule
+          camera.lookAt(currentPoint.x, 0, -currentPoint.y);
+        }
         
         // Log pour debug
         if (frameCount % 60 === 0) {
           console.log('[DriveView] Camera orientation:', {
+            mode: viewMode,
             headingNav: vehicleState.heading.toFixed(1) + '° (0°=Est)',
             headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
-            cameraPos: [currentPoint.x.toFixed(1), currentPoint.y.toFixed(1)],
-            lookAt: [lookAtX.toFixed(1), (-lookAtY).toFixed(1)],
-            direction: [directionX.toFixed(2), directionY.toFixed(2)]
+            cameraPos: {
+              x: camera.position.x.toFixed(1),
+              y: camera.position.y.toFixed(1),
+              z: camera.position.z.toFixed(1)
+            }
           });
         }
       } else {
