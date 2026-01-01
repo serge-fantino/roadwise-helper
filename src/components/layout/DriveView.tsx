@@ -59,7 +59,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const minimapMarkerRef = useRef<L.Marker | null>(null);
   const minimapRouteRef = useRef<L.Polyline | null>(null);
   const [minimapVisible, setMinimapVisible] = useState(true);
-  const [viewMode, setViewMode] = useState<'subjective' | 'drone'>('subjective');
+  const [viewMode, setViewMode] = useState<'subjective' | 'drone'>('drone'); // Mode drone par défaut
+  const viewModeRef = useRef<'subjective' | 'drone'>('drone'); // Ref pour accès dans animate
 
   // Créer des panneaux de distance tous les 500m et poteaux tous les 30m
   const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
@@ -520,7 +521,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         // DEBUG: vérifier la progression
         if (frameCount % 60 === 0) {
           console.log('[DriveView] Position tracking:', {
-            viewMode: viewMode,
+            viewMode: viewModeRef.current,
             gpsLat: position[0].toFixed(6),
             gpsLon: position[1].toFixed(6),
             cartesianX: currentPoint.x.toFixed(2) + 'm (lon)',
@@ -537,7 +538,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         const geoHeading = 90 - vehicleState.heading; // Convention géographique
         const headingRad = geoHeading * Math.PI / 180;
         
-        if (viewMode === 'subjective') {
+        if (viewModeRef.current === 'subjective') {
           // Vue subjective (première personne)
           camera.position.set(
             currentPoint.x,
@@ -580,7 +581,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         // Log pour debug
         if (frameCount % 60 === 0) {
           console.log('[DriveView] Camera orientation:', {
-            mode: viewMode,
+            mode: viewModeRef.current,
             headingNav: vehicleState.heading.toFixed(1) + '° (0°=Est)',
             headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
             cameraPos: {
