@@ -496,14 +496,13 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           -currentPoint.y // Inverser Y pour Three.js
         );
 
-        // Orientation = heading du véhicule directement
-        // Heading géographique: 0° = Nord, 90° = Est, 180° = Sud, 270° = Ouest
-        // En cartésien: deltaX = sin(heading), deltaY = cos(heading)
-        // En Three.js: x = cartésien X, z = -cartésien Y
-        const headingRad = vehicleState.heading * Math.PI / 180;
+        // Orientation = heading du véhicule (tangente à la route)
+        // NavigationCalculator: 0°=Est, 90°=Nord → conversion nécessaire
+        const geoHeading = 90 - vehicleState.heading; // Convention géographique
+        const headingRad = geoHeading * Math.PI / 180;
         const lookAheadDistance = 10; // Regarder 10m devant
         
-        // Calculer le vecteur de direction en coordonnées cartésiennes
+        // Calculer le vecteur de direction en coordonnées cartésiennes (géo)
         const directionX = Math.sin(headingRad); // Est/Ouest
         const directionY = Math.cos(headingRad); // Nord/Sud
         
