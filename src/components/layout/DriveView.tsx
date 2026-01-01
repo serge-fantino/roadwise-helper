@@ -335,7 +335,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     // VERSION SIMPLIFIÉE: pas d'interpolation, pas de Kalman
     // Garder les références aux objets de la piste pour pouvoir les supprimer proprement
     let trackObjects: THREE.Object3D[] = [];
-    let lastRenderedIndex = -1; // Pour détecter quand la position GPS change
+    let lastPathLength = 0; // Pour détecter si la ROUTE a changé (pas la position)
 
     // Fonction pour nettoyer la piste
     const clearTrack = () => {
@@ -373,14 +373,14 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         });
       }
 
-      // Reconstruire la piste si la position GPS a changé (pour que la piste "suive" le véhicule)
-      if (state.path.length > 0 && state.currentIndex !== lastRenderedIndex) {
-        lastRenderedIndex = state.currentIndex;
+      // Construire la piste UNE SEULE FOIS quand la route change
+      if (state.path.length > 0 && state.path.length !== lastPathLength) {
+        lastPathLength = state.path.length;
 
         // Nettoyer l'ancienne piste proprement
         clearTrack();
 
-        // Créer la nouvelle géométrie de la piste
+        // Créer la géométrie de la piste COMPLETE
         const trackSurface = createTrackSurface(state.leftBorder, state.rightBorder);
         scene.add(trackSurface);
         trackObjects.push(trackSurface);
@@ -394,6 +394,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         const roadMarkings = createRoadMarkings(state.path);
         scene.add(roadMarkings);
         trackObjects.push(roadMarkings);
+        
+        console.log('[DriveView] Piste construite avec', state.path.length, 'points');
       }
 
       // Position caméra = position GPS directe (pas d'interpolation)
