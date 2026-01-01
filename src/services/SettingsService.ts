@@ -44,7 +44,7 @@ class SettingsService {
       roadInfoProvider: 'nominatim',
       maxRouteDeviation: 50,
       disableOverpass: false,
-      simulatorVersion: 'v1',
+      simulatorVersion: 'v2', // Utiliser V2 par défaut (vitesse optimale)
       drivingStyle: 'prudent',
       mapboxToken: '',
       enableAutoRecalculate: true, // Default value

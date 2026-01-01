@@ -497,11 +497,14 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         );
 
         // Orientation = heading du véhicule directement
-        const bearingRad = vehicleState.heading * Math.PI / 180;
+        // Heading en degrés: 0° = Nord, 90° = Est, 180° = Sud, 270° = Ouest
+        // En coordonnées Three.js: X = Est, Z (négatif) = Nord
+        // Donc pour Three.js: angleThreeJS = 90° - headingGeo
+        const bearingRad = (90 - vehicleState.heading) * Math.PI / 180;
         const lookAheadDistance = 10; // Regarder 10m devant
         
-        const lookAtX = currentPoint.x + Math.sin(bearingRad) * lookAheadDistance;
-        const lookAtY = currentPoint.y + Math.cos(bearingRad) * lookAheadDistance;
+        const lookAtX = currentPoint.x + Math.cos(bearingRad) * lookAheadDistance;
+        const lookAtY = currentPoint.y + Math.sin(bearingRad) * lookAheadDistance;
 
         camera.lookAt(lookAtX, 1.2, -lookAtY);
       } else {
