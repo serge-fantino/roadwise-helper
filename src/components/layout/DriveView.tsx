@@ -722,7 +722,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     minimapDirectionRef.current = directionLine;
 
     console.log('[DriveView] Minimap direction:', {
-      headingNav: vehicleState.heading.toFixed(1) + '° (0°=Est)',
+      headingNav: vehicle.heading.toFixed(1) + '° (0°=Est)',
       headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
       from: position,
       to: lookAtPoint,
