@@ -77,11 +77,30 @@ export class LocationService {
   }
 
   private handlePositionUpdate(position: [number, number], speed: number, accelerationInG: number) {
+    // Calculer le heading à partir des 2 dernières positions
+    const tripState = tripService.getState();
+    let heading = vehicleStateManager.getState().heading; // Garder le heading précédent par défaut
+    
+    if (tripState.positions.length > 0) {
+      const lastPosition = tripState.positions[tripState.positions.length - 1];
+      // Calculer heading entre dernière position et nouvelle position
+      const deltaLat = position[0] - lastPosition[0];
+      const deltaLon = position[1] - lastPosition[1];
+      
+      // Calculer l'angle en degrés (0° = Nord, 90° = Est)
+      if (Math.abs(deltaLat) > 0.00001 || Math.abs(deltaLon) > 0.00001) {
+        heading = Math.atan2(deltaLon, deltaLat) * 180 / Math.PI;
+        // Normaliser entre 0 et 360
+        heading = (heading + 360) % 360;
+      }
+    }
+    
     // Mettre à jour l'état du véhicule via le gestionnaire
     vehicleStateManager.updateState({
       position,
       speed,
-      acceleration: accelerationInG * 9.81 // Convertir g en m/s²
+      acceleration: accelerationInG * 9.81, // Convertir g en m/s²
+      heading
     });
     
     // Ajouter la position à l'historique
