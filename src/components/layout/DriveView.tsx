@@ -554,23 +554,26 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
           camera.lookAt(lookAtX, 1.2, -lookAtY);
         } else {
-          // Vue drone (de dessus)
-          // Caméra à 50m au-dessus, derrière le véhicule
-          const droneHeight = 50;
-          const droneBehindDistance = 30; // 30m derrière
+          // Vue drone (exactement au-dessus)
+          const droneHeight = 80; // 80m de hauteur pour bien voir
           
-          // Position de la caméra: derrière et au-dessus
-          const camDirectionX = Math.sin(headingRad);
-          const camDirectionY = Math.cos(headingRad);
-          
+          // Caméra EXACTEMENT au-dessus du véhicule
           camera.position.set(
-            currentPoint.x - camDirectionX * droneBehindDistance,
+            currentPoint.x,
             droneHeight,
-            -currentPoint.y + camDirectionY * droneBehindDistance
+            -currentPoint.y
           );
 
-          // Regarder vers la position du véhicule
-          camera.lookAt(currentPoint.x, 0, -currentPoint.y);
+          // Calculer le point devant le véhicule pour orienter la vue
+          const lookAheadDistance = 50;
+          const directionX = Math.sin(headingRad);
+          const directionY = Math.cos(headingRad);
+          
+          const lookAtX = currentPoint.x + directionX * lookAheadDistance;
+          const lookAtY = currentPoint.y + directionY * lookAheadDistance;
+          
+          // Regarder devant le véhicule (map orientée avec véhicule vers le haut)
+          camera.lookAt(lookAtX, 0, -lookAtY);
         }
         
         // Log pour debug
@@ -736,10 +739,10 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
   return (
     <div className="relative w-full h-full">
-      {/* Bouton toggle vue subjective/drone */}
+      {/* Bouton toggle vue subjective/drone - EN HAUT AU CENTRE */}
       <button
         onClick={() => setViewMode(prev => prev === 'subjective' ? 'drone' : 'subjective')}
-        className="absolute top-5 right-5 z-[1000] px-6 py-3 bg-black/70 text-white border-2 border-white rounded-lg cursor-pointer font-bold text-sm flex items-center gap-2 hover:bg-black/90 transition-colors"
+        className="absolute top-5 left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 bg-black/70 text-white border-2 border-white rounded-lg cursor-pointer font-bold text-sm flex items-center gap-2 hover:bg-black/90 transition-colors pointer-events-auto"
       >
         {viewMode === 'subjective' ? '🚗 Vue Subjective' : '🚁 Vue Drone'}
       </button>
