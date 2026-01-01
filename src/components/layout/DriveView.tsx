@@ -739,26 +739,35 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
   return (
     <div className="relative w-full h-full">
-      {/* Bouton toggle vue subjective/drone - EN HAUT AU CENTRE */}
-      <button
-        onClick={() => setViewMode(prev => prev === 'subjective' ? 'drone' : 'subjective')}
-        className="absolute top-5 left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 bg-black/70 text-white border-2 border-white rounded-lg cursor-pointer font-bold text-sm flex items-center gap-2 hover:bg-black/90 transition-colors pointer-events-auto"
-      >
-        {viewMode === 'subjective' ? '🚗 Vue Subjective' : '🚁 Vue Drone'}
-      </button>
-      
       {/* Container WebGL */}
       <div ref={containerRef} className="absolute inset-0 bg-black" />
       
       {/* Overlay UI */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Info en haut à gauche */}
-        <div className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-lg">
-          <div className="space-y-1">
-            {/* Tu peux ajouter d'autres infos ici */}
-            <div className="text-sm font-mono">
-              Position: {position[0].toFixed(6)}, {position[1].toFixed(6)}
-            </div>
+        <div className="absolute top-4 left-4 bg-black/50 text-white p-3 rounded-lg space-y-3 pointer-events-auto">
+          {/* Position */}
+          <div className="text-sm font-mono">
+            Position: {position[0].toFixed(6)}, {position[1].toFixed(6)}
+          </div>
+          
+          {/* Toggle vue subjective/drone */}
+          <div className="flex items-center gap-3 pt-2 border-t border-white/20">
+            <span className="text-xs font-semibold">🚗 FPS</span>
+            <button
+              onClick={() => setViewMode(prev => prev === 'subjective' ? 'drone' : 'subjective')}
+              className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${
+                viewMode === 'drone' ? 'bg-blue-500' : 'bg-gray-600'
+              }`}
+              style={{ cursor: 'pointer' }}
+            >
+              <div
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 ${
+                  viewMode === 'drone' ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className="text-xs font-semibold">🚁 Drone</span>
           </div>
         </div>
         
