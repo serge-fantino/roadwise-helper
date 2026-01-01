@@ -18,6 +18,7 @@ export class LocationService {
   private lastSpeed: number = 0;
   private lastSpeedUpdateTime: number = null;
   private lastAccelerationInG: number = 0;
+  private useAdvancedSimulation: boolean = true; // Utiliser SimulationServiceV2 par défaut
 
   private constructor() {
     // Initialiser les services de simulation avec le nouveau gestionnaire d'état

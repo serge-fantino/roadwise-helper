@@ -67,7 +67,7 @@ export class SimulationServiceV2 {
       
       this.intervalId = setInterval(() => {
         this.updateSimulation();
-      }, 1000);
+      }, 100); // 100ms = 10 FPS pour plus de fluidité
     }
   }
 

@@ -4,6 +4,8 @@ import { SpeedController } from '../utils/SpeedController';
 import { vehicleStateManager } from '../../VehicleStateManager';
 
 export class SimulationUpdateManager {
+  private lastUpdateTime: number = Date.now();
+
   constructor(
     private navigationCalculator: NavigationCalculator,
     private speedController: SpeedController,
@@ -14,13 +16,18 @@ export class SimulationUpdateManager {
     const currentState = vehicleStateManager.getState();
     const currentPosition = currentState.position;
     
+    // Calculer le temps écoulé réel
+    const currentTime = Date.now();
+    const timeStep = (currentTime - this.lastUpdateTime) / 1000; // en secondes
+    this.lastUpdateTime = currentTime;
+    
     const { speed: newSpeed, acceleration } = this.speedController.updateSpeed(
-      1, // TIME_STEP
+      timeStep, // Utiliser le temps écoulé réel au lieu de 1
       optimalSpeed,
       requiredDeceleration
     );
     
-    const distanceToTravel = newSpeed * 1; // TIME_STEP
+    const distanceToTravel = newSpeed * timeStep; // Distance = vitesse × temps
     const targetIndex = this.routeManager.findNextValidTarget(currentPosition, distanceToTravel);
     const nextPosition = this.routeManager.getRoutePoint(targetIndex);
     
