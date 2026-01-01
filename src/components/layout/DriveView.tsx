@@ -60,10 +60,11 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const minimapRouteRef = useRef<L.Polyline | null>(null);
   const [minimapVisible, setMinimapVisible] = useState(true);
 
-  // Créer des panneaux de distance tous les 500m
+  // Créer des panneaux de distance tous les 500m et poteaux tous les 30m
   const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
     const signsGroup = new THREE.Group();
-    const signInterval = 500; // Tous les 500m
+    const signInterval = 500; // Panneaux tous les 500m
+    const poleInterval = 30; // Poteaux tous les 30m
     
     const distanceBetween = (p1: CartesianPoint, p2: CartesianPoint): number => {
       const dx = p2.x - p1.x;
@@ -73,6 +74,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     
     let accumulatedDistance = 0;
     let nextSignDistance = signInterval;
+    let nextPoleDistance = poleInterval;
 
     for (let i = 0; i < path.length - 1; i++) {
       const p1 = path[i];
@@ -136,6 +138,30 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         console.log(`[DriveView] Panneau créé à ${distanceKm.toFixed(1)} km, position:`, x, y);
 
         nextSignDistance += signInterval;
+      }
+      
+      // Ajouter des petits poteaux tous les 30m (repères visuels)
+      while (accumulatedDistance + segmentLength >= nextPoleDistance) {
+        // Skip si c'est un panneau de distance (on ne veut pas de doublon)
+        if (Math.abs(nextPoleDistance - (nextSignDistance - signInterval)) > 10) {
+          const distanceInSegment = nextPoleDistance - accumulatedDistance;
+          const t = distanceInSegment / segmentLength;
+          const x = p1.x + (p2.x - p1.x) * t;
+          const y = p1.y + (p2.y - p1.y) * t;
+
+          // Créer un petit poteau blanc (plus discret)
+          const poleGeometry = new THREE.CylinderGeometry(0.15, 0.15, 2, 6);
+          const poleMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xffffff,
+            emissive: 0xaaaaaa,
+            emissiveIntensity: 0.2
+          });
+          const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+          pole.position.set(x - 5, 1, -y); // 5m sur le côté GAUCHE
+          signsGroup.add(pole);
+        }
+        
+        nextPoleDistance += poleInterval;
       }
 
       accumulatedDistance += segmentLength;
@@ -512,7 +538,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
         // Orientation = heading du véhicule (tangente à la route)
         // NavigationCalculator: 0°=Est, 90°=Nord → conversion nécessaire
-        const geoHeading = 90 - vehicleState.heading; // Convention géographique
+        // FIX: on avançait à reculons → inverser de 180°
+        const geoHeading = 90 - vehicleState.heading + 180; // Convention géographique + inversion
         const headingRad = geoHeading * Math.PI / 180;
         const lookAheadDistance = 10; // Regarder 10m devant
         
