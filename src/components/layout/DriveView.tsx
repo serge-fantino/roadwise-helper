@@ -184,7 +184,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   // Simplified: update view model with current position (no interpolation)
   useEffect(() => {
     const routeState = routePlannerService.getState();
-    console.log('[DriveView] useEffect position changed:', position, 'enhancedPoints:', routeState.enhancedPoints.length);
+    console.log('[DriveView] 🔔 useEffect position CHANGED:', position, 'enhancedPoints:', routeState.enhancedPoints.length);
     viewModel.current.updateFromPosition(position, routeState.enhancedPoints);
     const state = viewModel.current.getState();
     console.log('[DriveView] viewModel state after update:', {
@@ -447,6 +447,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     vehicleMesh.position.set(0, 0.75, 0); // 0.75m au-dessus du sol (moitié de sa hauteur)
     scene.add(vehicleMesh);
     vehicleMeshRef.current = vehicleMesh;
+    sceneRef.current = scene;
+    cameraRef.current = camera;
     
     // Sol (herbe/terrain autour de la piste)
     const groundGeometry = new THREE.PlaneGeometry(2000, 2000);
@@ -516,7 +518,15 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         // Créer/mettre à jour le système de coordonnées
         const oldOrigin = coordinateSystemRef.current?.getOrigin();
         coordinateSystemRef.current = new SceneCoordinateSystem(state.origin);
-        console.log('[DriveView] Track rebuilt - coordinate system updated from:', oldOrigin, 'to:', state.origin);
+        console.log('[DriveView] 🔄 TRACK REBUILT - coordinate system updated from:', oldOrigin, 'to:', state.origin);
+
+        // Changer la couleur du véhicule aléatoirement pour voir les rebuilds
+        if (vehicleMeshRef.current) {
+          const randomColor = Math.floor(Math.random() * 0xffffff);
+          (vehicleMeshRef.current.material as THREE.MeshStandardMaterial).color.setHex(randomColor);
+          (vehicleMeshRef.current.material as THREE.MeshStandardMaterial).emissive.setHex(randomColor);
+          console.log('[DriveView] 🎨 Vehicle color changed to:', '#' + randomColor.toString(16).padStart(6, '0'));
+        }
 
         // Nettoyer l'ancienne piste proprement
         clearTrack();
@@ -548,14 +558,18 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         // Convertir la position GPS ACTUELLE du véhicule en Three.js en utilisant le système de coordonnées
         const vehiclePos3D = coordinateSystemRef.current.gpsToThreeJS(position, 0.75);
         
-        // DEBUG: log toutes les secondes
+        // DEBUG: log toutes les secondes + vérifier si position change
         if (frameCount % 60 === 0) {
           const cartesian = coordinateSystemRef.current.gpsToCartesian(position);
-          console.log('[DriveView] Vehicle position:', {
+          console.log('[DriveView] 📍 Vehicle position:', {
             gps: [position[0].toFixed(6), position[1].toFixed(6)],
+            heading: vehicleState.heading.toFixed(1) + '°',
             sceneOrigin: coordinateSystemRef.current.getOrigin().map(v => v.toFixed(6)),
             cartesian: [cartesian.x.toFixed(2), cartesian.y.toFixed(2)],
-            threeJs: [vehiclePos3D.x.toFixed(2), vehiclePos3D.y.toFixed(2), vehiclePos3D.z.toFixed(2)]
+            threeJs: [vehiclePos3D.x.toFixed(2), vehiclePos3D.y.toFixed(2), vehiclePos3D.z.toFixed(2)],
+            meshPos: vehicleMeshRef.current ? 
+              [vehicleMeshRef.current.position.x.toFixed(2), vehicleMeshRef.current.position.z.toFixed(2)] : 
+              'no mesh'
           });
         }
         
