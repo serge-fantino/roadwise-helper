@@ -629,7 +629,10 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
     // Ajouter une ligne pour visualiser la direction de regard (DEBUG)
     const vehicleState = vehicleStateManager.getState();
-    const headingRad = vehicleState.heading * Math.PI / 180;
+    // NavigationCalculator utilise la convention : 0°=Est, 90°=Nord
+    // Donc on doit convertir en convention géographique : 0°=Nord, 90°=Est
+    const geoHeading = 90 - vehicleState.heading; // Conversion mathématique → géographique
+    const headingRad = geoHeading * Math.PI / 180;
     const lookDistance = 50; // 50m pour la visualisation
     
     // Calculer le point de regard en coordonnées géographiques
@@ -657,7 +660,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     minimapDirectionRef.current = directionLine;
 
     console.log('[DriveView] Minimap direction:', {
-      heading: vehicleState.heading.toFixed(1) + '°',
+      headingNav: vehicleState.heading.toFixed(1) + '° (0°=Est)',
+      headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
       from: position,
       to: lookAtPoint,
       deltaLat: deltaLat.toFixed(6),
