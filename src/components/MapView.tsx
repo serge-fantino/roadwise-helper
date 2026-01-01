@@ -10,6 +10,7 @@ import HistoryTrail from './map/HistoryTrail';
 import MapEventHandlers from './map/MapEventHandlers';
 import TurnWarningMarker from './map/TurnWarningMarker';
 import TurnCurveOverlay from './map/TurnCurveOverlay';
+import HeadingDebugLine from './map/HeadingDebugLine';
 import { roadPredictor } from '../services/prediction/RoadPredictor';
 import { TurnPrediction } from '../services/prediction/PredictionTypes';
 import { routePlannerService } from '../services/route/RoutePlannerService';
