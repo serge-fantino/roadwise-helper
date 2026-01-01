@@ -507,16 +507,25 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         });
       }
 
-      // Construire la piste UNE SEULE FOIS quand la route change
-      if (state.path.length > 0 && state.path.length !== lastPathLength) {
-        lastPathLength = state.path.length;
-
-        // STOCKER L'ORIGINE de cette scène 3D
+      // Initialiser l'origine si pas encore fait
+      if (state.path.length > 0 && !sceneOriginRef.current) {
         sceneOriginRef.current = {
           origin: state.origin,
           cosLat: state.cosLat
         };
-        console.log('[DriveView] Scene origin stored:', sceneOriginRef.current.origin);
+        console.log('[DriveView] Scene origin initialized:', sceneOriginRef.current.origin);
+      }
+
+      // Construire la piste UNE SEULE FOIS quand la route change
+      if (state.path.length > 0 && state.path.length !== lastPathLength) {
+        lastPathLength = state.path.length;
+
+        // METTRE À JOUR L'ORIGINE de cette scène 3D (au cas où)
+        sceneOriginRef.current = {
+          origin: state.origin,
+          cosLat: state.cosLat
+        };
+        console.log('[DriveView] Scene origin updated:', sceneOriginRef.current.origin);
 
         // Nettoyer l'ancienne piste proprement
         clearTrack();
