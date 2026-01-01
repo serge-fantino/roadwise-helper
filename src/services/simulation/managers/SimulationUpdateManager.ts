@@ -60,33 +60,52 @@ export class SimulationUpdateManager {
       distanceToTravel
     });
 
-    // Calculer le heading basé sur la tangente de la route (pas la direction vers nextPosition)
-    // Utiliser les points de route avant et après la position actuelle pour avoir la tangente
-    const currentRouteIndex = this.routeManager.getCurrentIndex();
-    const currentRoutePoint = this.routeManager.getRoutePoint(currentRouteIndex);
-    const nextRoutePoint = this.routeManager.getRoutePoint(Math.min(currentRouteIndex + 1, this.routeManager.getRouteLength() - 1));
-    
-    let routeHeading;
-    if (currentRoutePoint && nextRoutePoint) {
-      // Heading = tangente de la route (direction entre deux points de route consécutifs)
-      routeHeading = this.navigationCalculator.calculateHeading(currentRoutePoint, nextRoutePoint);
-    } else {
-      // Fallback
-      routeHeading = this.navigationCalculator.calculateHeading(currentPosition, nextPosition);
-    }
-    
-    const newPosition = this.navigationCalculator.calculateNextPosition(currentPosition, routeHeading, distanceToTravel);
+    // MODE DEBUG : Le véhicule suit la route comme un train sur des rails
+    // Avancer le long de la route en parcourant les segments
+    let remainingDistance = distanceToTravel;
+    let newRouteIndex = this.routeManager.getCurrentIndex();
+    let newPosition: [number, number] = currentPosition;
+    let segmentHeading = 0;
 
-    if (targetIndex > this.routeManager.getCurrentIndex()) {
-      console.log('[SimulationUpdateManager] Updating route index from', this.routeManager.getCurrentIndex(), 'to', targetIndex);
-      this.routeManager.updateCurrentIndex(targetIndex);
+    while (remainingDistance > 0 && newRouteIndex < this.routeManager.getRouteLength() - 1) {
+      const currentRoutePoint = this.routeManager.getRoutePoint(newRouteIndex);
+      const nextRoutePoint = this.routeManager.getRoutePoint(newRouteIndex + 1);
+
+      if (!currentRoutePoint || !nextRoutePoint) break;
+
+      const segmentDistance = this.navigationCalculator.calculateDistance(currentRoutePoint, nextRoutePoint);
+      
+      // Calculer le heading du segment
+      const heading = this.navigationCalculator.calculateHeading(currentRoutePoint, nextRoutePoint);
+      segmentHeading = this.navigationCalculator.calculateHeadingAngle(heading);
+
+      if (remainingDistance >= segmentDistance) {
+        // On peut atteindre le point suivant
+        remainingDistance -= segmentDistance;
+        newRouteIndex++;
+        newPosition = nextRoutePoint;
+      } else {
+        // On s'arrête au milieu du segment (interpolation)
+        const ratio = remainingDistance / segmentDistance;
+        newPosition = [
+          currentRoutePoint[0] + (nextRoutePoint[0] - currentRoutePoint[0]) * ratio,
+          currentRoutePoint[1] + (nextRoutePoint[1] - currentRoutePoint[1]) * ratio
+        ];
+        remainingDistance = 0;
+      }
     }
 
-    const headingAngle = this.navigationCalculator.calculateHeadingAngle(routeHeading);
-    console.log('[SimulationUpdateManager] Heading:', {
-      currentRouteIndex,
-      headingAngle: headingAngle.toFixed(1) + '°',
-      routePoints: [currentRoutePoint, nextRoutePoint]
+    // Mettre à jour l'index de la route
+    if (newRouteIndex > this.routeManager.getCurrentIndex()) {
+      console.log('[SimulationUpdateManager] Updating route index from', this.routeManager.getCurrentIndex(), 'to', newRouteIndex);
+      this.routeManager.updateCurrentIndex(newRouteIndex);
+    }
+
+    console.log('[SimulationUpdateManager] Position update:', {
+      oldIndex: this.routeManager.getCurrentIndex(),
+      newIndex: newRouteIndex,
+      heading: segmentHeading.toFixed(1) + '°',
+      distance: distanceToTravel.toFixed(2) + 'm'
     });
 
     // Mise à jour de l'état via le gestionnaire
@@ -94,7 +113,7 @@ export class SimulationUpdateManager {
       position: newPosition,
       speed: newSpeed,
       acceleration: acceleration,
-      heading: headingAngle
+      heading: segmentHeading
     });
 
     return true;
