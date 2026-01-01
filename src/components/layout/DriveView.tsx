@@ -59,6 +59,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const minimapMarkerRef = useRef<L.Marker | null>(null);
   const minimapRouteRef = useRef<L.Polyline | null>(null);
   const [minimapVisible, setMinimapVisible] = useState(true);
+  const [viewMode, setViewMode] = useState<'subjective' | 'drone'>('subjective');
 
   // Créer des panneaux de distance tous les 500m et poteaux tous les 30m
   const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
