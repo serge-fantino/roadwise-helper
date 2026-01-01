@@ -64,6 +64,23 @@ export class DriveViewModel {
     this.state.rightBorder = rightBorder;
     this.state.currentIndex = closestIdx - startIdx;
     
+    // DEBUG: vérifier si les points progressent dans le bon sens
+    if (visiblePath.length > 10) {
+      const before = visiblePath[Math.max(0, this.state.currentIndex - 5)];
+      const current = visiblePath[this.state.currentIndex];
+      const after = visiblePath[Math.min(visiblePath.length - 1, this.state.currentIndex + 5)];
+      console.log('[DriveViewModel] Path direction check:', {
+        originGPS: position,
+        beforeIdx: Math.max(0, this.state.currentIndex - 5),
+        before: { x: before.x.toFixed(1), y: before.y.toFixed(1) },
+        currentIdx: this.state.currentIndex,
+        current: { x: current.x.toFixed(1), y: current.y.toFixed(1) },
+        afterIdx: Math.min(visiblePath.length - 1, this.state.currentIndex + 5),
+        after: { x: after.x.toFixed(1), y: after.y.toFixed(1) },
+        directionForward: after.y > current.y ? 'Nord' : after.y < current.y ? 'Sud' : 'E/O'
+      });
+    }
+    
     // Calculer le bearing
     if (visiblePath.length >= 2 && this.state.currentIndex + 1 < visiblePath.length) {
       const currentPoint = visiblePath[this.state.currentIndex];

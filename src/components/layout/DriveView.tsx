@@ -490,6 +490,20 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       if (state.path.length > 0 && state.currentIndex < state.path.length) {
         const currentPoint = state.path[state.currentIndex];
         
+        // DEBUG: vérifier la progression
+        if (frameCount % 60 === 0) {
+          console.log('[DriveView] Position tracking:', {
+            gpsLat: position[0].toFixed(6),
+            gpsLon: position[1].toFixed(6),
+            cartesianX: currentPoint.x.toFixed(2) + 'm (lon)',
+            cartesianY: currentPoint.y.toFixed(2) + 'm (lat)',
+            threeJsX: currentPoint.x.toFixed(2),
+            threeJsZ: (-currentPoint.y).toFixed(2),
+            currentIndex: state.currentIndex,
+            pathLength: state.path.length
+          });
+        }
+        
         camera.position.set(
           currentPoint.x,
           1.5, // 1.5m au-dessus du sol
