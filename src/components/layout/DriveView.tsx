@@ -554,46 +554,18 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       }
 
       // Position caméra et véhicule
-      const hasPath = state.path.length > 0;
-      const hasCoordSystem = !!coordinateSystemRef.current;
-      
-      if (!hasPath) {
-        if (frameCount % 60 === 0) console.warn('[DriveView] ⚠️ NO PATH');
-      }
-      if (!hasCoordSystem) {
-        if (frameCount % 60 === 0) console.warn('[DriveView] ⚠️ NO COORDINATE SYSTEM');
-      }
-      
-      if (hasPath && hasCoordSystem) {
+      if (state.path.length > 0 && coordinateSystemRef.current) {
         // Convertir la position GPS ACTUELLE du véhicule en Three.js en utilisant le système de coordonnées
         const vehiclePos3D = coordinateSystemRef.current.gpsToThreeJS(position, 0.75);
         
-        // DEBUG: log toutes les secondes + vérifier si position change
-        if (frameCount % 60 === 0) {
-          const cartesian = coordinateSystemRef.current.gpsToCartesian(position);
-          console.log('[DriveView] 📍 Vehicle position:', {
-            gps: [position[0].toFixed(6), position[1].toFixed(6)],
-            heading: vehicleState.heading.toFixed(1) + '°',
-            sceneOrigin: coordinateSystemRef.current.getOrigin().map(v => v.toFixed(6)),
-            cartesian: [cartesian.x.toFixed(2), cartesian.y.toFixed(2)],
-            threeJs: [vehiclePos3D.x.toFixed(2), vehiclePos3D.y.toFixed(2), vehiclePos3D.z.toFixed(2)],
-            meshPos: vehicleMeshRef.current ? 
-              [vehicleMeshRef.current.position.x.toFixed(2), vehicleMeshRef.current.position.z.toFixed(2)] : 
-              'no mesh'
-          });
-        }
-        
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
-          console.log('[DriveView] 🚗 UPDATING VEHICLE MESH to:', vehiclePos3D);
           vehicleMeshRef.current.position.set(vehiclePos3D.x, vehiclePos3D.y, vehiclePos3D.z);
           
           // Orienter le véhicule selon le heading
           const geoHeading = 90 - vehicleState.heading;
           const headingRad = geoHeading * Math.PI / 180;
           vehicleMeshRef.current.rotation.y = -headingRad;
-        } else {
-          console.error('[DriveView] ❌ NO VEHICLE MESH REF');
         }
         
         // DEBUG: vérifier la progression
