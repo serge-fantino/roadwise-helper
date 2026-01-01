@@ -30,13 +30,15 @@
  * - RoutePlannerService for route data
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DriveViewModel, DriveViewState } from '../../models/DriveViewModel';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
 import { vehicleStateManager } from '../../services/VehicleStateManager';
 import { RouteFollowingTracker } from '../../utils/RouteFollowingTracker';
 import * as THREE from 'three';
 import { CartesianPoint } from '../../services/route/RouteProjectionService';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface DriveViewProps {
   position: [number, number];
@@ -476,7 +478,32 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           </div>
         </div>
         
-        {/* Tu peux ajouter d'autres éléments UI ici */}
+        {/* Mini-map overlay */}
+        {minimapVisible && (
+          <div className="absolute top-4 right-4 bg-black/70 rounded-lg overflow-hidden border-2 border-white/30 shadow-2xl">
+            <div 
+              ref={minimapRef} 
+              className="w-[200px] h-[200px]"
+              style={{ cursor: 'default' }}
+            />
+            <button
+              onClick={() => setMinimapVisible(false)}
+              className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded px-2 py-0.5 text-xs"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
+        {/* Toggle button if minimap is hidden */}
+        {!minimapVisible && (
+          <button
+            onClick={() => setMinimapVisible(true)}
+            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-lg px-3 py-2 text-sm"
+          >
+            📍 Minimap
+          </button>
+        )}
       </div>
     </div>
   );
