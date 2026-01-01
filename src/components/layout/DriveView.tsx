@@ -325,126 +325,55 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     // Garder une référence au sol
     const groundRef = ground;
 
-    // Variables pour l'interpolation basée sur le temps et la vitesse
-    let lastFrameState: DriveViewState | null = null;
-    let lastFrameTime = performance.now();
-    const currentInterpolatedPosition = new THREE.Vector3(0, 1.5, 0);
-    const currentInterpolatedLookAt = new THREE.Vector3(0, 0, -5);
-    
-    // Tracker qui suit la route de manière contrainte
-    let routeTracker: RouteFollowingTracker | null = null;
-    let lastProcessedIndex = -1; // Pour détecter les nouvelles mesures GPS (sera réassigné)
-    let trackerInitialized = false; // Pour forcer la réinitialisation au premier rendu
+    // VERSION SIMPLIFIÉE: pas d'interpolation, pas de Kalman
 
-    // Animation loop
+    // Animation loop - VERSION SIMPLIFIÉE
     const animate = () => {
       requestAnimationFrame(animate);
 
       const state = viewModel.current.getState();
-      const currentTime = performance.now();
-      const deltaTime = (currentTime - lastFrameTime) / 1000; // en secondes
-      lastFrameTime = currentTime;
-
-      // Initialiser le tracker au premier passage
-      if (!routeTracker && state.path.length > 0) {
-        routeTracker = new RouteFollowingTracker(state.path, 0);
-        lastProcessedIndex = 0;
-        console.log('[DriveView] Route Tracker initialisé avec', state.path.length, 'points');
-      }
-
-      // Mettre à jour la route si elle a changé
-      if (routeTracker && state.path.length > 0) {
-        routeTracker.updateRoute(state.path);
-      }
-
-      // Détecter nouvelle mesure GPS via VehicleStateManager
       const vehicleState = vehicleStateManager.getState();
-      const newGPSMeasurement = state.currentIndex !== lastProcessedIndex;
 
-      if (newGPSMeasurement && routeTracker && trackerInitialized && state.path.length > 0 && state.currentIndex < state.path.length) {
-        // Nouvelle mesure GPS reçue
-        const gpsPosition = state.path[state.currentIndex];
-        
-        // Mettre à jour le tracker avec la position GPS projetée sur la route
-        routeTracker.updateGPSMeasurement(
-          [gpsPosition.x, gpsPosition.y],
-          vehicleState.speed  // vitesse en m/s
-        );
-        
-        lastProcessedIndex = state.currentIndex;
-        console.log('[DriveView] GPS mis à jour:', {
-          position: [gpsPosition.x, gpsPosition.y],
-          speed: vehicleState.speed,
-          distance: routeTracker.getCurrentDistance()
-        });
-      }
+      // Nettoyer la scène (garder seulement les lumières et le sol)
+      scene.children = scene.children.filter(child => 
+        child instanceof THREE.AmbientLight || 
+        child instanceof THREE.DirectionalLight ||
+        (child instanceof THREE.Mesh && child === groundRef)
+      );
 
-      // Vérifier si on doit reconstruire la géométrie de la piste
-      const geometryNeedsUpdate = !lastFrameState || 
-          lastFrameState.currentIndex !== state.currentIndex ||
-          lastFrameState.bearing !== state.bearing;
-
-      if (geometryNeedsUpdate) {
-        lastFrameState = { ...state };
-
-        // Nettoyer les anciens éléments de piste (garder le sol et les lumières)
-        scene.children = scene.children.filter(child => 
-          child instanceof THREE.AmbientLight || 
-          child instanceof THREE.DirectionalLight ||
-          (child instanceof THREE.Mesh && child === groundRef)
-        );
-
-        // Créer la surface de piste
+      // Reconstruire la piste à chaque frame
+      if (state.path.length > 0) {
         const trackSurface = createTrackSurface(state.leftBorder, state.rightBorder);
         scene.add(trackSurface);
 
-        // Créer les bordures de piste
         const leftBorders = createTrackBorders(state.leftBorder, 'left');
         const rightBorders = createTrackBorders(state.rightBorder, 'right');
         scene.add(leftBorders);
         scene.add(rightBorders);
 
-        // Créer les marquages au sol
         const roadMarkings = createRoadMarkings(state.path);
         scene.add(roadMarkings);
       }
 
-      // Mettre à jour la position interpolée avec le tracker GPS
-      // Mettre à jour la position interpolée avec le tracker GPS (60 FPS)
-      // Mettre à jour la position interpolée avec le tracker de route (60 FPS)
-      if (routeTracker) {
-        // Avancer le long de la route et converger vers la position GPS
-        const { point, lookAhead } = routeTracker.updateFrame(deltaTime);
+      // Position caméra = position GPS directe (pas d'interpolation)
+      if (state.path.length > 0 && state.currentIndex < state.path.length) {
+        const currentPoint = state.path[state.currentIndex];
         
-        // Mettre à jour la position de la caméra (sur la route)
-        currentInterpolatedPosition.set(
-          point.x,
-          1.5, // hauteur de la caméra
-          -point.y // inverser Y pour coordonnées Three.js
+        camera.position.set(
+          currentPoint.x,
+          1.5, // 1.5m au-dessus du sol
+          -currentPoint.y // Inverser Y pour Three.js
         );
-        
-        // Point de visée (regarder devant sur la route)
-        currentInterpolatedLookAt.set(
-          lookAhead.x,
-          1.2,
-          -lookAhead.y
-        );
-      } else {
-        // Fallback : utiliser position actuelle (ne devrait pas arriver)
-        const currentPoint = state.path[state.currentIndex] || state.path[0];
-        if (currentPoint) {
-          currentInterpolatedPosition.set(currentPoint.x, 1.5, -currentPoint.y);
-          
-          const bearingRad = state.bearing * Math.PI / 180;
-          const lookX = currentPoint.x + Math.sin(bearingRad) * 10;
-          const lookY = currentPoint.y + Math.cos(bearingRad) * 10;
-          currentInterpolatedLookAt.set(lookX, 1.2, -lookY);
-        }
-      }
 
-      // Mettre à jour la caméra avec la position interpolée
-      camera.position.copy(currentInterpolatedPosition);
-      camera.lookAt(currentInterpolatedLookAt);
+        // Orientation = heading du véhicule directement
+        const bearingRad = vehicleState.heading * Math.PI / 180;
+        const lookAheadDistance = 10; // Regarder 10m devant
+        
+        const lookAtX = currentPoint.x + Math.sin(bearingRad) * lookAheadDistance;
+        const lookAtY = currentPoint.y + Math.cos(bearingRad) * lookAheadDistance;
+
+        camera.lookAt(lookAtX, 1.2, -lookAtY);
+      }
 
       renderer.render(scene, camera);
     };
