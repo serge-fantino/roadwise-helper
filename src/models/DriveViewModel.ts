@@ -43,13 +43,17 @@ export class DriveViewModel {
     if (enhancedPoints.length < 2) return;
     const cosLat = Math.cos((position[0] * Math.PI) / 180);
     
-    // Stocker l'origine et cosLat pour conversion ultérieure
-    this.state.origin = position;
-    this.state.cosLat = cosLat;
+    // Utiliser l'origine existante OU la position actuelle si première fois
+    // Cela évite que l'origine change à chaque frame !
+    if (!this.state.origin || this.state.origin[0] === 0) {
+      this.state.origin = position;
+      this.state.cosLat = cosLat;
+      console.log('[DriveViewModel] Origin set to:', position);
+    }
     
-    // Convertir les points en coordonnées cartésiennes
+    // Convertir les points en coordonnées cartésiennes en utilisant l'origine STABLE
     const cartesianPath: CartesianPoint[] = enhancedPoints.map(point => 
-      this.toCartesianPoint(point.position, position, cosLat)
+      this.toCartesianPoint(point.position, this.state.origin, this.state.cosLat)
     );
 
     // Trouver le point le plus proche
