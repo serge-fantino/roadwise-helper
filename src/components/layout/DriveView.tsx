@@ -138,16 +138,23 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
         const texture = new THREE.CanvasTexture(canvas);
         const textMaterial = new THREE.MeshBasicMaterial({ 
           map: texture,
-          side: THREE.DoubleSide // Visible des deux côtés
+          side: THREE.FrontSide
         });
-        const textMesh = new THREE.Mesh(
+        const textMeshFront = new THREE.Mesh(
           new THREE.PlaneGeometry(3.6, 1.8),
           textMaterial
         );
-        textMesh.position.set(x - 8, 3.5, -y + 0.15);
-        signsGroup.add(textMesh);
-        
-        console.log(`[DriveView] Panneau créé à ${distanceKm.toFixed(1)} km, position:`, x, y);
+        textMeshFront.position.set(x - 8, 3.5, -y + 0.15);
+        signsGroup.add(textMeshFront);
+
+        // Texte sur l'autre face (évite l'effet miroir en backface)
+        const textMeshBack = new THREE.Mesh(
+          new THREE.PlaneGeometry(3.6, 1.8),
+          textMaterial.clone()
+        );
+        textMeshBack.position.set(x - 8, 3.5, -y - 0.15);
+        textMeshBack.rotation.y = Math.PI;
+        signsGroup.add(textMeshBack);
 
         nextSignDistance += signInterval;
       }
