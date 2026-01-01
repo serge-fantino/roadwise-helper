@@ -520,8 +520,13 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       if (state.path.length > 0 && state.path.length !== lastPathLength) {
         lastPathLength = state.path.length;
         
-        // NE PAS changer l'origine ! Garder celle fixée au démarrage
-        console.log('[DriveView] Rebuilding track (origin stays at:', sceneOriginRef.current?.origin, ')');
+        // METTRE À JOUR l'origine car la piste est reconstruite avec une nouvelle origine
+        const oldOrigin = sceneOriginRef.current?.origin;
+        sceneOriginRef.current = {
+          origin: state.origin,
+          cosLat: state.cosLat
+        };
+        console.log('[DriveView] Track rebuilt - origin updated from:', oldOrigin, 'to:', state.origin);
 
         // Nettoyer l'ancienne piste proprement
         clearTrack();
