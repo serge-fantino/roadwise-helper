@@ -468,6 +468,78 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     };
   }, []);
 
+  // Initialize mini-map
+  useEffect(() => {
+    if (!minimapRef.current || minimapInstanceRef.current) return;
+
+    // Create mini-map
+    const minimap = L.map(minimapRef.current, {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false,
+      touchZoom: false,
+    }).setView([position[0], position[1]], 16);
+
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(minimap);
+
+    // Create marker for vehicle position
+    const marker = L.circleMarker([position[0], position[1]], {
+      radius: 6,
+      fillColor: '#3b82f6',
+      color: '#ffffff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 1,
+    }).addTo(minimap);
+
+    minimapInstanceRef.current = minimap;
+    minimapMarkerRef.current = marker;
+
+    return () => {
+      if (minimapInstanceRef.current) {
+        minimapInstanceRef.current.remove();
+        minimapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update mini-map position and route
+  useEffect(() => {
+    if (!minimapInstanceRef.current || !minimapMarkerRef.current) return;
+
+    // Update marker position
+    minimapMarkerRef.current.setLatLng([position[0], position[1]]);
+    
+    // Center map on position
+    minimapInstanceRef.current.setView([position[0], position[1]], 16, { animate: false });
+
+    // Update route
+    const routeState = routePlannerService.getState();
+    if (routeState.routePoints.length > 0) {
+      // Remove old route if exists
+      if (minimapRouteRef.current) {
+        minimapRouteRef.current.remove();
+      }
+
+      // Add new route
+      const route = L.polyline(routeState.routePoints, {
+        color: '#ef4444',
+        weight: 3,
+        opacity: 0.7,
+      }).addTo(minimapInstanceRef.current);
+
+      minimapRouteRef.current = route;
+    }
+  }, [position]);
+
   return (
     <div className="relative w-full h-full">
       {/* Container WebGL */}
