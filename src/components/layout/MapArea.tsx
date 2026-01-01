@@ -55,8 +55,7 @@ const MapArea = ({
     <div className="flex-1 w-full h-full relative">
       {viewMode === 'map' ? (
         <MapView 
-          position={vehicleState.position} 
-          speed={vehicleState.speed} 
+          vehicle={vehicleState as VehicleTelemetry}
           onRoadStatusChange={onRoadStatusChange}
           destination={routeState.destination?.location}
           routePoints={routeState.routePoints}
