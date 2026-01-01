@@ -553,7 +553,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       }
 
       // Position caméra et véhicule
-      if (state.path.length > 0 && state.currentIndex < state.path.length && sceneOriginRef.current) {
+      if (state.path.length > 0 && sceneOriginRef.current) {
         // Convertir la position GPS ACTUELLE du véhicule en coordonnées cartésiennes
         // en utilisant la MÊME ORIGINE que celle utilisée pour construire la scène
         const scale = 111000; // mètres par degré
@@ -561,6 +561,15 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           x: (position[1] - sceneOriginRef.current.origin[1]) * scale * sceneOriginRef.current.cosLat,
           y: (position[0] - sceneOriginRef.current.origin[0]) * scale
         };
+        
+        // DEBUG: toujours afficher pour voir si ça change
+        console.log('[DriveView] Vehicle position UPDATE:', {
+          gps: [position[0].toFixed(6), position[1].toFixed(6)],
+          sceneOrigin: [sceneOriginRef.current.origin[0].toFixed(6), sceneOriginRef.current.origin[1].toFixed(6)],
+          delta: [(position[0] - sceneOriginRef.current.origin[0]).toFixed(8), (position[1] - sceneOriginRef.current.origin[1]).toFixed(8)],
+          cartesian: [vehicleCartesian.x.toFixed(2), vehicleCartesian.y.toFixed(2)],
+          threeJs: [vehicleCartesian.x.toFixed(2), (-vehicleCartesian.y).toFixed(2)]
+        });
         
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
@@ -574,20 +583,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           const geoHeading = 90 - vehicleState.heading;
           const headingRad = geoHeading * Math.PI / 180;
           vehicleMeshRef.current.rotation.y = -headingRad; // Rotation autour de l'axe Y
-          
-          // DEBUG
-          if (frameCount % 60 === 0) {
-            console.log('[DriveView] Vehicle position:', {
-              gps: position,
-              sceneOrigin: sceneOriginRef.current.origin,
-              cartesian: vehicleCartesian,
-              threeJs: { x: vehicleCartesian.x, z: -vehicleCartesian.y }
-            });
-          }
         }
-        
-        // Position de la caméra (pour les vues)
-        const currentPoint = state.path[state.currentIndex];
         
         // DEBUG: vérifier la progression
         if (frameCount % 60 === 0) {
@@ -610,11 +606,11 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         const headingRad = geoHeading * Math.PI / 180;
         
         if (viewModeRef.current === 'subjective') {
-          // Vue subjective (première personne)
+          // Vue subjective (première personne) - caméra à la position du véhicule
           camera.position.set(
-            currentPoint.x,
+            vehicleCartesian.x,
             1.5, // 1.5m au-dessus du sol
-            -currentPoint.y // Inverser Y pour Three.js
+            -vehicleCartesian.y
           );
 
           // Regarder devant
@@ -622,19 +618,19 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           const directionX = Math.sin(headingRad); // Est/Ouest
           const directionY = Math.cos(headingRad); // Nord/Sud
           
-          const lookAtX = currentPoint.x + directionX * lookAheadDistance;
-          const lookAtY = currentPoint.y + directionY * lookAheadDistance;
+          const lookAtX = vehicleCartesian.x + directionX * lookAheadDistance;
+          const lookAtY = vehicleCartesian.y + directionY * lookAheadDistance;
 
           camera.lookAt(lookAtX, 1.2, -lookAtY);
         } else {
-          // Vue drone (exactement au-dessus)
+          // Vue drone (exactement au-dessus du véhicule)
           const droneHeight = 80; // 80m de hauteur pour bien voir
           
           // Caméra EXACTEMENT au-dessus du véhicule
           camera.position.set(
-            currentPoint.x,
+            vehicleCartesian.x,
             droneHeight,
-            -currentPoint.y
+            -vehicleCartesian.y
           );
 
           // Calculer le point devant le véhicule pour orienter la vue
@@ -642,8 +638,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           const directionX = Math.sin(headingRad);
           const directionY = Math.cos(headingRad);
           
-          const lookAtX = currentPoint.x + directionX * lookAheadDistance;
-          const lookAtY = currentPoint.y + directionY * lookAheadDistance;
+          const lookAtX = vehicleCartesian.x + directionX * lookAheadDistance;
+          const lookAtY = vehicleCartesian.y + directionY * lookAheadDistance;
           
           // Regarder devant le véhicule (map orientée avec véhicule vers le haut)
           camera.lookAt(lookAtX, 0, -lookAtY);
