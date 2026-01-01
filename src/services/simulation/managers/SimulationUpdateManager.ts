@@ -18,7 +18,7 @@ export class SimulationUpdateManager {
     
     // Calculer le temps écoulé réel
     const currentTime = Date.now();
-    let timeStep = 0.1; // Défaut 100ms
+    let timeStep = 0.05; // Défaut 50ms (20 FPS)
     
     if (this.lastUpdateTime > 0) {
       timeStep = (currentTime - this.lastUpdateTime) / 1000; // en secondes
@@ -26,8 +26,6 @@ export class SimulationUpdateManager {
       timeStep = Math.min(timeStep, 0.5); // Max 500ms
     }
     this.lastUpdateTime = currentTime;
-    
-    console.log('[SimulationUpdateManager] timeStep:', timeStep.toFixed(3), 's');
     
     // Calculer la nouvelle vitesse avec le SpeedController
     const { speed: newSpeed, acceleration } = this.speedController.updateSpeed(
@@ -38,12 +36,6 @@ export class SimulationUpdateManager {
     
     // Distance à parcourir = vitesse × temps
     const distanceToTravel = newSpeed * timeStep;
-    
-    console.log('[SimulationUpdateManager] Speed and distance:', {
-      newSpeed: (newSpeed * 3.6).toFixed(1) + ' km/h',
-      distanceToTravel: distanceToTravel.toFixed(2) + ' m',
-      timeStep: timeStep.toFixed(3) + ' s'
-    });
 
     // MODE DEBUG : Le véhicule suit la route comme un train sur des rails
     // Avancer le long de la route en parcourant les segments

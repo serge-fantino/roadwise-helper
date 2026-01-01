@@ -8,6 +8,7 @@ import { vehicleStateManager } from '../VehicleStateManager';
 
 export class SimulationServiceV2 {
   private intervalId: NodeJS.Timeout | null = null;
+  private readonly UPDATE_INTERVAL_MS = 50; // 50ms = 20 FPS
   private stateManager: SimulationStateManager;
   private predictionManager: PredictionManager;
   private updateManager: SimulationUpdateManager;
@@ -67,7 +68,7 @@ export class SimulationServiceV2 {
       
       this.intervalId = setInterval(() => {
         this.updateSimulation();
-      }, 100); // 100ms = 10 FPS pour plus de fluidité
+      }, this.UPDATE_INTERVAL_MS);
     }
   }
 
