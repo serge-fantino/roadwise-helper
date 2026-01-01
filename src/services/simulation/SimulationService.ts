@@ -62,10 +62,17 @@ export class SimulationService {
           nextPosition
         });
 
+        // Calculer le heading entre la position actuelle et la suivante
+        const deltaLat = nextPosition[0] - currentPosition[0];
+        const deltaLon = nextPosition[1] - currentPosition[1];
+        const heading = Math.atan2(deltaLon, deltaLat) * 180 / Math.PI;
+        const normalizedHeading = (heading + 360) % 360;
+
         // Mise à jour de l'état via le gestionnaire
         vehicleStateManager.updateState({
           position: nextPosition,
-          speed: speed
+          speed: speed,
+          heading: normalizedHeading
         });
         
         // Mise à jour des variables pour le prochain calcul
