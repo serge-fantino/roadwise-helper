@@ -497,16 +497,30 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         );
 
         // Orientation = heading du véhicule directement
-        // Heading en degrés: 0° = Nord, 90° = Est, 180° = Sud, 270° = Ouest
-        // En coordonnées Three.js: X = Est, Z (négatif) = Nord
-        // Donc pour Three.js: angleThreeJS = 90° - headingGeo
-        const bearingRad = (90 - vehicleState.heading) * Math.PI / 180;
+        // Heading géographique: 0° = Nord, 90° = Est, 180° = Sud, 270° = Ouest
+        // En cartésien: deltaX = sin(heading), deltaY = cos(heading)
+        // En Three.js: x = cartésien X, z = -cartésien Y
+        const headingRad = vehicleState.heading * Math.PI / 180;
         const lookAheadDistance = 10; // Regarder 10m devant
         
-        const lookAtX = currentPoint.x + Math.cos(bearingRad) * lookAheadDistance;
-        const lookAtY = currentPoint.y + Math.sin(bearingRad) * lookAheadDistance;
+        // Calculer le vecteur de direction en coordonnées cartésiennes
+        const directionX = Math.sin(headingRad); // Est/Ouest
+        const directionY = Math.cos(headingRad); // Nord/Sud
+        
+        const lookAtX = currentPoint.x + directionX * lookAheadDistance;
+        const lookAtY = currentPoint.y + directionY * lookAheadDistance;
 
         camera.lookAt(lookAtX, 1.2, -lookAtY);
+        
+        // Log pour debug
+        if (frameCount % 60 === 0) {
+          console.log('[DriveView] Camera orientation:', {
+            heading: vehicleState.heading.toFixed(1) + '°',
+            cameraPos: [currentPoint.x.toFixed(1), currentPoint.y.toFixed(1)],
+            lookAt: [lookAtX.toFixed(1), (-lookAtY).toFixed(1)],
+            direction: [directionX.toFixed(2), directionY.toFixed(2)]
+          });
+        }
       } else {
         // Debug: afficher pourquoi la caméra n'est pas mise à jour
         if (state.path.length === 0) {
