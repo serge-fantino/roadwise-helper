@@ -7,6 +7,8 @@ export interface DriveViewState {
   rightBorder: CartesianPoint[];
   currentIndex: number;
   bearing: number;
+  origin: [number, number]; // Position GPS utilisée comme origine pour la conversion
+  cosLat: number; // cosinus de la latitude pour la conversion
 }
 
 export class DriveViewModel {
@@ -15,7 +17,9 @@ export class DriveViewModel {
     leftBorder: [],
     rightBorder: [],
     currentIndex: 0,
-    bearing: 0
+    bearing: 0,
+    origin: [0, 0],
+    cosLat: 1
   };
 
   private toCartesianPoint(point: [number, number], origin: [number, number], cosLat: number): CartesianPoint {
@@ -30,9 +34,18 @@ export class DriveViewModel {
     return { ...this.state };
   }
 
+  // Convertir une position GPS en coordonnées cartésiennes en utilisant l'origine de la scène
+  public gpsToCartesian(gpsPosition: [number, number]): CartesianPoint {
+    return this.toCartesianPoint(gpsPosition, this.state.origin, this.state.cosLat);
+  }
+
   public updateFromPosition(position: [number, number], enhancedPoints: EnhancedRoutePoint[]) {
     if (enhancedPoints.length < 2) return;
     const cosLat = Math.cos((position[0] * Math.PI) / 180);
+    
+    // Stocker l'origine et cosLat pour conversion ultérieure
+    this.state.origin = position;
+    this.state.cosLat = cosLat;
     
     // Convertir les points en coordonnées cartésiennes
     const cartesianPath: CartesianPoint[] = enhancedPoints.map(point => 

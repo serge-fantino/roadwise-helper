@@ -535,16 +535,17 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         console.log('[DriveView] Piste construite avec', state.path.length, 'points');
       }
 
-      // Position caméra et véhicule = position GPS directe (pas d'interpolation)
+      // Position caméra et véhicule
       if (state.path.length > 0 && state.currentIndex < state.path.length) {
-        const currentPoint = state.path[state.currentIndex];
+        // Calculer la position EXACTE du véhicule dans le système de coordonnées de la scène 3D
+        const vehicleCartesian = viewModel.current.gpsToCartesian(position);
         
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
           vehicleMeshRef.current.position.set(
-            currentPoint.x,
+            vehicleCartesian.x,
             0.75, // 0.75m au-dessus du sol
-            -currentPoint.y
+            -vehicleCartesian.y
           );
           
           // Orienter le véhicule selon le heading
@@ -552,6 +553,9 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           const headingRad = geoHeading * Math.PI / 180;
           vehicleMeshRef.current.rotation.y = -headingRad; // Rotation autour de l'axe Y
         }
+        
+        // Position de la caméra (pour les vues)
+        const currentPoint = state.path[state.currentIndex];
         
         // DEBUG: vérifier la progression
         if (frameCount % 60 === 0) {
