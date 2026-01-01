@@ -79,7 +79,7 @@ export class SimulationService {
         this.lastPosition = nextPosition;
         this.lastUpdateTime = currentTime;
         this.currentRouteIndex = nextIndex;
-      }, 1000);
+      }, 100); // 100ms = 10 FPS au lieu de 1 FPS
     }
   }
 

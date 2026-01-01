@@ -394,6 +394,10 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         const roadMarkings = createRoadMarkings(state.path);
         scene.add(roadMarkings);
         trackObjects.push(roadMarkings);
+
+        const distanceSigns = createDistanceSigns(state.path);
+        scene.add(distanceSigns);
+        trackObjects.push(distanceSigns);
         
         console.log('[DriveView] Piste construite avec', state.path.length, 'points');
       }
