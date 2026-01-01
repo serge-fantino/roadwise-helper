@@ -515,7 +515,8 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         // Log pour debug
         if (frameCount % 60 === 0) {
           console.log('[DriveView] Camera orientation:', {
-            heading: vehicleState.heading.toFixed(1) + '°',
+            headingNav: vehicleState.heading.toFixed(1) + '° (0°=Est)',
+            headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
             cameraPos: [currentPoint.x.toFixed(1), currentPoint.y.toFixed(1)],
             lookAt: [lookAtX.toFixed(1), (-lookAtY).toFixed(1)],
             direction: [directionX.toFixed(2), directionY.toFixed(2)]
