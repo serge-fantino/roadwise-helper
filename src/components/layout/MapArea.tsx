@@ -8,6 +8,7 @@ import { routePlannerService } from '../../services/route/RoutePlannerService';
 import { VehicleState } from '../../services/VehicleStateManager';
 import { TripState } from '../../services/TripService';
 import { RouteState } from '../../services/route/RoutePlannerTypes';
+import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 
 interface MapAreaProps {
   onRoadStatusChange: (status: boolean) => void;
@@ -64,7 +65,7 @@ const MapArea = ({
         />
       ) : viewMode === 'drive' ? (
         <DriveView 
-          position={vehicleState.position}
+          vehicle={vehicleState as VehicleTelemetry}
           positionHistory={tripState.positions}
         />
       ) : (

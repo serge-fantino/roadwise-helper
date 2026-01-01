@@ -32,7 +32,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
-import { vehicleStateManager } from '../../services/VehicleStateManager';
+import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 import { SceneCoordinateSystem } from '../../utils/SceneCoordinateSystem';
 import * as THREE from 'three';
 import { CartesianPoint, generateBorders } from '../../services/route/RouteProjectionService';
@@ -40,11 +40,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface DriveViewProps {
-  position: [number, number];
+  vehicle: VehicleTelemetry;
   positionHistory: [number, number][];
 }
 
-const DriveView = ({ position, positionHistory }: DriveViewProps) => {
+const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
+  const position = vehicle.position;
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
@@ -52,7 +53,7 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   const vehicleMeshRef = useRef<THREE.Mesh | null>(null); // Cube représentant le véhicule
   const coordinateSystemRef = useRef<SceneCoordinateSystem | null>(null); // Système de coordonnées de la scène 3D
   const fixedOriginRef = useRef<[number, number] | null>(null); // Origine FIXE de la vue 3D (ne change pas pendant le mouvement)
-  const positionRef = useRef<[number, number]>(position); // IMPORTANT: éviter stale closure dans animate()
+  const vehicleRef = useRef<VehicleTelemetry>(vehicle); // IMPORTANT: éviter stale closure dans animate()
   
   // Mini-map state and refs
   const minimapRef = useRef<HTMLDivElement>(null);
@@ -68,10 +69,10 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     viewModeRef.current = viewMode;
   }, [viewMode]);
 
-  // Sync latest position to ref so the animation loop always uses current GPS position
+  // Sync latest vehicle snapshot to ref so the animation loop always uses current values
   useEffect(() => {
-    positionRef.current = position;
-  }, [position]);
+    vehicleRef.current = vehicle;
+  }, [vehicle]);
 
   // Créer des panneaux de distance tous les 500m et poteaux tous les 30m
   const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
@@ -484,8 +485,9 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     const animate = () => {
       requestAnimationFrame(animate);
 
-      const vehicleState = vehicleStateManager.getState();
-      const currentGpsPosition = positionRef.current;
+      const currentVehicle = vehicleRef.current;
+      const currentGpsPosition = currentVehicle.position;
+      const currentHeading = currentVehicle.heading;
 
       // Construire la piste UNE SEULE FOIS (ou quand la route change)
       // IMPORTANT: on ne reconstruit PAS la scène pendant le mouvement du véhicule.
@@ -541,14 +543,14 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
           vehicleMeshRef.current.position.set(vehiclePos3D.x, vehiclePos3D.y, vehiclePos3D.z);
           
           // Orienter le véhicule selon le heading
-          const geoHeading = 90 - vehicleState.heading;
+          const geoHeading = 90 - currentHeading;
           const headingRad = geoHeading * Math.PI / 180;
           vehicleMeshRef.current.rotation.y = -headingRad;
         }
 
         // Orientation = heading du véhicule (tangente à la route)
         // NavigationCalculator: 0°=Est, 90°=Nord → conversion nécessaire
-        const geoHeading = 90 - vehicleState.heading; // Convention géographique
+        const geoHeading = 90 - currentHeading; // Convention géographique
         const headingRad = geoHeading * Math.PI / 180;
         const directionX = Math.sin(headingRad);
         const directionZ = -Math.cos(headingRad); // y cartésien inversé en z Three.js
@@ -679,10 +681,9 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     }
 
     // Ajouter une ligne pour visualiser la direction de regard (DEBUG)
-    const vehicleState = vehicleStateManager.getState();
     // NavigationCalculator utilise la convention : 0°=Est, 90°=Nord
     // Donc on doit convertir en convention géographique : 0°=Nord, 90°=Est
-    const geoHeading = 90 - vehicleState.heading; // Conversion mathématique → géographique
+    const geoHeading = 90 - vehicle.heading; // Conversion mathématique → géographique
     const headingRad = geoHeading * Math.PI / 180;
     const lookDistance = 50; // 50m pour la visualisation
     
