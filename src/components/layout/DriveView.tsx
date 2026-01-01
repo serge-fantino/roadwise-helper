@@ -63,7 +63,14 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
   // Simplified: update view model with current position (no interpolation)
   useEffect(() => {
     const routeState = routePlannerService.getState();
+    console.log('[DriveView] useEffect position changed:', position, 'enhancedPoints:', routeState.enhancedPoints.length);
     viewModel.current.updateFromPosition(position, routeState.enhancedPoints);
+    const state = viewModel.current.getState();
+    console.log('[DriveView] viewModel state after update:', {
+      pathLength: state.path.length,
+      currentIndex: state.currentIndex,
+      bearing: state.bearing
+    });
   }, [position]);
 
   // Créer la surface de piste (mesh triangulé)
@@ -394,6 +401,13 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         const lookAtY = currentPoint.y + Math.cos(bearingRad) * lookAheadDistance;
 
         camera.lookAt(lookAtX, 1.2, -lookAtY);
+      } else {
+        // Debug: afficher pourquoi la caméra n'est pas mise à jour
+        if (state.path.length === 0) {
+          console.warn('[DriveView] state.path is empty');
+        } else if (state.currentIndex >= state.path.length) {
+          console.warn('[DriveView] currentIndex out of bounds:', state.currentIndex, '>=', state.path.length);
+        }
       }
 
       renderer.render(scene, camera);
