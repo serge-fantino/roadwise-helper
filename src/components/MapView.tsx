@@ -159,6 +159,11 @@ const MapView = ({
         heading={vehicleState.heading}
         speed={vehicleState.speed}
       />
+      {/* Ligne de direction pour debug (même calcul que minimap) */}
+      <HeadingDebugLine 
+        position={vehicleState.position}
+        heading={vehicleState.heading}
+      />
       {destination && <DestinationMarker position={destination} />}
       {allTurns.map((turn, index) => (
         <TurnWarningMarker 
