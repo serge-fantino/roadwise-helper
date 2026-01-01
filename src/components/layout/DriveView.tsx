@@ -554,7 +554,17 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
       }
 
       // Position caméra et véhicule
-      if (state.path.length > 0 && coordinateSystemRef.current) {
+      const hasPath = state.path.length > 0;
+      const hasCoordSystem = !!coordinateSystemRef.current;
+      
+      if (!hasPath) {
+        if (frameCount % 60 === 0) console.warn('[DriveView] ⚠️ NO PATH');
+      }
+      if (!hasCoordSystem) {
+        if (frameCount % 60 === 0) console.warn('[DriveView] ⚠️ NO COORDINATE SYSTEM');
+      }
+      
+      if (hasPath && hasCoordSystem) {
         // Convertir la position GPS ACTUELLE du véhicule en Three.js en utilisant le système de coordonnées
         const vehiclePos3D = coordinateSystemRef.current.gpsToThreeJS(position, 0.75);
         
@@ -575,12 +585,15 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
         
         // Mettre à jour la position du cube véhicule
         if (vehicleMeshRef.current) {
+          console.log('[DriveView] 🚗 UPDATING VEHICLE MESH to:', vehiclePos3D);
           vehicleMeshRef.current.position.set(vehiclePos3D.x, vehiclePos3D.y, vehiclePos3D.z);
           
           // Orienter le véhicule selon le heading
           const geoHeading = 90 - vehicleState.heading;
           const headingRad = geoHeading * Math.PI / 180;
           vehicleMeshRef.current.rotation.y = -headingRad;
+        } else {
+          console.error('[DriveView] ❌ NO VEHICLE MESH REF');
         }
         
         // DEBUG: vérifier la progression
