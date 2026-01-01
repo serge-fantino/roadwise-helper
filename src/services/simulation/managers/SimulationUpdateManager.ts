@@ -53,15 +53,16 @@ export class SimulationUpdateManager {
     let segmentHeading = 0;
 
     while (remainingDistance > 0 && newRouteIndex < this.routeManager.getRouteLength() - 1) {
-      const currentRoutePoint = this.routeManager.getRoutePoint(newRouteIndex);
+      // Partir de la position actuelle pour le premier segment, puis des points de route
+      const startPoint = (newRouteIndex === this.routeManager.getCurrentIndex()) ? currentPosition : this.routeManager.getRoutePoint(newRouteIndex);
       const nextRoutePoint = this.routeManager.getRoutePoint(newRouteIndex + 1);
 
-      if (!currentRoutePoint || !nextRoutePoint) break;
+      if (!startPoint || !nextRoutePoint) break;
 
-      const segmentDistance = this.navigationCalculator.calculateDistance(currentRoutePoint, nextRoutePoint);
+      const segmentDistance = this.navigationCalculator.calculateDistance(startPoint, nextRoutePoint);
       
-      // Calculer le heading du segment
-      const heading = this.navigationCalculator.calculateHeading(currentRoutePoint, nextRoutePoint);
+      // Calculer le heading du segment (tangente)
+      const heading = this.navigationCalculator.calculateHeading(startPoint, nextRoutePoint);
       segmentHeading = this.navigationCalculator.calculateHeadingAngle(heading);
 
       if (remainingDistance >= segmentDistance) {
@@ -70,11 +71,11 @@ export class SimulationUpdateManager {
         newRouteIndex++;
         newPosition = nextRoutePoint;
       } else {
-        // On s'arrête au milieu du segment (interpolation)
+        // On s'arrête au milieu du segment (interpolation linéaire)
         const ratio = remainingDistance / segmentDistance;
         newPosition = [
-          currentRoutePoint[0] + (nextRoutePoint[0] - currentRoutePoint[0]) * ratio,
-          currentRoutePoint[1] + (nextRoutePoint[1] - currentRoutePoint[1]) * ratio
+          startPoint[0] + (nextRoutePoint[0] - startPoint[0]) * ratio,
+          startPoint[1] + (nextRoutePoint[1] - startPoint[1]) * ratio
         ];
         remainingDistance = 0;
       }
