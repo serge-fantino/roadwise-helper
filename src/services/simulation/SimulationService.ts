@@ -9,6 +9,8 @@ export class SimulationService {
   private lastUpdateTime: number = 0;
   private lastPosition: [number, number] | null = null;
   private navigationCalculator: NavigationCalculator;
+  private readonly UPDATE_INTERVAL = 100; // ms (10 FPS)
+  private readonly TARGET_SPEED = 50 / 3.6; // 50 km/h en m/s = 13.9 m/s
 
   constructor() {
     // Plus besoin de Vehicle en paramètre
@@ -34,53 +36,70 @@ export class SimulationService {
       });
       
       this.intervalId = setInterval(() => {
-        // Avancer de 1 point (la vitesse sera correcte grâce au temps écoulé réel)
-        const nextIndex = this.currentRouteIndex + 1;
+        const currentTime = Date.now();
+        const elapsedTime = (currentTime - this.lastUpdateTime) / 1000; // en secondes
+        this.lastUpdateTime = currentTime;
+
+        // Distance à parcourir en fonction du temps écoulé et de la vitesse cible
+        const distanceToTravel = this.TARGET_SPEED * elapsedTime;
         
-        if (nextIndex >= this.routePoints.length) {
+        // Trouver la nouvelle position en avançant sur la route
+        let remainingDistance = distanceToTravel;
+        let newIndex = this.currentRouteIndex;
+        let newPosition = this.routePoints[newIndex];
+
+        while (remainingDistance > 0 && newIndex < this.routePoints.length - 1) {
+          const currentPos = this.routePoints[newIndex];
+          const nextPos = this.routePoints[newIndex + 1];
+          const segmentDistance = calculateDistance(currentPos, nextPos);
+
+          if (remainingDistance >= segmentDistance) {
+            // On peut avancer au point suivant
+            remainingDistance -= segmentDistance;
+            newIndex++;
+            newPosition = this.routePoints[newIndex];
+          } else {
+            // On s'arrête au milieu du segment (interpolation)
+            const ratio = remainingDistance / segmentDistance;
+            newPosition = [
+              currentPos[0] + (nextPos[0] - currentPos[0]) * ratio,
+              currentPos[1] + (nextPos[1] - currentPos[1]) * ratio
+            ];
+            break;
+          }
+        }
+
+        if (newIndex >= this.routePoints.length - 1) {
           this.stopSimulation();
           return;
         }
 
-        const currentPosition = this.routePoints[this.currentRouteIndex];
-        const nextPosition = this.routePoints[nextIndex];
-        
-        // Calcul de la distance en mètres
-        const distance = calculateDistance(currentPosition, nextPosition);
-        
-        // Calcul du temps écoulé en secondes (sera ~0.1s au lieu de 1s)
-        const currentTime = Date.now();
-        const elapsedTime = (currentTime - this.lastUpdateTime) / 1000;
-        
-        // Calcul de la vitesse en m/s (distance/temps donne la vraie vitesse)
-        const speed = distance / Math.max(elapsedTime, 0.01);
-        
-        console.log('Simulation update:', {
-          distance,
-          elapsedTime,
-          speed,
-          currentPosition,
-          nextPosition
-        });
-
-        // Calculer le heading entre la position actuelle et la suivante
-        const deltaLat = nextPosition[0] - currentPosition[0];
-        const deltaLon = nextPosition[1] - currentPosition[1];
+        // Calculer le heading vers le prochain point
+        const nextRoutePoint = this.routePoints[Math.min(newIndex + 1, this.routePoints.length - 1)];
+        const deltaLat = nextRoutePoint[0] - newPosition[0];
+        const deltaLon = nextRoutePoint[1] - newPosition[1];
         const heading = Math.atan2(deltaLon, deltaLat) * 180 / Math.PI;
         const normalizedHeading = (heading + 360) % 360;
 
-        // Mise à jour de l'état via le gestionnaire
+        console.log('Simulation update:', {
+          elapsedTime: elapsedTime.toFixed(3),
+          distanceToTravel: distanceToTravel.toFixed(2),
+          speed: this.TARGET_SPEED.toFixed(2),
+          speedKmh: (this.TARGET_SPEED * 3.6).toFixed(1),
+          newIndex,
+          currentIndex: this.currentRouteIndex
+        });
+
+        // Mise à jour de l'état
         vehicleStateManager.updateState({
-          position: nextPosition,
-          speed: speed,
+          position: newPosition,
+          speed: this.TARGET_SPEED,
           heading: normalizedHeading
         });
         
-        // Mise à jour des variables pour le prochain calcul
-        this.lastPosition = nextPosition;
-        this.lastUpdateTime = currentTime;
-        this.currentRouteIndex = nextIndex;
-      }, 100); // 100ms = 10 FPS au lieu de 1 FPS
+        this.currentRouteIndex = newIndex;
+        this.lastPosition = newPosition;
+      }, this.UPDATE_INTERVAL);
     }
   }
 
