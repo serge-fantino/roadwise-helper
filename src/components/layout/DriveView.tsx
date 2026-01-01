@@ -596,6 +596,9 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
     };
   }, []);
 
+  // Mini-map: direction line ref
+  const minimapDirectionRef = useRef<L.Polyline | null>(null);
+
   // Update mini-map position and route
   useEffect(() => {
     if (!minimapInstanceRef.current || !minimapMarkerRef.current) return;
@@ -623,6 +626,43 @@ const DriveView = ({ position, positionHistory }: DriveViewProps) => {
 
       minimapRouteRef.current = route;
     }
+
+    // Ajouter une ligne pour visualiser la direction de regard (DEBUG)
+    const vehicleState = vehicleStateManager.getState();
+    const headingRad = vehicleState.heading * Math.PI / 180;
+    const lookDistance = 50; // 50m pour la visualisation
+    
+    // Calculer le point de regard en coordonnées géographiques
+    const METERS_PER_DEGREE_LAT = 111111;
+    const deltaLat = Math.cos(headingRad) * lookDistance / METERS_PER_DEGREE_LAT;
+    const deltaLon = Math.sin(headingRad) * lookDistance / (METERS_PER_DEGREE_LAT * Math.cos(position[0] * Math.PI / 180));
+    
+    const lookAtPoint: [number, number] = [
+      position[0] + deltaLat,
+      position[1] + deltaLon
+    ];
+
+    // Remove old direction line
+    if (minimapDirectionRef.current) {
+      minimapDirectionRef.current.remove();
+    }
+
+    // Add direction line (yellow for visibility)
+    const directionLine = L.polyline([position, lookAtPoint], {
+      color: '#ffff00',
+      weight: 4,
+      opacity: 0.9,
+    }).addTo(minimapInstanceRef.current);
+
+    minimapDirectionRef.current = directionLine;
+
+    console.log('[DriveView] Minimap direction:', {
+      heading: vehicleState.heading.toFixed(1) + '°',
+      from: position,
+      to: lookAtPoint,
+      deltaLat: deltaLat.toFixed(6),
+      deltaLon: deltaLon.toFixed(6)
+    });
   }, [position]);
 
   return (
