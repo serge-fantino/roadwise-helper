@@ -235,11 +235,11 @@ export class LocationService {
   }
 
   public stopUpdates() {
-    if (this.watchId) {
+    if (this.watchId !== null) {
       navigator.geolocation.clearWatch(this.watchId);
       this.watchId = null;
     }
-    if (this.updateInterval) {
+    if (this.updateInterval !== null) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
@@ -322,6 +322,9 @@ export class LocationService {
         this.permissionState = 'denied';
       }
     };
+
+    // Force an immediate fix attempt (often helps on desktop browsers)
+    navigator.geolocation.getCurrentPosition(handlePosition, handleError, options);
 
     this.watchId = navigator.geolocation.watchPosition(
       handlePosition,

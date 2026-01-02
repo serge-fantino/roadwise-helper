@@ -21,13 +21,23 @@ const MainLayout = () => {
   const [prediction, setPrediction] = useState<RoadPrediction | null>(roadPredictor.getCurrentPrediction());
   const [isRoadPredictorActive, setIsRoadPredictorActive] = useState(roadPredictor.getIsActive());
 
+  // GPS mode: ne pas redémarrer sur chaque changement de routePoints
   useEffect(() => {
+    if (isDebugMode) return;
     const locationService = LocationService.getInstance();
-    
-    locationService.setMode(isDebugMode ? 'simulation' : 'gps');
-    
-    locationService.startUpdates(routeState.routePoints);
+    locationService.setMode('gps');
+    locationService.startUpdates();
+    return () => {
+      locationService.stopUpdates();
+    };
+  }, [isDebugMode]);
 
+  // Simulation/debug mode: redémarrer si routePoints change
+  useEffect(() => {
+    if (!isDebugMode) return;
+    const locationService = LocationService.getInstance();
+    locationService.setMode('simulation');
+    locationService.startUpdates(routeState.routePoints);
     return () => {
       locationService.stopUpdates();
     };
