@@ -16,9 +16,14 @@ export class LocationService {
   private simulationService: ReturnType<typeof createSimulationService>;
   private simulationServiceV2: ReturnType<typeof createSimulationServiceV2>;
   private lastSpeed: number = 0;
-  private lastSpeedUpdateTime: number = null;
+  private lastSpeedUpdateTime: number | null = null;
   private lastAccelerationInG: number = 0;
   private useAdvancedSimulation: boolean = true; // Utiliser SimulationServiceV2 par défaut
+
+  // Buffer des dernières positions GPS pour calculer un heading robuste
+  private gpsSamples: Array<{ position: [number, number]; timestampMs: number }> = [];
+  private readonly GPS_HEADING_WINDOW_MS = 4000; // fenêtre glissante (4s)
+  private readonly GPS_HEADING_MIN_DISTANCE_M = 3; // éviter le bruit à l'arrêt
 
   private constructor() {
     // Initialiser les services de simulation avec le nouveau gestionnaire d'état
@@ -43,12 +48,17 @@ export class LocationService {
   }
 
   private notifyObservers(position: [number, number], speed: number, accelerationInG: number) {
-    console.log('[LocationService] Speed update:', { position, speed, mode: this.mode });
     this.observers.forEach(observer => observer(position, speed, accelerationInG));
   }
 
   private calculateAccelerationInG(currentSpeed: number): number {
     const currentTime = Date.now();
+    if (this.lastSpeedUpdateTime === null) {
+      this.lastSpeedUpdateTime = currentTime;
+      this.lastSpeed = currentSpeed;
+      return 0;
+    }
+
     const deltaTime = (currentTime - this.lastSpeedUpdateTime) / 1000; // Convert to seconds
     
     // Si le delta temps est trop petit, on évite de calculer pour éviter les erreurs
@@ -62,13 +72,6 @@ export class LocationService {
     // Conversion en g (1g = 9.81 m/s²)
     const accelerationInG = (this.lastAccelerationInG + acceleration / 9.81) / 2; // Moyenne des deux dernières valeurs pour lisser les données
 
-    console.log('[LocationService] Acceleration calculated:', {
-      currentSpeed,
-      lastSpeed: this.lastSpeed,
-      deltaTime,
-      accelerationInG
-    });
-
     // Mise à jour des valeurs pour le prochain calcul
     this.lastSpeed = currentSpeed;
     this.lastSpeedUpdateTime = currentTime;
@@ -77,24 +80,62 @@ export class LocationService {
     return accelerationInG;
   }
 
-  private handlePositionUpdate(position: [number, number], speed: number, accelerationInG: number) {
-    // Calculer le heading à partir des 2 dernières positions
-    const tripState = tripService.getState();
-    let heading = vehicleStateManager.getState().heading; // Garder le heading précédent par défaut
-    
-    if (tripState.positions.length > 0) {
-      const lastPosition = tripState.positions[tripState.positions.length - 1];
-      // Calculer heading entre dernière position et nouvelle position
-      const deltaLat = position[0] - lastPosition[0];
-      const deltaLon = position[1] - lastPosition[1];
-      
-      // Calculer l'angle en degrés (0° = Nord, 90° = Est)
-      if (Math.abs(deltaLat) > 0.00001 || Math.abs(deltaLon) > 0.00001) {
-        heading = Math.atan2(deltaLon, deltaLat) * 180 / Math.PI;
-        // Normaliser entre 0 et 360
-        heading = (heading + 360) % 360;
+  private distanceMeters(a: [number, number], b: [number, number]): number {
+    const METERS_PER_DEGREE_LAT = 111111;
+    const dLat = (b[0] - a[0]) * METERS_PER_DEGREE_LAT;
+    const dLon =
+      (b[1] - a[1]) * METERS_PER_DEGREE_LAT * Math.cos((a[0] * Math.PI) / 180);
+    return Math.sqrt(dLat * dLat + dLon * dLon);
+  }
+
+  private computeHeadingFromSamples(): number | null {
+    if (this.gpsSamples.length < 2) return null;
+
+    // Prendre la première et la dernière mesure suffisamment éloignées pour réduire le bruit
+    const latest = this.gpsSamples[this.gpsSamples.length - 1];
+    let oldest = this.gpsSamples[0];
+
+    // Chercher un point "oldest" qui crée une distance minimale avec le dernier point
+    for (let i = 0; i < this.gpsSamples.length - 1; i++) {
+      const candidate = this.gpsSamples[i];
+      const dist = this.distanceMeters(candidate.position, latest.position);
+      if (dist >= this.GPS_HEADING_MIN_DISTANCE_M) {
+        oldest = candidate;
+        break;
       }
     }
+
+    const dist = this.distanceMeters(oldest.position, latest.position);
+    if (dist < this.GPS_HEADING_MIN_DISTANCE_M) return null;
+
+    // Calculer heading (0° = Nord, 90° = Est) en mètres pour corriger la convergence des méridiens
+    const METERS_PER_DEGREE_LAT = 111111;
+    const dLatM = (latest.position[0] - oldest.position[0]) * METERS_PER_DEGREE_LAT;
+    const dLonM =
+      (latest.position[1] - oldest.position[1]) *
+      METERS_PER_DEGREE_LAT *
+      Math.cos((oldest.position[0] * Math.PI) / 180);
+
+    let heading = (Math.atan2(dLonM, dLatM) * 180) / Math.PI;
+    heading = (heading + 360) % 360;
+    return heading;
+  }
+
+  private handlePositionUpdate(
+    position: [number, number],
+    speed: number,
+    accelerationInG: number,
+    timestampMs: number
+  ) {
+    // Mettre à jour le buffer GPS (fenêtre glissante)
+    this.gpsSamples.push({ position, timestampMs });
+    const cutoff = timestampMs - this.GPS_HEADING_WINDOW_MS;
+    this.gpsSamples = this.gpsSamples.filter(s => s.timestampMs >= cutoff);
+
+    // Heading lissé sur les dernières positions
+    const previousHeading = vehicleStateManager.getState().heading;
+    const computedHeading = this.computeHeadingFromSamples();
+    const heading = computedHeading ?? previousHeading;
     
     // Mettre à jour l'état du véhicule via le gestionnaire
     vehicleStateManager.updateState({
@@ -162,11 +203,10 @@ export class LocationService {
     }
 
     const handlePosition = (pos: GeolocationPosition) => {
-      console.log('[LocationService] GPS Position:', pos);
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
       const accelerationInG = this.calculateAccelerationInG(speed);
-      this.handlePositionUpdate(position, speed, accelerationInG);
+      this.handlePositionUpdate(position, speed, accelerationInG, pos.timestamp);
     };
 
     const handleError = (error: GeolocationPositionError) => {
