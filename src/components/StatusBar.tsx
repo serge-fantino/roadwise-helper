@@ -121,6 +121,8 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }
               {gpsDebug.ageMs !== null ? ` (${Math.round(gpsDebug.ageMs / 1000)}s)` : ''}
               {gpsDebug.quality?.accuracyM != null ? ` acc:${Math.round(gpsDebug.quality.accuracyM)}m` : ''}
               {gpsDebug.estimatedHz != null ? ` ~${gpsDebug.estimatedHz.toFixed(1)}Hz` : ''}
+              {` perm:${gpsDebug.permission}`}
+              {gpsDebug.lastError ? ` err:${gpsDebug.lastError.code}` : ''}
               {' dop:n/a'}
             </span>
           </div>

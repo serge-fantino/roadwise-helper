@@ -27,6 +27,10 @@ export type GpsDebugInfo = {
   quality: GpsFixQuality | null;
   /** estimation de fréquence en Hz sur la fenêtre des samples, null si pas assez de samples */
   estimatedHz: number | null;
+  /** état permission si disponible via Permissions API */
+  permission: 'granted' | 'prompt' | 'denied' | 'unsupported' | 'unknown';
+  /** dernière erreur geoloc (si existe) */
+  lastError: { code: number; message: string; timestampMs: number } | null;
 };
 
 export class LocationService {
@@ -49,12 +53,13 @@ export class LocationService {
 
   // Dernière mesure GPS brute (qualité)
   private lastGpsFix: GpsFixQuality | null = null;
+  private lastGpsError: { code: number; message: string; timestampMs: number } | null = null;
+  private permissionState: 'granted' | 'prompt' | 'denied' | 'unsupported' | 'unknown' = 'unknown';
 
   private constructor() {
     // Initialiser les services de simulation avec le nouveau gestionnaire d'état
     this.simulationService = createSimulationService();
     this.simulationServiceV2 = createSimulationServiceV2();
-    this.startUpdates();
   }
 
   public static getInstance(): LocationService {
@@ -102,6 +107,8 @@ export class LocationService {
       lastFixLocalTime,
       quality: this.lastGpsFix,
       estimatedHz,
+      permission: this.permissionState,
+      lastError: this.lastGpsError,
     };
   }
 
@@ -257,10 +264,41 @@ export class LocationService {
   private startGPSUpdates() {
     if (!('geolocation' in navigator)) {
       console.error('[LocationService] Geolocation is not supported');
+      this.permissionState = 'unsupported';
       return;
     }
 
+    // Best-effort permission state (not supported everywhere, esp. iOS Safari)
+    if ('permissions' in navigator && (navigator as any).permissions?.query) {
+      try {
+        (navigator as any).permissions
+          .query({ name: 'geolocation' })
+          .then((status: any) => {
+            this.permissionState = status?.state ?? 'unknown';
+            if (status && typeof status.onchange === 'function') {
+              status.onchange = () => {
+                this.permissionState = status?.state ?? 'unknown';
+              };
+            }
+          })
+          .catch(() => {
+            this.permissionState = 'unknown';
+          });
+      } catch {
+        this.permissionState = 'unknown';
+      }
+    } else {
+      this.permissionState = 'unsupported';
+    }
+
+    const options: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0,
+    };
+
     const handlePosition = (pos: GeolocationPosition) => {
+      this.lastGpsError = null;
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
       const accelerationInG = this.calculateAccelerationInG(speed);
@@ -279,16 +317,27 @@ export class LocationService {
 
     const handleError = (error: GeolocationPositionError) => {
       console.error('[LocationService] GPS Error:', error.message);
+      this.lastGpsError = { code: error.code, message: error.message, timestampMs: Date.now() };
+      if (error.code === error.PERMISSION_DENIED) {
+        this.permissionState = 'denied';
+      }
     };
 
     this.watchId = navigator.geolocation.watchPosition(
       handlePosition,
       handleError,
-      {
-        enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 0
-      }
+      options
     );
+
+    // Fallback: si watchPosition ne remonte plus, forcer un getCurrentPosition périodique
+    // (utile sur mobile quand le watch se "fige" ou après reprise)
+    this.updateInterval = setInterval(() => {
+      if (this.mode !== 'gps') return;
+      const now = Date.now();
+      const age = this.lastGpsFix ? now - this.lastGpsFix.timestampMs : Infinity;
+      if (age > 5000) {
+        navigator.geolocation.getCurrentPosition(handlePosition, handleError, options);
+      }
+    }, 5000);
   }
 }
