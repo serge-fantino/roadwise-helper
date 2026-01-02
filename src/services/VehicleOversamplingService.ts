@@ -42,6 +42,12 @@ export class VehicleOversamplingService {
   private lastPublishedSpeed = 0;
   private lastPublishedSpeedMs: number | null = null;
 
+  // Dernières mesures brutes (en mètres) pour extrapoler une "mesure" à l'instant courant
+  private rawMeas: Array<{ x: number; y: number; t: number; speed: number; heading: number }> = [];
+  private rawHzEma = 0;
+  private lastRawMs: number | null = null;
+  private bypassFilter = false; // si les mesures sont déjà fréquentes (simulation), ne pas re-filtrer
+
   private constructor() {
     // Subscribe to raw vehicle updates (GPS/simulation)
     vehicleStateManager.addObserver((s) => this.onMeasurement(s));
@@ -131,12 +137,34 @@ export class VehicleOversamplingService {
     const now = Date.now();
     const { x: mx, y: my } = this.gpsToMeters(meas.position);
 
+    // Estimer la fréquence des mesures brutes (EMA) pour bypass en simulation/debug
+    if (this.lastRawMs !== null) {
+      const dt = Math.max(1, now - this.lastRawMs) / 1000;
+      const hz = 1 / dt;
+      this.rawHzEma = this.rawHzEma === 0 ? hz : 0.8 * this.rawHzEma + 0.2 * hz;
+    }
+    this.lastRawMs = now;
+    // Si on reçoit déjà > ~8Hz, on bypass (typiquement simulation/debug)
+    if (this.rawHzEma > 8) this.bypassFilter = true;
+    if (this.rawHzEma < 4) this.bypassFilter = false;
+
+    if (this.bypassFilter) {
+      // Forward direct (pas d'oversampling nécessaire)
+      this.notify(meas);
+      return;
+    }
+
     // init filter if first fix
     if (this.lastTickMs === null) {
       this.x = [mx, my, 0, 0];
       this.lastTickMs = now;
+      this.rawMeas = [{ x: mx, y: my, t: now, speed: meas.speed, heading: meas.heading }];
       return;
     }
+
+    // Mettre à jour le buffer de mesures brutes (max 3)
+    this.rawMeas.push({ x: mx, y: my, t: now, speed: meas.speed, heading: meas.heading });
+    if (this.rawMeas.length > 3) this.rawMeas.shift();
 
     // divergence check
     const dx = mx - this.x[0];
@@ -166,11 +194,8 @@ export class VehicleOversamplingService {
       return;
     }
 
-    // Apply correction using a Kalman update at dt based on time since last tick
-    const dt = Math.max(0.001, Math.min((now - this.lastTickMs) / 1000, 1));
-    this.kalmanPredict(dt);
-    this.kalmanUpdate(mx, my);
-    this.lastTickMs = now;
+    // Au lieu de "recaler" brutalement ici, on laisse le tick 10Hz faire une correction douce
+    // via une mesure extrapolée à l'instant courant.
 
     // keep origin bounded
     if (this.distanceFromOriginMeters() > this.RECENTER_ORIGIN_THRESHOLD_M) {
@@ -227,9 +252,9 @@ export class VehicleOversamplingService {
     ];
   }
 
-  private kalmanUpdate(mx: number, my: number) {
+  private kalmanUpdate(mx: number, my: number, sigmaPosM: number = this.SIGMA_POS_M) {
     // H selects x,y -> z
-    const R = this.SIGMA_POS_M * this.SIGMA_POS_M;
+    const R = sigmaPosM * sigmaPosM;
     const P = this.P;
 
     // innovation y = z - Hx
@@ -293,9 +318,23 @@ export class VehicleOversamplingService {
       return;
     }
 
+    if (this.bypassFilter) {
+      // En simulation/debug, les updates brutes sont déjà fréquentes
+      this.notify(vehicleStateManager.getState());
+      return;
+    }
+
     const dt = Math.max(0.001, Math.min((now - this.lastTickMs) / 1000, 0.5));
     this.kalmanPredict(dt);
     this.lastTickMs = now;
+
+    // Correction douce à 10Hz vers une "mesure" extrapolée à l'instant courant
+    const est = this.estimateCurrentMeasurement(now);
+    if (est) {
+      // Plus on extrapole loin, plus on augmente le bruit de mesure (moins agressif)
+      const sigma = this.SIGMA_POS_M + Math.min(20, est.extrapolatedSeconds * 8);
+      this.kalmanUpdate(est.mx, est.my, sigma);
+    }
 
     if (this.origin && this.distanceFromOriginMeters() > this.RECENTER_ORIGIN_THRESHOLD_M) {
       this.rebaseOriginToCurrent();
@@ -316,6 +355,40 @@ export class VehicleOversamplingService {
     this.lastPublishedSpeedMs = now;
 
     this.notify({ position, speed, acceleration: accel, heading });
+  }
+
+  /**
+   * Estime une "mesure" position au temps courant à partir des 2–3 dernières mesures brutes.
+   * Objectif: réduire la latence et les à-coups (on corrige vers une cible future/proche).
+   */
+  private estimateCurrentMeasurement(nowMs: number): { mx: number; my: number; extrapolatedSeconds: number } | null {
+    if (this.rawMeas.length < 2) return null;
+    const last = this.rawMeas[this.rawMeas.length - 1];
+    const prev = this.rawMeas[this.rawMeas.length - 2];
+
+    const dt = Math.max(0.001, (last.t - prev.t) / 1000);
+    const vx1 = (last.x - prev.x) / dt;
+    const vy1 = (last.y - prev.y) / dt;
+
+    let vx = vx1;
+    let vy = vy1;
+    if (this.rawMeas.length >= 3) {
+      const prev2 = this.rawMeas[this.rawMeas.length - 3];
+      const dt2 = Math.max(0.001, (prev.t - prev2.t) / 1000);
+      const vx2 = (prev.x - prev2.x) / dt2;
+      const vy2 = (prev.y - prev2.y) / dt2;
+      // moyenne pondérée pour lisser
+      vx = 0.65 * vx1 + 0.35 * vx2;
+      vy = 0.65 * vy1 + 0.35 * vy2;
+    }
+
+    const extrapDt = Math.max(0, Math.min((nowMs - last.t) / 1000, 1.0));
+    // Si la dernière mesure est trop vieille, ne pas extrapoler
+    if (extrapDt > 0.8) return null;
+
+    const mx = last.x + vx * extrapDt;
+    const my = last.y + vy * extrapDt;
+    return { mx, my, extrapolatedSeconds: extrapDt };
   }
 }
 
