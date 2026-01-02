@@ -36,6 +36,7 @@ import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 import { SceneCoordinateSystem } from '../../utils/SceneCoordinateSystem';
 import * as THREE from 'three';
 import { CartesianPoint, generateBorders } from '../../services/route/RouteProjectionService';
+import { calculateDistance } from '../../utils/mapUtils';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -75,7 +76,8 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
   }, [vehicle]);
 
   // Créer des panneaux de distance tous les 500m
-  const createDistanceSigns = (path: CartesianPoint[]): THREE.Group => {
+  // distanceOffsetM: distance cumulée (m) au début du segment (pour afficher des km absolus)
+  const createDistanceSigns = (path: CartesianPoint[], distanceOffsetM: number): THREE.Group => {
     const signsGroup = new THREE.Group();
     const signInterval = 500; // Panneaux tous les 500m
     
@@ -86,7 +88,9 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     };
     
     let accumulatedDistance = 0;
-    let nextSignDistance = signInterval;
+    // Aligner le premier panneau sur le prochain multiple de 500m en distance absolue
+    const offsetMod = ((distanceOffsetM % signInterval) + signInterval) % signInterval;
+    let nextSignDistance = offsetMod === 0 ? signInterval : (signInterval - offsetMod);
 
     for (let i = 0; i < path.length - 1; i++) {
       const p1 = path[i];
@@ -122,7 +126,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
         signsGroup.add(sign);
 
         // Ajouter le texte de distance (en noir sur fond blanc, plus gros)
-        const distanceKm = nextSignDistance / 1000;
+        const distanceKm = (distanceOffsetM + nextSignDistance) / 1000;
         const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 256;
@@ -443,10 +447,70 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     // Garder une référence au sol
     const groundRef = ground;
 
-    // VERSION SIMPLIFIÉE: pas d'interpolation, pas de Kalman
     // Garder les références aux objets de la piste pour pouvoir les supprimer proprement
     let trackObjects: THREE.Object3D[] = [];
     let lastRouteKey = ''; // Pour détecter si la ROUTE a changé (pas la position)
+    let routeGps: [number, number][] = [];
+    let routeCumDist: number[] = []; // mètres, longueur = routeGps.length
+    let segmentStartIdx = 0;
+    let segmentEndIdx = 0;
+    let lastClosestIdx = 0;
+    let lastRebuildAtMs = 0;
+    const WINDOW_AHEAD_M = 5000;
+    const WINDOW_BEHIND_M = 1000;
+    const REBUILD_TRIGGER_M = 2000; // rebuild si <2km du bord avant
+    const REBUILD_COOLDOWN_MS = 1500;
+
+    const computeCumDist = (gpsPoints: [number, number][]) => {
+      const cum: number[] = new Array(gpsPoints.length).fill(0);
+      for (let i = 1; i < gpsPoints.length; i++) {
+        cum[i] = cum[i - 1] + calculateDistance(gpsPoints[i - 1], gpsPoints[i]);
+      }
+      return cum;
+    };
+
+    const lowerBoundCum = (cum: number[], target: number) => {
+      // first index with cum[i] >= target
+      let lo = 0;
+      let hi = cum.length - 1;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (cum[mid] < target) lo = mid + 1;
+        else hi = mid;
+      }
+      return lo;
+    };
+
+    const findClosestIdx = (gpsPoints: [number, number][], current: [number, number], hintIdx: number) => {
+      if (gpsPoints.length === 0) return 0;
+      // Recherche locale autour du dernier index (plus rapide), sinon fallback global
+      const span = 200;
+      const start = Math.max(0, hintIdx - span);
+      const end = Math.min(gpsPoints.length - 1, hintIdx + span);
+
+      let bestIdx = hintIdx;
+      let bestDist = Infinity;
+      for (let i = start; i <= end; i++) {
+        const d = calculateDistance(current, gpsPoints[i]);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+
+      // Si on est très loin du meilleur local, faire une passe globale (rare)
+      if (bestDist > 200) {
+        for (let i = 0; i < gpsPoints.length; i++) {
+          const d = calculateDistance(current, gpsPoints[i]);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+      }
+
+      return bestIdx;
+    };
 
     // Fonction pour nettoyer la piste
     const clearTrack = () => {
@@ -464,6 +528,40 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
       trackObjects = [];
     };
 
+    const rebuildSegment = (originGps: [number, number], startIdx: number, endIdx: number) => {
+      // Réinitialiser le repère (origine) UNIQUEMENT au moment du rebuild
+      fixedOriginRef.current = originGps;
+      coordinateSystemRef.current = new SceneCoordinateSystem(originGps);
+
+      segmentStartIdx = startIdx;
+      segmentEndIdx = endIdx;
+
+      clearTrack();
+
+      const segmentGps = routeGps.slice(startIdx, endIdx + 1);
+      const path: CartesianPoint[] = segmentGps.map(p => coordinateSystemRef.current!.gpsToCartesian(p));
+      const { leftBorder, rightBorder } = generateBorders(path);
+
+      const trackSurface = createTrackSurface(leftBorder, rightBorder);
+      scene.add(trackSurface);
+      trackObjects.push(trackSurface);
+
+      const leftBorders = createTrackBorders(leftBorder, 'left');
+      const rightBorders = createTrackBorders(rightBorder, 'right');
+      scene.add(leftBorders);
+      scene.add(rightBorders);
+      trackObjects.push(leftBorders, rightBorders);
+
+      const roadMarkings = createRoadMarkings(path);
+      scene.add(roadMarkings);
+      trackObjects.push(roadMarkings);
+
+      const distanceOffsetM = routeCumDist[startIdx] ?? 0;
+      const distanceSigns = createDistanceSigns(path, distanceOffsetM);
+      scene.add(distanceSigns);
+      trackObjects.push(distanceSigns);
+    };
+
     // Animation loop - VERSION OPTIMISÉE
     let frameCount = 0;
     let rafId = 0;
@@ -477,7 +575,6 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
       const currentHeading = currentVehicle.heading;
 
       // Construire la piste UNE SEULE FOIS (ou quand la route change)
-      // IMPORTANT: on ne reconstruit PAS la scène pendant le mouvement du véhicule.
       const routeState = routePlannerService.getState();
       const enhanced = routeState.enhancedPoints ?? [];
       if (enhanced.length > 1) {
@@ -488,35 +585,50 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
         if (routeKey !== lastRouteKey) {
           lastRouteKey = routeKey;
 
-          // Origine FIXE: on la définit une seule fois (ou si on change complètement de route)
-          fixedOriginRef.current = currentGpsPosition;
-          coordinateSystemRef.current = new SceneCoordinateSystem(fixedOriginRef.current);
+          // (Re)charger la route complète en GPS + distances cumulées
+          routeGps = enhanced.map(p => p.position);
+          routeCumDist = computeCumDist(routeGps);
+          lastClosestIdx = 0;
 
-          // Nettoyer l'ancienne piste proprement
-          clearTrack();
+          // Construire un premier segment autour de la position actuelle
+          const closestIdx = findClosestIdx(routeGps, currentGpsPosition, lastClosestIdx);
+          lastClosestIdx = closestIdx;
 
-          // Convertir toute la route en cartésien dans le repère FIXE
-          const path: CartesianPoint[] = enhanced.map(p => coordinateSystemRef.current!.gpsToCartesian(p.position));
-          const { leftBorder, rightBorder } = generateBorders(path);
+          const curS = routeCumDist[closestIdx] ?? 0;
+          const startS = Math.max(0, curS - WINDOW_BEHIND_M);
+          const endS = Math.min(routeCumDist[routeCumDist.length - 1] ?? 0, curS + WINDOW_AHEAD_M);
 
-          // Créer la géométrie de la piste COMPLETE
-          const trackSurface = createTrackSurface(leftBorder, rightBorder);
-          scene.add(trackSurface);
-          trackObjects.push(trackSurface);
+          const startIdx = lowerBoundCum(routeCumDist, startS);
+          const endIdx = lowerBoundCum(routeCumDist, endS);
 
-          const leftBorders = createTrackBorders(leftBorder, 'left');
-          const rightBorders = createTrackBorders(rightBorder, 'right');
-          scene.add(leftBorders);
-          scene.add(rightBorders);
-          trackObjects.push(leftBorders, rightBorders);
+          lastRebuildAtMs = Date.now();
+          rebuildSegment(currentGpsPosition, startIdx, Math.max(startIdx + 1, endIdx));
+        }
+        // Rebuild trigger: quand on approche du bord avant du segment (<2km)
+        // On throttle pour éviter les rebuilds trop fréquents.
+        if (routeGps.length > 1 && routeCumDist.length === routeGps.length && frameCount % 20 === 0) {
+          const now = Date.now();
+          if (now - lastRebuildAtMs > REBUILD_COOLDOWN_MS) {
+            const closestIdx = findClosestIdx(routeGps, currentGpsPosition, lastClosestIdx);
+            lastClosestIdx = closestIdx;
 
-          const roadMarkings = createRoadMarkings(path);
-          scene.add(roadMarkings);
-          trackObjects.push(roadMarkings);
+            const curS = routeCumDist[closestIdx] ?? 0;
+            const endS = routeCumDist[segmentEndIdx] ?? curS;
+            const remainingAhead = endS - curS;
 
-          const distanceSigns = createDistanceSigns(path);
-          scene.add(distanceSigns);
-          trackObjects.push(distanceSigns);
+            const routeEndS = routeCumDist[routeCumDist.length - 1] ?? 0;
+            const canExtend = curS + WINDOW_AHEAD_M < routeEndS;
+
+            if (canExtend && remainingAhead < REBUILD_TRIGGER_M) {
+              const startS = Math.max(0, curS - WINDOW_BEHIND_M);
+              const newEndS = Math.min(routeEndS, curS + WINDOW_AHEAD_M);
+              const startIdx = lowerBoundCum(routeCumDist, startS);
+              const endIdx = lowerBoundCum(routeCumDist, newEndS);
+
+              lastRebuildAtMs = now;
+              rebuildSegment(currentGpsPosition, startIdx, Math.max(startIdx + 1, endIdx));
+            }
+          }
         }
       }
 
