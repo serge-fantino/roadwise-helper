@@ -746,8 +746,8 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
           <div className="absolute top-4 right-4 bg-black/70 rounded-lg overflow-hidden border-2 border-white/30 shadow-2xl">
             <div 
               ref={minimapRef} 
-              className="w-[200px] h-[200px]"
-              style={{ cursor: 'default' }}
+              // Mobile: max 1/4 largeur écran. Desktop: 200x200.
+              style={{ width: 'min(25vw, 200px)', height: 'min(25vw, 200px)', cursor: 'default' }}
             />
             <button
               onClick={() => setMinimapVisible(false)}
