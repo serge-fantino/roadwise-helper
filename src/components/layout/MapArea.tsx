@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import MapView from '../MapView';
 import DriveView from './DriveView';
 import RoadBookView from '../roadbook/RoadBookView';
-import { vehicleStateManager } from '../../services/VehicleStateManager';
+import { vehicleOversamplingService } from '../../services/VehicleOversamplingService';
 import { tripService } from '../../services/TripService';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
 import { VehicleState } from '../../services/VehicleStateManager';
@@ -19,7 +19,7 @@ const MapArea = ({
   onRoadStatusChange,
   viewMode
 }: MapAreaProps) => {
-  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleStateManager.getState());
+  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleOversamplingService.getState());
   const [tripState, setTripState] = useState<TripState>(tripService.getState());
   const [routeState, setRouteState] = useState<RouteState>(routePlannerService.getState());
 
@@ -36,12 +36,12 @@ const MapArea = ({
       setRouteState(state);
     };
 
-    vehicleStateManager.addObserver(handleVehicleUpdate);
+    vehicleOversamplingService.addObserver(handleVehicleUpdate);
     tripService.addObserver(handleTripUpdate);
     routePlannerService.addObserver(handleRouteUpdate);
 
     return () => {
-      vehicleStateManager.removeObserver(handleVehicleUpdate);
+      vehicleOversamplingService.removeObserver(handleVehicleUpdate);
       tripService.removeObserver(handleTripUpdate);
       routePlannerService.removeObserver(handleRouteUpdate);
     };

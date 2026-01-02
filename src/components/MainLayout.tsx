@@ -3,7 +3,7 @@ import MapArea from './layout/MapArea';
 import StatusBar from './StatusBar';
 import SearchArea from './layout/SearchArea';
 import { useState, useEffect } from 'react';
-import { vehicleStateManager } from '../services/VehicleStateManager';
+import { vehicleOversamplingService } from '../services/VehicleOversamplingService';
 import { routePlannerService } from '../services/route/RoutePlannerService';
 import { LocationService } from '../services/location/LocationService';
 import { VehicleState } from '../services/VehicleStateManager';
@@ -15,7 +15,7 @@ const MainLayout = () => {
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'drive' | 'roadbook'>('map');
-  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleStateManager.getState());
+  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleOversamplingService.getState());
   const [routeState, setRouteState] = useState<RouteState>(routePlannerService.getState());
   const [isOnRoad, setIsOnRoad] = useState(false);
   const [prediction, setPrediction] = useState<RoadPrediction | null>(roadPredictor.getCurrentPrediction());
@@ -52,11 +52,11 @@ const MainLayout = () => {
       setRouteState(state);
     };
 
-    vehicleStateManager.addObserver(handleVehicleUpdate);
+    vehicleOversamplingService.addObserver(handleVehicleUpdate);
     routePlannerService.addObserver(handleRouteUpdate);
 
     return () => {
-      vehicleStateManager.removeObserver(handleVehicleUpdate);
+      vehicleOversamplingService.removeObserver(handleVehicleUpdate);
       routePlannerService.removeObserver(handleRouteUpdate);
     };
   }, []);
