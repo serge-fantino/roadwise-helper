@@ -55,6 +55,9 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
   const coordinateSystemRef = useRef<SceneCoordinateSystem | null>(null); // Système de coordonnées de la scène 3D
   const fixedOriginRef = useRef<[number, number] | null>(null); // Origine FIXE de la vue 3D (ne change pas pendant le mouvement)
   const vehicleRef = useRef<VehicleTelemetry>(vehicle); // IMPORTANT: éviter stale closure dans animate()
+  const renderSamplesRef = useRef<Array<{ t: number; position: [number, number]; heading: number }>>([]);
+  const RENDER_LAG_MS = 100; // ~1/10s de retard pour interpoler proprement
+  const SAMPLE_WINDOW_MS = 3000; // garder 3s d'échantillons max
   
   // Mini-map state and refs
   const minimapRef = useRef<HTMLDivElement>(null);
@@ -73,6 +76,12 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
   // Sync latest vehicle snapshot to ref so the animation loop always uses current values
   useEffect(() => {
     vehicleRef.current = vehicle;
+    // Buffer de rendu pour interpolation
+    const now = Date.now();
+    renderSamplesRef.current.push({ t: now, position: vehicle.position, heading: vehicle.heading });
+    // trim
+    const cutoff = now - SAMPLE_WINDOW_MS;
+    renderSamplesRef.current = renderSamplesRef.current.filter(s => s.t >= cutoff);
   }, [vehicle]);
 
   // Créer des panneaux de distance tous les 500m
@@ -593,13 +602,59 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     let frameCount = 0;
     let rafId = 0;
     let stopped = false;
+    const getInterpolatedSample = (targetMs: number) => {
+      const samples = renderSamplesRef.current;
+      if (samples.length === 0) return null;
+      if (samples.length === 1) return samples[0];
+
+      // Assurer ordre chronologique
+      // (normalement c'est déjà le cas, mais on ne prend pas de risque)
+      const s0 = samples[0];
+      const sN = samples[samples.length - 1];
+      if (targetMs <= s0.t) return s0;
+      if (targetMs >= sN.t) return sN;
+
+      // trouver l'intervalle [a,b]
+      let a = s0;
+      let b = sN;
+      for (let i = samples.length - 1; i >= 1; i--) {
+        const prev = samples[i - 1];
+        const cur = samples[i];
+        if (prev.t <= targetMs && targetMs <= cur.t) {
+          a = prev;
+          b = cur;
+          break;
+        }
+      }
+
+      const span = Math.max(1, b.t - a.t);
+      const alpha = Math.min(1, Math.max(0, (targetMs - a.t) / span));
+
+      // Interpolation angle (wrap 0/360)
+      let d = b.heading - a.heading;
+      if (d > 180) d -= 360;
+      if (d < -180) d += 360;
+      const heading = (a.heading + d * alpha + 360) % 360;
+
+      const position: [number, number] = [
+        a.position[0] + (b.position[0] - a.position[0]) * alpha,
+        a.position[1] + (b.position[1] - a.position[1]) * alpha,
+      ];
+
+      return { t: targetMs, position, heading };
+    };
+
     const animate = () => {
       if (stopped) return;
       rafId = requestAnimationFrame(animate);
 
       const currentVehicle = vehicleRef.current;
-      const currentGpsPosition = currentVehicle.position;
-      const currentHeading = currentVehicle.heading;
+      // Render smoothing: on rend avec un léger retard, et on interpole entre 2 keypoints
+      const now = Date.now();
+      const renderTarget = now - RENDER_LAG_MS;
+      const smoothed = getInterpolatedSample(renderTarget);
+      const currentGpsPosition = smoothed?.position ?? currentVehicle.position;
+      const currentHeading = smoothed?.heading ?? currentVehicle.heading;
 
       // Construire la piste UNE SEULE FOIS (ou quand la route change)
       const routeState = routePlannerService.getState();

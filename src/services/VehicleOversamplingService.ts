@@ -15,7 +15,7 @@ export class VehicleOversamplingService {
   private intervalId: ReturnType<typeof setInterval> | null = null;
 
   // Config
-  private readonly OUTPUT_HZ = 10;
+  private readonly OUTPUT_HZ = 20;
   private readonly HARD_RESET_THRESHOLD_M = 20; // divergence -> reset
   private readonly MIN_HEADING_SPEED_MPS = 0.5; // en-dessous, heading peu fiable
   private readonly RECENTER_ORIGIN_THRESHOLD_M = 10000; // rebase l'origine pour limiter l'erreur de projection plane
