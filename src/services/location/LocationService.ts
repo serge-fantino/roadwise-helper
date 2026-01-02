@@ -7,6 +7,28 @@ import { tripService } from '../TripService';
 type LocationMode = 'gps' | 'simulation';
 type LocationObserver = (position: [number, number], speed: number, accelerationInG: number) => void;
 
+export type GpsFixQuality = {
+  timestampMs: number;
+  accuracyM?: number;
+  altitudeAccuracyM?: number;
+  speedMps?: number;
+  headingDeg?: number;
+};
+
+export type GpsDebugInfo = {
+  mode: LocationMode;
+  /** true si on est en mode gps ET qu'on a reçu au moins une mesure GPS */
+  hasRealFix: boolean;
+  /** âge de la dernière mesure GPS (ms), null si pas de fix */
+  ageMs: number | null;
+  /** heure locale de la dernière mesure GPS, null si pas de fix */
+  lastFixLocalTime: string | null;
+  /** qualité disponible via GeolocationPosition.coords (DOP non disponible en Web) */
+  quality: GpsFixQuality | null;
+  /** estimation de fréquence en Hz sur la fenêtre des samples, null si pas assez de samples */
+  estimatedHz: number | null;
+};
+
 export class LocationService {
   private static instance: LocationService | null = null;
   private mode: LocationMode = 'gps';
@@ -24,6 +46,9 @@ export class LocationService {
   private gpsSamples: Array<{ position: [number, number]; timestampMs: number }> = [];
   private readonly GPS_HEADING_WINDOW_MS = 4000; // fenêtre glissante (4s)
   private readonly GPS_HEADING_MIN_DISTANCE_M = 3; // éviter le bruit à l'arrêt
+
+  // Dernière mesure GPS brute (qualité)
+  private lastGpsFix: GpsFixQuality | null = null;
 
   private constructor() {
     // Initialiser les services de simulation avec le nouveau gestionnaire d'état
@@ -45,6 +70,39 @@ export class LocationService {
 
   public removeObserver(observer: LocationObserver) {
     this.observers = this.observers.filter(obs => obs !== observer);
+  }
+
+  public getMode(): LocationMode {
+    return this.mode;
+  }
+
+  public getGpsDebugInfo(): GpsDebugInfo {
+    const now = Date.now();
+    const hasRealFix = this.mode === 'gps' && !!this.lastGpsFix;
+    const ageMs = this.lastGpsFix ? now - this.lastGpsFix.timestampMs : null;
+    const lastFixLocalTime = this.lastGpsFix
+      ? new Date(this.lastGpsFix.timestampMs).toLocaleTimeString()
+      : null;
+
+    // Estimation fréquence: (n-1)/dt sur la fenêtre glissante
+    let estimatedHz: number | null = null;
+    if (this.gpsSamples.length >= 3) {
+      const t0 = this.gpsSamples[0].timestampMs;
+      const t1 = this.gpsSamples[this.gpsSamples.length - 1].timestampMs;
+      const dt = (t1 - t0) / 1000;
+      if (dt > 0) {
+        estimatedHz = (this.gpsSamples.length - 1) / dt;
+      }
+    }
+
+    return {
+      mode: this.mode,
+      hasRealFix,
+      ageMs,
+      lastFixLocalTime,
+      quality: this.lastGpsFix,
+      estimatedHz,
+    };
   }
 
   private notifyObservers(position: [number, number], speed: number, accelerationInG: number) {
@@ -206,6 +264,16 @@ export class LocationService {
       const position: [number, number] = [pos.coords.latitude, pos.coords.longitude];
       const speed = pos.coords.speed || 0;
       const accelerationInG = this.calculateAccelerationInG(speed);
+
+      // Stocker la qualité GPS disponible (DOP non exposé par l'API Web)
+      this.lastGpsFix = {
+        timestampMs: pos.timestamp,
+        accuracyM: typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : undefined,
+        altitudeAccuracyM: typeof pos.coords.altitudeAccuracy === 'number' ? pos.coords.altitudeAccuracy : undefined,
+        speedMps: typeof pos.coords.speed === 'number' ? pos.coords.speed : undefined,
+        headingDeg: typeof pos.coords.heading === 'number' ? pos.coords.heading : undefined,
+      };
+
       this.handlePositionUpdate(position, speed, accelerationInG, pos.timestamp);
     };
 
