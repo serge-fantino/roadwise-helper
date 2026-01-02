@@ -23,7 +23,7 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({ position, heading, speed 
     return L.divIcon({
       className: styles['vehicle-marker'],
       html: `
-        <div class="${styles['vehicle-icon']}" style="transform: rotate(${90-heading}deg);">
+        <div class="${styles['vehicle-icon']}" style="transform: rotate(${heading}deg);">
           <div class="${styles.arrow}" style="border-bottom-color: ${color};"></div>
         </div>
       `,

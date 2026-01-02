@@ -530,15 +530,13 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
           vehicleMeshRef.current.position.set(vehiclePos3D.x, vehiclePos3D.y, vehiclePos3D.z);
           
           // Orienter le véhicule selon le heading
-          const geoHeading = 90 - currentHeading;
-          const headingRad = geoHeading * Math.PI / 180;
+          const headingRad = (currentHeading * Math.PI) / 180;
           vehicleMeshRef.current.rotation.y = -headingRad;
         }
 
         // Orientation = heading du véhicule (tangente à la route)
-        // NavigationCalculator: 0°=Est, 90°=Nord → conversion nécessaire
-        const geoHeading = 90 - currentHeading; // Convention géographique
-        const headingRad = geoHeading * Math.PI / 180;
+        // Convention géographique: 0°=Nord, 90°=Est
+        const headingRad = (currentHeading * Math.PI) / 180;
         const directionX = Math.sin(headingRad);
         const directionZ = -Math.cos(headingRad); // y cartésien inversé en z Three.js
         
@@ -672,10 +670,8 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     }
 
     // Ajouter une ligne pour visualiser la direction de regard (DEBUG)
-    // NavigationCalculator utilise la convention : 0°=Est, 90°=Nord
-    // Donc on doit convertir en convention géographique : 0°=Nord, 90°=Est
-    const geoHeading = 90 - vehicle.heading; // Conversion mathématique → géographique
-    const headingRad = geoHeading * Math.PI / 180;
+    // Convention géographique : 0°=Nord, 90°=Est
+    const headingRad = (vehicle.heading * Math.PI) / 180;
     const lookDistance = 50; // 50m pour la visualisation
     
     // Calculer le point de regard en coordonnées géographiques
@@ -703,8 +699,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     minimapDirectionRef.current = directionLine;
 
     console.log('[DriveView] Minimap direction:', {
-      headingNav: vehicle.heading.toFixed(1) + '° (0°=Est)',
-      headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
+      headingGeo: vehicle.heading.toFixed(1) + '° (0°=Nord)',
       from: position,
       to: lookAtPoint,
       deltaLat: deltaLat.toFixed(6),

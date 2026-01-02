@@ -121,12 +121,15 @@ export class SimulationUpdateManager {
       distance: distanceToTravel.toFixed(2) + 'm'
     });
 
+    // NavigationCalculator: 0°=Est, 90°=Nord -> Convention géographique: 0°=Nord, 90°=Est
+    const geoHeading = (90 - segmentHeading + 360) % 360;
+
     // Mise à jour de l'état via le gestionnaire
     vehicleStateManager.updateState({
       position: newPosition,
       speed: newSpeed,
       acceleration: acceleration,
-      heading: segmentHeading
+      heading: geoHeading
     });
 
     return true;

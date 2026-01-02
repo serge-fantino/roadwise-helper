@@ -11,10 +11,8 @@ const HeadingDebugLine: React.FC<HeadingDebugLineProps> = ({ position, heading }
   const map = useMap();
 
   useEffect(() => {
-    // NavigationCalculator utilise la convention : 0°=Est, 90°=Nord
-    // Donc on doit convertir en convention géographique : 0°=Nord, 90°=Est
-    const geoHeading = 90 - heading; // Conversion mathématique → géographique
-    const headingRad = geoHeading * Math.PI / 180;
+    // Convention géographique : 0°=Nord, 90°=Est
+    const headingRad = heading * Math.PI / 180;
     const lookDistance = 50; // 50m pour la visualisation
     
     const METERS_PER_DEGREE_LAT = 111111;
@@ -35,8 +33,7 @@ const HeadingDebugLine: React.FC<HeadingDebugLineProps> = ({ position, heading }
     }).addTo(map);
 
     console.log('[MapView] Heading debug line:', {
-      headingNav: heading.toFixed(1) + '° (0°=Est)',
-      headingGeo: geoHeading.toFixed(1) + '° (0°=Nord)',
+      headingGeo: heading.toFixed(1) + '° (0°=Nord)',
       from: position,
       to: lookAtPoint,
       deltaLat: deltaLat.toFixed(6),

@@ -27,7 +27,11 @@ export class SimulationService {
       // Initialisation avec la première position
       this.lastPosition = routePoints[0];
       const nextPosition = routePoints[1];
-      const heading = this.navigationCalculator.calculateHeadingAngle(this.navigationCalculator.calculateHeading(this.lastPosition, nextPosition));
+      // NavigationCalculator: 0°=Est, 90°=Nord -> Convention géographique: 0°=Nord, 90°=Est
+      const navHeading = this.navigationCalculator.calculateHeadingAngle(
+        this.navigationCalculator.calculateHeading(this.lastPosition, nextPosition)
+      );
+      const heading = (90 - navHeading + 360) % 360;
       vehicleStateManager.updateState({
         position: routePoints[0],
         speed: 0,
@@ -78,6 +82,7 @@ export class SimulationService {
         const nextRoutePoint = this.routePoints[Math.min(newIndex + 1, this.routePoints.length - 1)];
         const deltaLat = nextRoutePoint[0] - newPosition[0];
         const deltaLon = nextRoutePoint[1] - newPosition[1];
+        // Ici on calcule déjà en convention géographique (0°=Nord, 90°=Est)
         const heading = Math.atan2(deltaLon, deltaLat) * 180 / Math.PI;
         const normalizedHeading = (heading + 360) % 360;
 
