@@ -1,4 +1,5 @@
 import { vehicleStateManager, VehicleState } from "./VehicleStateManager";
+import { LocationService } from "./location/LocationService";
 
 /**
  * Service intermédiaire qui sur-échantillonne les données véhicule à 10Hz.
@@ -46,7 +47,7 @@ export class VehicleOversamplingService {
   private rawMeas: Array<{ x: number; y: number; t: number; speed: number; heading: number }> = [];
   private rawHzEma = 0;
   private lastRawMs: number | null = null;
-  private bypassFilter = false; // si les mesures sont déjà fréquentes (simulation), ne pas re-filtrer
+  private bypassFilter = false; // true => on forward direct (simulation) au lieu de re-filtrer
 
   private constructor() {
     // Subscribe to raw vehicle updates (GPS/simulation)
@@ -144,9 +145,16 @@ export class VehicleOversamplingService {
       this.rawHzEma = this.rawHzEma === 0 ? hz : 0.8 * this.rawHzEma + 0.2 * hz;
     }
     this.lastRawMs = now;
-    // Si on reçoit déjà > ~8Hz, on bypass (typiquement simulation/debug)
-    if (this.rawHzEma > 8) this.bypassFilter = true;
-    if (this.rawHzEma < 4) this.bypassFilter = false;
+
+    // Bypass explicite en mode simulation (on sait que c'est "synthétique")
+    const mode = LocationService.getInstance().getMode();
+    if (mode === "simulation") {
+      this.bypassFilter = true;
+    } else {
+      // En mode GPS, même si certains devices montent à haute fréquence,
+      // on garde le filtre (ça améliore la stabilité/heading).
+      this.bypassFilter = false;
+    }
 
     if (this.bypassFilter) {
       // Forward direct (pas d'oversampling nécessaire)
