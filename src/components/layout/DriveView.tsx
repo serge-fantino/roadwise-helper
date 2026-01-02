@@ -429,7 +429,9 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     cameraRef.current = camera;
     
     // Sol (herbe/terrain autour de la piste)
-    const groundGeometry = new THREE.PlaneGeometry(2000, 2000);
+    // On utilise une géométrie 1x1 qu'on scale dynamiquement selon la taille du segment affiché,
+    // sinon on finit par voir la piste "dans le ciel" quand elle dépasse le plan.
+    const groundGeometry = new THREE.PlaneGeometry(1, 1);
     const groundMaterial = new THREE.MeshStandardMaterial({
       color: 0x3a5f3a, // Vert herbe
       roughness: 0.9
@@ -444,8 +446,30 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     cameraRef.current = camera;
     rendererRef.current = renderer;
 
-    // Garder une référence au sol
-    const groundRef = ground;
+    // Helper: adapter taille/position du sol au segment courant (marges incluses)
+    const updateGroundForPath = (path: CartesianPoint[]) => {
+      if (path.length === 0) return;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const p of path) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+
+      // Marges pour être confortable visuellement
+      const margin = 300; // mètres
+      const sizeX = Math.max(2000, (maxX - minX) + margin * 2);
+      const sizeZ = Math.max(2000, (maxY - minY) + margin * 2);
+
+      // Centrage (rappel: Three.js z = -cartesianY)
+      const centerX = (minX + maxX) / 2;
+      const centerZ = -((minY + maxY) / 2);
+
+      ground.position.set(centerX, -0.01, centerZ);
+      // PlaneGeometry est dans (x,y). Après rotation X=-90°, l'axe Y devient Z en monde.
+      ground.scale.set(sizeX, sizeZ, 1);
+    };
 
     // Garder les références aux objets de la piste pour pouvoir les supprimer proprement
     let trackObjects: THREE.Object3D[] = [];
@@ -541,6 +565,9 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
       const segmentGps = routeGps.slice(startIdx, endIdx + 1);
       const path: CartesianPoint[] = segmentGps.map(p => coordinateSystemRef.current!.gpsToCartesian(p));
       const { leftBorder, rightBorder } = generateBorders(path);
+
+      // Adapter le sol à la taille du segment affiché
+      updateGroundForPath(path);
 
       const trackSurface = createTrackSurface(leftBorder, rightBorder);
       scene.add(trackSurface);
