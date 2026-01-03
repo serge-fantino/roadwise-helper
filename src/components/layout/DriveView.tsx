@@ -32,6 +32,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { routePlannerService } from '../../services/route/RoutePlannerService';
+import { roadPredictor } from '../../services/prediction/RoadPredictor';
+import { TurnPrediction } from '../../services/prediction/PredictionTypes';
 import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 import { SceneCoordinateSystem } from '../../utils/SceneCoordinateSystem';
 import * as THREE from 'three';
@@ -55,6 +57,8 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
   const coordinateSystemRef = useRef<SceneCoordinateSystem | null>(null); // Système de coordonnées de la scène 3D
   const fixedOriginRef = useRef<[number, number] | null>(null); // Origine FIXE de la vue 3D (ne change pas pendant le mouvement)
   const vehicleRef = useRef<VehicleTelemetry>(vehicle); // IMPORTANT: éviter stale closure dans animate()
+  const turnsRef = useRef<TurnPrediction[]>([]);
+  const turnsDirtyRef = useRef(false);
   const renderSamplesRef = useRef<Array<{ t: number; position: [number, number]; heading: number }>>([]);
   const RENDER_LAG_MS = 100; // ~1/10s de retard pour interpoler proprement
   const SAMPLE_WINDOW_MS = 3000; // garder 3s d'échantillons max
@@ -83,6 +87,16 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     const cutoff = now - SAMPLE_WINDOW_MS;
     renderSamplesRef.current = renderSamplesRef.current.filter(s => s.t >= cutoff);
   }, [vehicle]);
+
+  // Subscribe to turn predictions (used for 3D turn markers)
+  useEffect(() => {
+    const observer = (_prediction: TurnPrediction | null, turns: TurnPrediction[]) => {
+      turnsRef.current = turns ?? [];
+      turnsDirtyRef.current = true;
+    };
+    roadPredictor.addObserver(observer);
+    return () => roadPredictor.removeObserver(observer);
+  }, []);
 
   // Créer des panneaux de distance tous les 500m
   // distanceOffsetM: distance cumulée (m) au début du segment (pour afficher des km absolus)
@@ -482,6 +496,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
     // Garder les références aux objets de la piste pour pouvoir les supprimer proprement
     let trackObjects: THREE.Object3D[] = [];
+    let turnSignsObj: THREE.Object3D | null = null;
     let lastRouteKey = ''; // Pour détecter si la ROUTE a changé (pas la position)
     let routeGps: [number, number][] = [];
     let routeCumDist: number[] = []; // mètres, longueur = routeGps.length
@@ -561,6 +576,127 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
       trackObjects = [];
     };
 
+    const disposeObject = (obj: THREE.Object3D) => {
+      obj.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        if (mesh && (mesh as any).geometry) {
+          (mesh as any).geometry.dispose?.();
+        }
+        const mat = (mesh as any).material;
+        if (mat) {
+          if (Array.isArray(mat)) mat.forEach((m) => m.dispose?.());
+          else mat.dispose?.();
+        }
+      });
+    };
+
+    const getTurnColor = (radius: number): number => {
+      if (!Number.isFinite(radius)) return 0xF2FCE2;
+      if (radius > 100) return 0xF2FCE2;
+      if (radius > 50) return 0xFEF7CD;
+      if (radius > 25) return 0xFEC6A1;
+      if (radius > 10) return 0xF97316;
+      return 0xEA384C;
+    };
+
+    const buildTurnSignMesh = (colorHex: number): THREE.Object3D => {
+      const group = new THREE.Group();
+
+      // Pole
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 1.8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xE5E7EB, roughness: 0.8, metalness: 0.2 })
+      );
+      pole.position.set(0, 0.9, 0);
+      group.add(pole);
+
+      // Triangle sign (flat)
+      const shape = new THREE.Shape();
+      shape.moveTo(-0.6, 0);
+      shape.lineTo(0.6, 0);
+      shape.lineTo(0, 0.9);
+      shape.lineTo(-0.6, 0);
+      const sign = new THREE.Mesh(
+        new THREE.ShapeGeometry(shape),
+        new THREE.MeshStandardMaterial({
+          color: colorHex,
+          emissive: colorHex,
+          emissiveIntensity: 0.25,
+          roughness: 0.6,
+          metalness: 0.0,
+          side: THREE.DoubleSide,
+        })
+      );
+      sign.position.set(0, 1.55, 0);
+      group.add(sign);
+
+      return group;
+    };
+
+    const rebuildTurnSigns = () => {
+      if (!coordinateSystemRef.current) return;
+      if (!routeGps || routeGps.length < 3) return;
+
+      // Remove previous
+      if (turnSignsObj) {
+        scene.remove(turnSignsObj);
+        disposeObject(turnSignsObj);
+        turnSignsObj = null;
+      }
+
+      const turns = turnsRef.current ?? [];
+      if (turns.length === 0) return;
+
+      const group = new THREE.Group();
+      const cs = coordinateSystemRef.current;
+
+      const clampIdx = (i: number) => Math.max(0, Math.min(routeGps.length - 1, i));
+
+      const placeOffsetM = 4.0; // road half-width(3m) + margin
+      const eligible = turns
+        .filter(t => t?.curveInfo && typeof t.curveInfo.startIndex === 'number')
+        .filter(t => t.curveInfo.startIndex >= segmentStartIdx && t.curveInfo.startIndex <= segmentEndIdx)
+        .slice(0, 6);
+
+      for (const t of eligible) {
+        const idx = clampIdx(t.curveInfo.startIndex);
+        const aGps = routeGps[clampIdx(idx - 1)];
+        const bGps = routeGps[clampIdx(idx + 1)];
+
+        const a = cs.gpsToCartesian(aGps);
+        const b = cs.gpsToCartesian(bGps);
+        const p = cs.gpsToCartesian(t.curveInfo.startPoint ?? routeGps[idx]);
+
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+
+        // Right normal in cartesian
+        const rx = uy;
+        const ry = -ux;
+
+        const px = p.x + rx * placeOffsetM;
+        const py = p.y + ry * placeOffsetM;
+
+        const worldX = px;
+        const worldZ = -py;
+
+        const signObj = buildTurnSignMesh(getTurnColor(t.curveInfo.radius));
+        signObj.position.set(worldX, 0, worldZ);
+
+        // Face incoming traffic: align normal with -tangent
+        const angle = Math.atan2(ux, uy); // same convention as other track elements
+        signObj.rotation.y = -angle;
+
+        group.add(signObj);
+      }
+
+      turnSignsObj = group;
+      scene.add(group);
+    };
+
     const rebuildSegment = (originGps: [number, number], startIdx: number, endIdx: number) => {
       // Réinitialiser le repère (origine) UNIQUEMENT au moment du rebuild
       fixedOriginRef.current = originGps;
@@ -596,6 +732,9 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
       const distanceSigns = createDistanceSigns(path, distanceOffsetM);
       scene.add(distanceSigns);
       trackObjects.push(distanceSigns);
+
+      // Add turn signs for this window
+      rebuildTurnSigns();
     };
 
     // Animation loop - VERSION OPTIMISÉE
@@ -685,6 +824,11 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
           lastRebuildAtMs = Date.now();
           rebuildSegment(currentGpsPosition, startIdx, Math.max(startIdx + 1, endIdx));
+        }
+        // If turn list changed, refresh signs without rebuilding whole track
+        if (turnsDirtyRef.current && frameCount % 10 === 0) {
+          turnsDirtyRef.current = false;
+          rebuildTurnSigns();
         }
         // Rebuild trigger: quand on approche du bord avant du segment (<2km)
         // On throttle pour éviter les rebuilds trop fréquents.
