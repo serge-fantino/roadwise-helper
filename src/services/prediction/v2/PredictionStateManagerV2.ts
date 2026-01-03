@@ -73,6 +73,7 @@ export class PredictionStateManagerV2 {
       diffOff: 0.006,
       minTurnLengthM: 12,
       smoothWindowM: 5,
+      entryPaddingM: 10,
     };
 
     const h = routeHash(routePoints);
@@ -132,15 +133,27 @@ export class PredictionStateManagerV2 {
     } else {
       // Update distances without rebuilding.
       for (const t of this.window.turns) {
-        // distance recompute: use cum index estimate
+        // Keep a turn until the vehicle exits (passes endIndex). When inside the turn, clamp distance to 0.
         const startIdx = t.curveInfo.startIndex;
+        const endIdx = t.curveInfo.endIndex;
         const startDist = cum[Math.max(0, Math.min(cum.length - 1, startIdx))];
-        t.distance = startDist - currentDistanceAlongRouteM;
+        const endDist = cum[Math.max(0, Math.min(cum.length - 1, endIdx))];
+
+        if (currentDistanceAlongRouteM > endDist) {
+          // Mark as past-exit; will be filtered out below.
+          t.distance = -999999;
+        } else if (currentDistanceAlongRouteM >= startDist) {
+          // Entered the turn: keep it and show 0m to start.
+          t.distance = 0;
+        } else {
+          t.distance = startDist - currentDistanceAlongRouteM;
+        }
       }
     }
 
     const turnsNow = (this.window?.turns ?? [])
-      .filter(t => t.distance > -5 && t.distance < 10000) // small margin
+      // Remove only once we've exited the turn (we mark those with a very negative distance)
+      .filter(t => t.distance > -100000 && t.distance < 10000)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 5);
 

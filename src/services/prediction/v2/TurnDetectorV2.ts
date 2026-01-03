@@ -20,6 +20,8 @@ export interface TurnDetectionV2Config {
   minTurnLengthM: number;
   /** meters, smoothing window size along samples */
   smoothWindowM: number;
+  /** meters - entry padding before detected start */
+  entryPaddingM: number;
 }
 
 export interface V2CurveInfo {
@@ -289,6 +291,9 @@ function buildTurn(args: {
     currentDistanceAlongRouteM,
   } = args;
 
+  const entryPadSamples = Math.max(0, Math.round(config.entryPaddingM / step));
+  const paddedStartIdx = Math.max(0, startIdx - entryPadSamples);
+
   let deltaRad = 0;
   let diffMax = 0;
   let apexIdx = startIdx;
@@ -315,18 +320,18 @@ function buildTurn(args: {
   const suggestedSpeedKmh = clamp(vKmhRaw, minTurnSpeedKmh, base);
 
   // Map sample positions back to original route indices (approximate by cumulative distance)
-  const startDistanceAlongRoute = windowStart + startIdx * step;
+  const startDistanceAlongRoute = windowStart + paddedStartIdx * step;
   const endDistanceAlongRoute = windowStart + endIdx * step;
   const apexDistanceAlongRoute = windowStart + apexIdx * step;
 
-  const startIndex = sampleRouteIndex[startIdx] ?? findIndexAtDistance(cum, startDistanceAlongRoute);
+  const startIndex = sampleRouteIndex[paddedStartIdx] ?? findIndexAtDistance(cum, startDistanceAlongRoute);
   const endIndex = sampleRouteIndex[endIdx] ?? findIndexAtDistance(cum, endDistanceAlongRoute);
   const apexIndex = sampleRouteIndex[apexIdx] ?? findIndexAtDistance(cum, apexDistanceAlongRoute);
 
-  const startPoint = gpsSamples[startIdx] ?? routePoints[startIndex] ?? routePoints[0];
+  const startPoint = gpsSamples[paddedStartIdx] ?? routePoints[startIndex] ?? routePoints[0];
   const endPoint = gpsSamples[endIdx] ?? routePoints[endIndex] ?? routePoints[routePoints.length - 1];
   const apexPoint = gpsSamples[apexIdx] ?? routePoints[apexIndex] ?? apexPointFallback(routePoints, apexIndex);
-  const curvePoints = gpsSamples.slice(startIdx, endIdx + 1);
+  const curvePoints = gpsSamples.slice(paddedStartIdx, endIdx + 1);
 
   const distanceToStartM = startDistanceAlongRoute - currentDistanceAlongRouteM;
 

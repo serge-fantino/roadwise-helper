@@ -27,7 +27,8 @@ const RoadBookView = () => {
       const validTurns = allTurns
         .filter(turn => {
           // Vérifier que le virage est valide
-          if (!turn.curveInfo || turn.distance <= 0 || turn.distance > MAX_DISTANCE) {
+          // IMPORTANT: on garde le virage pendant l'entrée (distance = 0) et on ne le retire qu'à la sortie (géré côté manager).
+          if (!turn.curveInfo || turn.distance < 0 || turn.distance > MAX_DISTANCE) {
             return false;
           }
           // Utiliser turn.index pour la cohérence avec TurnPredictionManager.sortTurns()
