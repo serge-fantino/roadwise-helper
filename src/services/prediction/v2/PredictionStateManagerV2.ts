@@ -116,7 +116,7 @@ export class PredictionStateManagerV2 {
             startAngle: 0,
             endAngle: 0,
             apexAngle: angle,
-            curvePoints: [],
+            curvePoints: t.curveInfo.curvePoints,
             classification: t.curveInfo.classification,
             deltaHeadingDeg: t.curveInfo.deltaHeadingDeg,
           },

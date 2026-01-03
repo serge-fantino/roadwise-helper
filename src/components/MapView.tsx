@@ -46,6 +46,7 @@ const MapView = ({
   positionHistory
 }: MapViewProps) => {
   const [mapTileConfig, setMapTileConfig] = useState(getMapTileConfig(settingsService.getSettings().mapStyle));
+  const [turnAlgo, setTurnAlgo] = useState(settingsService.getSettings().turnDetectionVersion);
 
   const [nextTurn, setNextTurn] = useState<TurnPrediction | null>(null);
   const [allTurns, setAllTurns] = useState<TurnPrediction[]>([]);
@@ -78,6 +79,7 @@ const MapView = ({
     const handleSettingsChange = () => {
       const settings = settingsService.getSettings();
       setMapTileConfig(getMapTileConfig(settings.mapStyle));
+      setTurnAlgo(settings.turnDetectionVersion);
     };
 
     settingsService.addObserver(handleSettingsChange);
@@ -107,51 +109,57 @@ const MapView = ({
   }, []);
 
   return (
-    <MapContainer
-      center={vehicle.position}
-      zoom={17}
-      minZoom={2}
-      maxZoom={mapTileConfig.maxZoom || 19}
-      className="w-full h-full"
-      zoomControl={false}
-      attributionControl={false}
-    >
-      <TileLayer
-        url={mapTileConfig.url}
-        attribution={mapTileConfig.attribution}
+    <div className="w-full h-full relative">
+      <MapContainer
+        center={vehicle.position}
+        zoom={17}
         minZoom={2}
         maxZoom={mapTileConfig.maxZoom || 19}
-        className="map-tiles"
-      />
-      <MapEventHandlers 
-        position={vehicle.position}
-        onRoadStatusChange={onRoadStatusChange}
-        onMapClick={onMapClick}
-      />
-      <HistoryTrail positions={positionHistory} />
-      <PredictionOverlay position={vehicle.position} speed={vehicle.speed} routePoints={routePoints} />
-      <VehicleMarker 
-        position={vehicle.position}
-        heading={vehicle.heading}
-        speed={vehicle.speed}
-      />
-      {/* Ligne de direction pour debug (même calcul que minimap) */}
-      <HeadingDebugLine 
-        position={vehicle.position}
-        heading={vehicle.heading}
-      />
-      {destination && <DestinationMarker position={destination} />}
-      {allTurns.map((turn, index) => (
-        <TurnWarningMarker 
-          key={`${turn.position[0]}-${turn.position[1]}-${index}`}
-          position={turn.position} 
-          angle={turn.angle}
-          isNextTurn={index === 0}
+        className="w-full h-full"
+        zoomControl={false}
+        attributionControl={false}
+      >
+        <TileLayer
+          url={mapTileConfig.url}
+          attribution={mapTileConfig.attribution}
+          minZoom={2}
+          maxZoom={mapTileConfig.maxZoom || 19}
+          className="map-tiles"
         />
-      ))}
-      <TurnCurveOverlay turns={allTurns} />
-      <RouteOverlay routePoints={routePoints} />
-    </MapContainer>
+        <MapEventHandlers 
+          position={vehicle.position}
+          onRoadStatusChange={onRoadStatusChange}
+          onMapClick={onMapClick}
+        />
+        <HistoryTrail positions={positionHistory} />
+        <PredictionOverlay position={vehicle.position} speed={vehicle.speed} routePoints={routePoints} />
+        <VehicleMarker 
+          position={vehicle.position}
+          heading={vehicle.heading}
+          speed={vehicle.speed}
+        />
+        {/* Ligne de direction pour debug (même calcul que minimap) */}
+        <HeadingDebugLine 
+          position={vehicle.position}
+          heading={vehicle.heading}
+        />
+        {destination && <DestinationMarker position={destination} />}
+        {allTurns.map((turn, index) => (
+          <TurnWarningMarker 
+            key={`${turn.position[0]}-${turn.position[1]}-${index}`}
+            position={turn.position} 
+            angle={turn.angle}
+            isNextTurn={index === 0}
+          />
+        ))}
+        <TurnCurveOverlay turns={allTurns} />
+        <RouteOverlay routePoints={routePoints} />
+      </MapContainer>
+
+      <div className="absolute top-2 left-2 z-[1000] bg-gray-900/80 text-white text-xs px-2 py-1 rounded border border-white/10">
+        Algo: <span className="font-semibold">{turnAlgo.toUpperCase()}</span>
+      </div>
+    </div>
   );
 };
 

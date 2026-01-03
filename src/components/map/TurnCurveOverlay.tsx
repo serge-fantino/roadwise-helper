@@ -23,18 +23,20 @@ const getTurnColor = (radius: number): string => {
 const TurnCurveOverlay = ({ turns }: TurnCurveOverlayProps) => {
   return (
     <>
-      {turns.map((turn, index) => (
-        <Polyline
-          key={`curve-${index}`}
-          positions={turn.curveInfo.curvePoints}
-          pathOptions={{
-            color: getTurnColor(turn.curveInfo.radius),
-            weight: 10,
-            opacity: 0.9,
-            dashArray: undefined
-          }}
-        />
-      ))}
+      {turns
+        .filter(t => t.curveInfo?.curvePoints && t.curveInfo.curvePoints.length >= 2)
+        .map((turn, index) => (
+          <Polyline
+            key={`curve-${index}`}
+            positions={turn.curveInfo.curvePoints}
+            pathOptions={{
+              color: getTurnColor(turn.curveInfo.radius),
+              weight: 10,
+              opacity: 0.9,
+              dashArray: undefined
+            }}
+          />
+        ))}
     </>
   );
 };

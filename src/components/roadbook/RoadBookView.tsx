@@ -5,11 +5,13 @@ import { routePlannerService } from '@/services/route/RoutePlannerService';
 import { TurnPrediction } from '@/services/prediction/PredictionTypes';
 import { RouteState } from '@/services/route/RoutePlannerTypes';
 import TurnCard from './TurnCard';
+import { settingsService } from '@/services/SettingsService';
 
 const RoadBookView = () => {
   const [turns, setTurns] = useState<TurnPrediction[]>([]);
   const [currentSpeed, setCurrentSpeed] = useState(0);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
+  const [turnAlgo, setTurnAlgo] = useState(settingsService.getSettings().turnDetectionVersion);
 
   useEffect(() => {
     // Observer pour les prédictions de virages
@@ -67,6 +69,14 @@ const RoadBookView = () => {
   }, []);
 
   useEffect(() => {
+    const handleSettingsChange = () => {
+      setTurnAlgo(settingsService.getSettings().turnDetectionVersion);
+    };
+    settingsService.addObserver(handleSettingsChange);
+    return () => settingsService.removeObserver(handleSettingsChange);
+  }, []);
+
+  useEffect(() => {
     // Observer pour la vitesse actuelle
     const handleVehicleUpdate = (state: VehicleState) => {
       setCurrentSpeed(state.speed);
@@ -116,6 +126,9 @@ const RoadBookView = () => {
           </p>
           <p className="text-gray-500 text-xs mt-1">
             Le badge indique la classification (Intersection / Épingle / …) quand disponible.
+          </p>
+          <p className="text-gray-500 text-xs mt-1">
+            Algo: <span className="font-semibold text-gray-300">{turnAlgo.toUpperCase()}</span>
           </p>
         </div>
 

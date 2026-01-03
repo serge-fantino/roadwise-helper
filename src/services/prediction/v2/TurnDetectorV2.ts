@@ -29,6 +29,8 @@ export interface V2CurveInfo {
   endIndex: number; // index in original routePoints
   apex: [number, number];
   apexIndex: number; // index in original routePoints
+  /** Resampled points along the curve (for map overlay). */
+  curvePoints: [number, number][];
   length: number; // meters
   /** Radius estimate (meters). Infinity for very small curvature. */
   radius: number;
@@ -324,6 +326,7 @@ function buildTurn(args: {
   const startPoint = gpsSamples[startIdx] ?? routePoints[startIndex] ?? routePoints[0];
   const endPoint = gpsSamples[endIdx] ?? routePoints[endIndex] ?? routePoints[routePoints.length - 1];
   const apexPoint = gpsSamples[apexIdx] ?? routePoints[apexIndex] ?? apexPointFallback(routePoints, apexIndex);
+  const curvePoints = gpsSamples.slice(startIdx, endIdx + 1);
 
   const distanceToStartM = startDistanceAlongRoute - currentDistanceAlongRouteM;
 
@@ -337,6 +340,7 @@ function buildTurn(args: {
       endIndex,
       apex: apexPoint,
       apexIndex,
+      curvePoints,
       length: lengthM,
       radius,
       deltaHeadingDeg: deltaDeg,

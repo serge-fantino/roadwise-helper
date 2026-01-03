@@ -56,7 +56,10 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
             textShadow: '0 0 5px #00ff00'
           }}
         >
-          <div className="text-2xl mb-6">Advanced Driver Assistance System v0.2 05012025</div>
+          <div className="text-2xl mb-2">Advanced Driver Assistance System v0.2 05012025</div>
+          <div className="text-sm opacity-80 mb-6">
+            Turn detection default: <span className="text-green-300 font-semibold">V1</span> (V2 experimental)
+          </div>
           
           <div className="text-xl opacity-80">
             <p className="mb-4">Project Information:</p>
