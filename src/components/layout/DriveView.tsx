@@ -37,7 +37,7 @@ import { TurnPrediction } from '../../services/prediction/PredictionTypes';
 import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 import { SceneCoordinateSystem } from '../../utils/SceneCoordinateSystem';
 import * as THREE from 'three';
-import { CartesianPoint, generateBorders } from '../../services/route/RouteProjectionService';
+import { CartesianPoint } from '../../services/route/RouteProjectionService';
 import { calculateDistance } from '../../utils/mapUtils';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -227,6 +227,43 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     });
     
     return new THREE.Mesh(geometry, material);
+  };
+
+  /**
+   * IMPORTANT:
+   * `generateBorders()` produit des bordures avec des densités différentes (arcs / intersections),
+   * ce qui n'est PAS compatible avec un triangle strip indexé par [i] côté gauche/droite.
+   * Pour éviter les triangles tordus qui génèrent des artefacts hors piste, on génère ici
+   * des bordures "alignées" sur le path central (même longueur des arrays).
+   */
+  const computeAlignedBorders = (
+    path: CartesianPoint[],
+    halfWidthM: number = 3
+  ): { leftBorder: CartesianPoint[]; rightBorder: CartesianPoint[] } => {
+    const leftBorder: CartesianPoint[] = [];
+    const rightBorder: CartesianPoint[] = [];
+    if (path.length === 0) return { leftBorder, rightBorder };
+
+    for (let i = 0; i < path.length; i++) {
+      const prev = path[Math.max(0, i - 1)];
+      const next = path[Math.min(path.length - 1, i + 1)];
+      const dx = next.x - prev.x;
+      const dy = next.y - prev.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+      // Tangente normalisée
+      const tx = dx / len;
+      const ty = dy / len;
+
+      // Normale gauche (perp)
+      const nx = -ty;
+      const ny = tx;
+
+      leftBorder.push({ x: path[i].x + nx * halfWidthM, y: path[i].y + ny * halfWidthM });
+      rightBorder.push({ x: path[i].x - nx * halfWidthM, y: path[i].y - ny * halfWidthM });
+    }
+
+    return { leftBorder, rightBorder };
   };
 
   // Créer les bordures de piste (rouges et blanches) avec couleur basée sur la position absolue
@@ -709,7 +746,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
       const segmentGps = routeGps.slice(startIdx, endIdx + 1);
       const path: CartesianPoint[] = segmentGps.map(p => coordinateSystemRef.current!.gpsToCartesian(p));
-      const { leftBorder, rightBorder } = generateBorders(path);
+      const { leftBorder, rightBorder } = computeAlignedBorders(path, 3);
 
       // Adapter le sol à la taille du segment affiché
       updateGroundForPath(path);
