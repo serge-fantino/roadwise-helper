@@ -4,7 +4,7 @@ import { ArrowLeft, Info } from "lucide-react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { useEffect, useState } from "react";
-import { Settings, settingsService, RoadInfoProvider, MapStyle } from "../services/SettingsService";
+import { Settings, settingsService, RoadInfoProvider, MapStyle, TurnDetectionVersion } from "../services/SettingsService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "./ui/use-toast";
 import { Switch } from "./ui/switch";
@@ -95,6 +95,25 @@ const SettingsView = () => {
 
             <TabsContent value="curves" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Algorithme de détection</Label>
+                  <Select
+                    value={settings.turnDetectionVersion}
+                    onValueChange={(value: TurnDetectionVersion) => handleSettingChange('turnDetectionVersion', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="v1">V1 (angle par point)</SelectItem>
+                      <SelectItem value="v2">V2 (différentiel roue / courbure par mètre)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500">
+                    V2 est une expérimentation: resampling 1m + fenêtre 1000m.
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="minTurnAngle">Angle minimal pour définir un virage (degrés)</Label>
                   <Input

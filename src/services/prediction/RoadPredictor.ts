@@ -4,6 +4,7 @@ import { RouteTracker } from '../RouteTracker';
 import { roadInfoManager } from '../roadInfo/RoadInfoManager';
 import { RouteDeviationManager } from './managers/RouteDeviationManager';
 import { PredictionStateManager } from './managers/PredictionStateManager';
+import { PredictionStateManagerV2 } from './v2/PredictionStateManagerV2';
 import { routePlannerService } from '../route/RoutePlannerService';
 import { vehicleStateManager, VehicleState } from '../VehicleStateManager';
 
@@ -16,6 +17,7 @@ class RoadPredictor {
   private updateInterval: NodeJS.Timeout | null = null;
   private deviationManager: RouteDeviationManager;
   private predictionManager: PredictionStateManager;
+  private predictionManagerV2: PredictionStateManagerV2;
   private currentPosition: [number, number] | null = null;
   private _active: boolean = false;
 
@@ -23,6 +25,7 @@ class RoadPredictor {
     this.routeTracker = new RouteTracker();
     this.deviationManager = new RouteDeviationManager(this.routeTracker);
     this.predictionManager = new PredictionStateManager();
+    this.predictionManagerV2 = new PredictionStateManagerV2();
 
     // Observer pour les informations routières
     roadInfoManager.addObserver((roadInfo) => {
@@ -76,8 +79,14 @@ class RoadPredictor {
   }
 
   private notifyObservers() {
-    const currentPrediction = this.predictionManager.getCurrentPrediction();
-    const turns = this.predictionManager.getTurns();
+    const settings = settingsService.getSettings();
+    const useV2 = settings.turnDetectionVersion === 'v2';
+    const currentPrediction = useV2
+      ? this.predictionManagerV2.getCurrentPrediction()
+      : this.predictionManager.getCurrentPrediction();
+    const turns = useV2
+      ? this.predictionManagerV2.getTurns()
+      : this.predictionManager.getTurns();
     console.log('Notifying observers with prediction:', { currentPrediction, turns });
     this.observers.forEach(observer => observer(currentPrediction, turns));
   }
@@ -128,14 +137,24 @@ class RoadPredictor {
     }
 
     await roadInfoManager.updateRoadInfo(this.currentPosition);
-    await this.predictionManager.updatePredictions(
-      this.currentPosition,
-      currentSpeed,
-      routeState.routePoints,
-      routeState.enhancedPoints,
-      settings,
-      speedLimit
-    );
+    if (settings.turnDetectionVersion === 'v2') {
+      await this.predictionManagerV2.updatePredictions(
+        this.currentPosition,
+        currentSpeed,
+        routeState.routePoints,
+        settings,
+        speedLimit
+      );
+    } else {
+      await this.predictionManager.updatePredictions(
+        this.currentPosition,
+        currentSpeed,
+        routeState.routePoints,
+        routeState.enhancedPoints,
+        settings,
+        speedLimit
+      );
+    }
 
     this.notifyObservers();
   }
@@ -144,6 +163,7 @@ class RoadPredictor {
     console.log('Starting road predictor updates');
     
     this.predictionManager.reset();
+    this.predictionManagerV2.reset();
     this.deviationManager.reset();
     this._active = true;
     
@@ -174,6 +194,7 @@ class RoadPredictor {
     this.currentPosition = null;
     this._active = false;
     this.predictionManager.reset();
+    this.predictionManagerV2.reset();
     this.notifyObservers();
     this.notifyStateObservers();
   }
