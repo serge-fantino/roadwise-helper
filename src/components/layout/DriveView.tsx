@@ -37,7 +37,7 @@ import { TurnPrediction } from '../../services/prediction/PredictionTypes';
 import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 import { SceneCoordinateSystem } from '../../utils/SceneCoordinateSystem';
 import * as THREE from 'three';
-import { CartesianPoint } from '../../services/route/RouteProjectionService';
+import { CartesianPoint, generateBorders } from '../../services/route/RouteProjectionService';
 import { calculateDistance } from '../../utils/mapUtils';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -194,26 +194,49 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
   // Créer la surface de piste (mesh triangulé)
   const createTrackSurface = (leftBorder: CartesianPoint[], rightBorder: CartesianPoint[]): THREE.Mesh => {
+    // IMPORTANT:
+    // `generateBorders()` may output borders with different point counts (arcs/intersections),
+    // so we MUST NOT build the surface using a simple strip indexed by i.
+    // Instead, we triangulate a closed polygon: leftBorder + reversed(rightBorder).
+
+    const toV2 = (p: CartesianPoint) => new THREE.Vector2(p.x, -p.y); // map to X/Z plane (Z = -Y)
+
+    const contour: THREE.Vector2[] = [];
+    const pushDedup = (v: THREE.Vector2) => {
+      const last = contour[contour.length - 1];
+      if (last && Math.abs(last.x - v.x) < 1e-6 && Math.abs(last.y - v.y) < 1e-6) return;
+      contour.push(v);
+    };
+
+    leftBorder.forEach(p => pushDedup(toV2(p)));
+    for (let i = rightBorder.length - 1; i >= 0; i--) {
+      pushDedup(toV2(rightBorder[i]));
+    }
+    // Close loop
+    if (contour.length > 0) {
+      const first = contour[0];
+      pushDedup(new THREE.Vector2(first.x, first.y));
+    }
+
+    // Fallback if polygon too small
+    if (contour.length < 4) {
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      const material = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8, metalness: 0.1 });
+      return new THREE.Mesh(geometry, material);
+    }
+
+    const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
     const vertices: number[] = [];
+    for (const v of contour) {
+      vertices.push(v.x, 0, v.y);
+    }
+
     const indices: number[] = [];
-    
-    // Créer les vertices en alternant entre leftBorder et rightBorder
-    for (let i = 0; i < Math.min(leftBorder.length, rightBorder.length); i++) {
-      const left = leftBorder[i];
-      const right = rightBorder[i];
-      vertices.push(left.x, 0, -left.y);
-      vertices.push(right.x, 0, -right.y);
+    for (const tri of triangles) {
+      // tri is [a,b,c] indices into contour
+      indices.push(tri[0], tri[1], tri[2]);
     }
-    
-    // Créer les indices pour les triangles (strips)
-    for (let i = 0; i < Math.min(leftBorder.length, rightBorder.length) - 1; i++) {
-      const base = i * 2;
-      // Premier triangle
-      indices.push(base, base + 1, base + 2);
-      // Deuxième triangle
-      indices.push(base + 1, base + 3, base + 2);
-    }
-    
+
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     geometry.setIndex(indices);
@@ -227,43 +250,6 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     });
     
     return new THREE.Mesh(geometry, material);
-  };
-
-  /**
-   * IMPORTANT:
-   * `generateBorders()` produit des bordures avec des densités différentes (arcs / intersections),
-   * ce qui n'est PAS compatible avec un triangle strip indexé par [i] côté gauche/droite.
-   * Pour éviter les triangles tordus qui génèrent des artefacts hors piste, on génère ici
-   * des bordures "alignées" sur le path central (même longueur des arrays).
-   */
-  const computeAlignedBorders = (
-    path: CartesianPoint[],
-    halfWidthM: number = 3
-  ): { leftBorder: CartesianPoint[]; rightBorder: CartesianPoint[] } => {
-    const leftBorder: CartesianPoint[] = [];
-    const rightBorder: CartesianPoint[] = [];
-    if (path.length === 0) return { leftBorder, rightBorder };
-
-    for (let i = 0; i < path.length; i++) {
-      const prev = path[Math.max(0, i - 1)];
-      const next = path[Math.min(path.length - 1, i + 1)];
-      const dx = next.x - prev.x;
-      const dy = next.y - prev.y;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-
-      // Tangente normalisée
-      const tx = dx / len;
-      const ty = dy / len;
-
-      // Normale gauche (perp)
-      const nx = -ty;
-      const ny = tx;
-
-      leftBorder.push({ x: path[i].x + nx * halfWidthM, y: path[i].y + ny * halfWidthM });
-      rightBorder.push({ x: path[i].x - nx * halfWidthM, y: path[i].y - ny * halfWidthM });
-    }
-
-    return { leftBorder, rightBorder };
   };
 
   // Créer les bordures de piste (rouges et blanches) avec couleur basée sur la position absolue
@@ -746,7 +732,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
       const segmentGps = routeGps.slice(startIdx, endIdx + 1);
       const path: CartesianPoint[] = segmentGps.map(p => coordinateSystemRef.current!.gpsToCartesian(p));
-      const { leftBorder, rightBorder } = computeAlignedBorders(path, 3);
+      const { leftBorder, rightBorder } = generateBorders(path);
 
       // Adapter le sol à la taille du segment affiché
       updateGroundForPath(path);
