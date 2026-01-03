@@ -201,7 +201,7 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
 
     const toV2 = (p: CartesianPoint) => new THREE.Vector2(p.x, -p.y); // map to X/Z plane (Z = -Y)
 
-    const contour: THREE.Vector2[] = [];
+    let contour: THREE.Vector2[] = [];
     const pushDedup = (v: THREE.Vector2) => {
       const last = contour[contour.length - 1];
       if (last && Math.abs(last.x - v.x) < 1e-6 && Math.abs(last.y - v.y) < 1e-6) return;
@@ -212,17 +212,19 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     for (let i = rightBorder.length - 1; i >= 0; i--) {
       pushDedup(toV2(rightBorder[i]));
     }
-    // Close loop
-    if (contour.length > 0) {
-      const first = contour[0];
-      pushDedup(new THREE.Vector2(first.x, first.y));
-    }
+    // IMPORTANT: do NOT append the first point again; triangulateShape expects an open contour.
 
     // Fallback if polygon too small
     if (contour.length < 4) {
       const geometry = new THREE.PlaneGeometry(1, 1);
-      const material = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8, metalness: 0.1 });
+      const material = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8, metalness: 0.1, side: THREE.DoubleSide });
       return new THREE.Mesh(geometry, material);
+    }
+
+    // Ensure winding produces an upward-facing surface. In Three.js, CCW winding is front face.
+    // ShapeUtils.area is positive for CCW.
+    if (THREE.ShapeUtils.area(contour) < 0) {
+      contour = contour.slice().reverse();
     }
 
     const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
@@ -246,7 +248,9 @@ const DriveView = ({ vehicle, positionHistory }: DriveViewProps) => {
     const material = new THREE.MeshStandardMaterial({
       color: 0x2a2a2a, // Asphalte foncé
       roughness: 0.8,
-      metalness: 0.1
+      metalness: 0.1,
+      // Safety: even if winding still ends up inverted in rare cases, keep it visible.
+      side: THREE.DoubleSide,
     });
     
     return new THREE.Mesh(geometry, material);
