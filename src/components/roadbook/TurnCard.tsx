@@ -114,11 +114,23 @@ const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProp
         </div>
 
         <div className="text-right shrink-0">
-          <div className="text-4xl font-extrabold text-white leading-none">
-            {Math.round(turn.distance)}
-            <span className="text-base font-semibold text-white/70 ml-1">m</span>
-          </div>
-          <div className="text-xs text-gray-400 mt-1">avant le virage</div>
+          {turn.distance === 0 && typeof turn.distanceToExit === 'number' ? (
+            <>
+              <div className="text-4xl font-extrabold text-white leading-none">
+                {Math.round(turn.distanceToExit)}
+                <span className="text-base font-semibold text-white/70 ml-1">m</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">jusqu'à la sortie</div>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl font-extrabold text-white leading-none">
+                {Math.round(turn.distance)}
+                <span className="text-base font-semibold text-white/70 ml-1">m</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">avant le virage</div>
+            </>
+          )}
         </div>
       </div>
 

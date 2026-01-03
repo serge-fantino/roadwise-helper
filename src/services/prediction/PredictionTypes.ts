@@ -3,6 +3,8 @@ import { TurnClassification } from "./TurnClassifier";
 
 export interface TurnPrediction {
   distance: number;  // Distance jusqu'au prochain virage en mètres
+  /** If currently inside the turn (distance==0), remaining distance until exit (meters). */
+  distanceToExit?: number;
   angle: number;     // Angle du virage en degrés
   position: [number, number]; // Position du virage
   index: number; // Index du point dans la route

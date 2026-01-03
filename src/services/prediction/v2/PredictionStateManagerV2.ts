@@ -98,6 +98,7 @@ export class PredictionStateManagerV2 {
         const angle = t.curveInfo.deltaHeadingDeg;
         return {
           distance: t.distanceToStartM,
+          distanceToExit: undefined,
           angle,
           position: t.curveInfo.startPoint,
           index: t.curveInfo.startIndex,
@@ -142,11 +143,14 @@ export class PredictionStateManagerV2 {
         if (currentDistanceAlongRouteM > endDist) {
           // Mark as past-exit; will be filtered out below.
           t.distance = -999999;
+          t.distanceToExit = undefined;
         } else if (currentDistanceAlongRouteM >= startDist) {
           // Entered the turn: keep it and show 0m to start.
           t.distance = 0;
+          t.distanceToExit = Math.max(0, endDist - currentDistanceAlongRouteM);
         } else {
           t.distance = startDist - currentDistanceAlongRouteM;
+          t.distanceToExit = undefined;
         }
       }
     }
