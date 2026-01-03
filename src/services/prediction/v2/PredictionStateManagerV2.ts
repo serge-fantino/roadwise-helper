@@ -49,11 +49,66 @@ function updateTurnDistanceFields(
   }
 }
 
+function isActiveTurn(turn: TurnPrediction): boolean {
+  return turn.distance === 0 && typeof turn.distanceToExit === 'number';
+}
+
+function isExitedTurn(turn: TurnPrediction): boolean {
+  return turn.distance <= -100000;
+}
+
+function clampIndex(i: number, maxExclusive: number): number {
+  return Math.max(0, Math.min(maxExclusive - 1, i));
+}
+
+function tryMatchTurn(
+  active: TurnPrediction,
+  candidates: TurnPrediction[]
+): TurnPrediction | null {
+  // Match by segment overlap / proximity of endIndex (robust across slight start shifts)
+  const aStart = active.curveInfo.startIndex;
+  const aEnd = active.curveInfo.endIndex;
+  const aApex = active.curveInfo.apexIndex;
+
+  let best: { t: TurnPrediction; score: number } | null = null;
+
+  for (const c of candidates) {
+    const cStart = c.curveInfo.startIndex;
+    const cEnd = c.curveInfo.endIndex;
+    const cApex = c.curveInfo.apexIndex;
+
+    const overlap = Math.max(0, Math.min(aEnd, cEnd) - Math.max(aStart, cStart));
+    const union = Math.max(1, Math.max(aEnd, cEnd) - Math.min(aStart, cStart));
+    const overlapRatio = overlap / union; // 0..1
+
+    const dEnd = Math.abs(cEnd - aEnd);
+    const dApex = Math.abs(cApex - aApex);
+
+    // Higher is better.
+    const score = overlapRatio * 1000 - dEnd * 2 - dApex;
+
+    if (!best || score > best.score) best = { t: c, score };
+  }
+
+  // Require either decent overlap or close end index
+  if (!best) return null;
+  const c = best.t;
+  const overlap = Math.max(0, Math.min(aEnd, c.curveInfo.endIndex) - Math.max(aStart, c.curveInfo.startIndex));
+  const union = Math.max(1, Math.max(aEnd, c.curveInfo.endIndex) - Math.min(aStart, c.curveInfo.startIndex));
+  const overlapRatio = overlap / union;
+  const dEnd = Math.abs(c.curveInfo.endIndex - aEnd);
+
+  if (overlapRatio >= 0.2 || dEnd <= 30) return c;
+  return null;
+}
+
 export class PredictionStateManagerV2 {
   private currentPrediction: TurnPrediction | null = null;
   private routeTracker: RouteTracker;
   private decelerationCalculator: DecelerationCalculator;
   private window: WindowState | null = null;
+  // Sticky turn so the warning doesn't disappear during window rebuilds while still inside.
+  private stickyActiveTurn: TurnPrediction | null = null;
 
   constructor() {
     this.routeTracker = new RouteTracker();
@@ -100,6 +155,24 @@ export class PredictionStateManagerV2 {
     };
 
     const h = routeHash(routePoints);
+
+    // Refresh distances on previous window turns so we can detect active turn before rebuilding.
+    if (this.window?.routeHash === h) {
+      for (const t of this.window.turns) {
+        updateTurnDistanceFields(t, cum, currentDistanceAlongRouteM);
+      }
+      // Keep stickyActiveTurn in sync if it still exists in window
+      const activeNow = this.window.turns.find(isActiveTurn) ?? null;
+      this.stickyActiveTurn = activeNow ?? this.stickyActiveTurn;
+      if (this.stickyActiveTurn) {
+        updateTurnDistanceFields(this.stickyActiveTurn, cum, currentDistanceAlongRouteM);
+        if (isExitedTurn(this.stickyActiveTurn)) this.stickyActiveTurn = null;
+      }
+    } else {
+      // Route changed: drop sticky
+      this.stickyActiveTurn = null;
+    }
+
     const needsRebuild =
       !this.window ||
       this.window.routeHash !== h ||
@@ -107,6 +180,7 @@ export class PredictionStateManagerV2 {
       currentDistanceAlongRouteM >= this.window.windowEndDistanceM - 50;
 
     if (needsRebuild) {
+      const prevActive = this.stickyActiveTurn;
       const v2Turns = detectTurnsV2({
         routePoints,
         currentIndex,
@@ -151,11 +225,37 @@ export class PredictionStateManagerV2 {
         return turn;
       });
 
+      // After rebuild, try to match the previous active turn (if any) to the newly detected ones.
+      let mergedTurns = turns;
+      if (prevActive && !isExitedTurn(prevActive)) {
+        // Update with current distances (ensures distance=0 + distanceToExit).
+        updateTurnDistanceFields(prevActive, cum, currentDistanceAlongRouteM);
+
+        const matched = tryMatchTurn(prevActive, turns);
+        if (matched) {
+          this.stickyActiveTurn = matched;
+        } else {
+          // Re-inject previous active turn so the warning stays visible until exit.
+          this.stickyActiveTurn = prevActive;
+          mergedTurns = [prevActive, ...turns];
+        }
+      }
+
+      // De-duplicate by startIndex (keep the first occurrence, which favors the sticky active turn)
+      const seenStart = new Set<number>();
+      mergedTurns = mergedTurns.filter(t => {
+        const k = t.curveInfo.startIndex;
+        if (seenStart.has(k)) return false;
+        seenStart.add(k);
+        return true;
+      });
+
       this.window = {
         routeHash: h,
         baseDistanceM: currentDistanceAlongRouteM,
-        windowEndDistanceM: currentDistanceAlongRouteM + cfg.lookAheadM,
-        turns,
+        // Effective end of sampling window is (current - behind + ahead)
+        windowEndDistanceM: currentDistanceAlongRouteM + (cfg.lookAheadM - cfg.lookBehindM),
+        turns: mergedTurns,
       };
     } else {
       // Update distances without rebuilding.
