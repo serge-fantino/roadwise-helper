@@ -45,7 +45,7 @@ const getCurvatureLabel = (angle: number, radius?: number): string => {
 const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProps) => {
   const turnDirection = turn.angle < 0 ? 'droite' : 'gauche';
   const { type: turnType, color: turnColor } = getTurnType(turn.angle);
-  const curvatureLabel = turn.classification
+  const classificationLabel = turn.classification
     ? ({
         intersection: 'Intersection',
         uturn: 'Retour',
@@ -54,7 +54,9 @@ const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProp
         wide: 'Virage large',
         curve: 'Courbe',
       } as const)[turn.classification]
-    : getCurvatureLabel(turn.angle, turn.curveInfo?.radius);
+    : null;
+
+  const curvatureLabel = classificationLabel ?? getCurvatureLabel(turn.angle, turn.curveInfo?.radius);
   
   const currentSpeedKmh = Math.round(currentSpeed * 3.6);
   const optimalSpeedKmh = turn.optimalSpeed ? Math.round(turn.optimalSpeed) : null;
@@ -68,12 +70,11 @@ const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProp
   // Couleur selon la nécessité de freiner
   const needsBraking = optimalSpeedKmh && currentSpeedKmh > optimalSpeedKmh;
   const progressBgColor = needsBraking ? '#EF4444' : '#10B981'; // Rouge si besoin de freiner, vert sinon
+  const cardBorder = isNext ? 'border-blue-500 shadow-lg' : needsBraking ? 'border-red-500/60' : 'border-gray-700';
   
   return (
     <div 
-      className={`bg-gray-800 rounded-lg p-4 mb-3 border-2 ${
-        isNext ? 'border-blue-500 shadow-lg' : 'border-gray-700'
-      } flex gap-4`}
+      className={`bg-gray-800 rounded-lg p-4 mb-3 border-2 ${cardBorder} flex gap-4`}
       style={{
         background: `linear-gradient(to ${isLeftTurn ? 'right' : 'left'}, 
           ${progressBgColor}20 ${progress}%, 
@@ -82,42 +83,52 @@ const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProp
     >
       {/* Contenu principal à gauche */}
       <div className="flex-1">
-      {/* En-tête avec direction et distance */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {isNext && (
-            <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
-              PROCHAIN
-            </span>
-          )}
-          <div className={`flex items-center gap-1 ${turnColor}`}>
-            {turn.angle < 0 ? (
-              <ArrowRight className="h-5 w-5" />
-            ) : (
-              <ArrowLeft className="h-5 w-5" />
+      {/* Header ultra lisible */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {isNext && (
+              <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
+                PROCHAIN
+              </span>
             )}
-            <span className="font-semibold text-lg capitalize">{turnDirection}</span>
+            {classificationLabel && (
+              <span className="bg-white/10 text-white text-xs font-semibold px-2 py-1 rounded border border-white/10">
+                {classificationLabel}
+              </span>
+            )}
+            {!classificationLabel && (
+              <span className="bg-white/10 text-white text-xs font-semibold px-2 py-1 rounded border border-white/10">
+                {turnType}
+              </span>
+            )}
+          </div>
+
+          <div className={`mt-2 flex items-center gap-2 ${turnColor}`}>
+            {turn.angle < 0 ? <ArrowRight className="h-6 w-6" /> : <ArrowLeft className="h-6 w-6" />}
+            <span className="font-extrabold text-2xl capitalize tracking-tight">{turnDirection}</span>
+            <span className="text-sm text-white/70 font-semibold">
+              {Math.round(Math.abs(turn.angle))}°
+            </span>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-white">
-            {Math.round(turn.distance)}<span className="text-sm font-normal">m</span>
+
+        <div className="text-right shrink-0">
+          <div className="text-4xl font-extrabold text-white leading-none">
+            {Math.round(turn.distance)}
+            <span className="text-base font-semibold text-white/70 ml-1">m</span>
           </div>
-          <div className="text-xs text-gray-400">Distance restante</div>
+          <div className="text-xs text-gray-400 mt-1">avant le virage</div>
         </div>
       </div>
 
       {/* Informations de courbure */}
-      <div className="flex items-center gap-4 mb-3 text-sm">
-        <div>
-          <span className="text-gray-400">Type: </span>
-          <span className={`font-semibold ${turnColor} capitalize`}>{turnType}</span>
-        </div>
+      <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
         <div>
           <span className="text-gray-400">Courbure: </span>
           <span className="font-semibold text-white">{curvatureLabel}</span>
         </div>
-        {turn.curveInfo?.radius && (
+        {turn.curveInfo?.radius && !classificationLabel && (
           <div>
             <span className="text-gray-400">Rayon: </span>
             <span className="font-semibold text-white">{Math.round(turn.curveInfo.radius)}m</span>
@@ -126,23 +137,26 @@ const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProp
       </div>
 
       {/* Vitesses */}
-      <div className="grid grid-cols-3 gap-4 mb-3">
+      <div className="grid grid-cols-3 gap-3 mb-3">
         <div className="bg-gray-900 rounded p-2">
-          <div className="text-xs text-gray-400 mb-1">Vitesse actuelle</div>
-          <div className="text-xl font-bold text-white">
-            {currentSpeedKmh}<span className="text-sm"> km/h</span>
+          <div className="text-[11px] text-gray-400 mb-1">Actuelle</div>
+          <div className="text-2xl font-extrabold text-white leading-none">
+            {currentSpeedKmh}
+            <span className="text-xs font-semibold text-white/70 ml-1">km/h</span>
           </div>
         </div>
         <div className="bg-gray-900 rounded p-2">
-          <div className="text-xs text-gray-400 mb-1">Vitesse optimale</div>
-          <div className={`text-xl font-bold ${optimalSpeedKmh && currentSpeedKmh > optimalSpeedKmh ? 'text-red-400' : 'text-green-400'}`}>
-            {optimalSpeedKmh ? `${optimalSpeedKmh}` : '—'}<span className="text-sm"> km/h</span>
+          <div className="text-[11px] text-gray-400 mb-1">Cible</div>
+          <div className={`text-2xl font-extrabold leading-none ${optimalSpeedKmh && currentSpeedKmh > optimalSpeedKmh ? 'text-red-400' : 'text-green-400'}`}>
+            {optimalSpeedKmh ? `${optimalSpeedKmh}` : '—'}
+            <span className="text-xs font-semibold text-white/70 ml-1">km/h</span>
           </div>
         </div>
         <div className="bg-gray-900 rounded p-2">
-          <div className="text-xs text-gray-400 mb-1">Limite</div>
-          <div className="text-xl font-bold text-yellow-400">
-            {speedLimitKmh ? `${speedLimitKmh}` : '—'}<span className="text-sm"> km/h</span>
+          <div className="text-[11px] text-gray-400 mb-1">Limite</div>
+          <div className="text-2xl font-extrabold text-yellow-400 leading-none">
+            {speedLimitKmh ? `${speedLimitKmh}` : '—'}
+            <span className="text-xs font-semibold text-white/70 ml-1">km/h</span>
           </div>
         </div>
       </div>

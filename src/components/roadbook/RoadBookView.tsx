@@ -114,6 +114,9 @@ const RoadBookView = () => {
           <p className="text-gray-400 text-sm">
             {turns.length} {turns.length > 1 ? 'virages' : 'virage'} à venir
           </p>
+          <p className="text-gray-500 text-xs mt-1">
+            Le badge indique la classification (Intersection / Épingle / …) quand disponible.
+          </p>
         </div>
 
         <div className="space-y-3">
