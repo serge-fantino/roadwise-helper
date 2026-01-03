@@ -7,6 +7,8 @@ export interface TurnDetectionV2Config {
   sampleStepM: number; // 1m
   /** meters */
   lookAheadM: number; // 1000m
+  /** meters - include some distance behind the vehicle so an active turn doesn't disappear on rebuild */
+  lookBehindM: number; // e.g. 200m
   /** meters */
   rebuildEveryM: number; // 500m
   /** meters - wheel track width */
@@ -160,7 +162,7 @@ export function detectTurnsV2(params: {
 
   const cum = buildCumulativeDistances(routePoints);
   const total = cum[cum.length - 1];
-  const windowStart = clamp(currentDistanceAlongRouteM, 0, total);
+  const windowStart = clamp(currentDistanceAlongRouteM - Math.max(0, config.lookBehindM), 0, total);
   const windowEnd = clamp(windowStart + config.lookAheadM, 0, total);
   if (windowEnd - windowStart < 20) return [];
 

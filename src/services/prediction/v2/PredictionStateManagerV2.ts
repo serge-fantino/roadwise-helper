@@ -27,6 +27,28 @@ function buildCumulativeDistances(routePoints: [number, number][]): number[] {
   return cum;
 }
 
+function updateTurnDistanceFields(
+  turn: TurnPrediction,
+  cum: number[],
+  currentDistanceAlongRouteM: number
+): void {
+  const startIdx = turn.curveInfo.startIndex;
+  const endIdx = turn.curveInfo.endIndex;
+  const startDist = cum[Math.max(0, Math.min(cum.length - 1, startIdx))];
+  const endDist = cum[Math.max(0, Math.min(cum.length - 1, endIdx))];
+
+  if (currentDistanceAlongRouteM > endDist) {
+    turn.distance = -999999;
+    turn.distanceToExit = undefined;
+  } else if (currentDistanceAlongRouteM >= startDist) {
+    turn.distance = 0;
+    turn.distanceToExit = Math.max(0, endDist - currentDistanceAlongRouteM);
+  } else {
+    turn.distance = startDist - currentDistanceAlongRouteM;
+    turn.distanceToExit = undefined;
+  }
+}
+
 export class PredictionStateManagerV2 {
   private currentPrediction: TurnPrediction | null = null;
   private routeTracker: RouteTracker;
@@ -65,6 +87,7 @@ export class PredictionStateManagerV2 {
     const cfg: TurnDetectionV2Config = {
       sampleStepM: 1,
       lookAheadM: 1000,
+      lookBehindM: 200,
       rebuildEveryM: 500,
       wheelTrackM: 1.8,
       // Driving style could map to this later; start conservative
@@ -96,7 +119,7 @@ export class PredictionStateManagerV2 {
 
       const turns: TurnPrediction[] = v2Turns.map((t) => {
         const angle = t.curveInfo.deltaHeadingDeg;
-        return {
+        const turn: TurnPrediction = {
           distance: t.distanceToStartM,
           distanceToExit: undefined,
           angle,
@@ -123,6 +146,9 @@ export class PredictionStateManagerV2 {
             deltaHeadingDeg: t.curveInfo.deltaHeadingDeg,
           },
         };
+        // Ensure active turns (started before currentDistance) remain visible immediately after rebuild.
+        updateTurnDistanceFields(turn, cum, currentDistanceAlongRouteM);
+        return turn;
       });
 
       this.window = {
@@ -134,24 +160,7 @@ export class PredictionStateManagerV2 {
     } else {
       // Update distances without rebuilding.
       for (const t of this.window.turns) {
-        // Keep a turn until the vehicle exits (passes endIndex). When inside the turn, clamp distance to 0.
-        const startIdx = t.curveInfo.startIndex;
-        const endIdx = t.curveInfo.endIndex;
-        const startDist = cum[Math.max(0, Math.min(cum.length - 1, startIdx))];
-        const endDist = cum[Math.max(0, Math.min(cum.length - 1, endIdx))];
-
-        if (currentDistanceAlongRouteM > endDist) {
-          // Mark as past-exit; will be filtered out below.
-          t.distance = -999999;
-          t.distanceToExit = undefined;
-        } else if (currentDistanceAlongRouteM >= startDist) {
-          // Entered the turn: keep it and show 0m to start.
-          t.distance = 0;
-          t.distanceToExit = Math.max(0, endDist - currentDistanceAlongRouteM);
-        } else {
-          t.distance = startDist - currentDistanceAlongRouteM;
-          t.distanceToExit = undefined;
-        }
+        updateTurnDistanceFields(t, cum, currentDistanceAlongRouteM);
       }
     }
 
