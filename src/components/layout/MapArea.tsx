@@ -1,44 +1,74 @@
+import { useEffect, useState } from 'react';
 import MapView from '../MapView';
 import DriveView from './DriveView';
+import RoadBookView from '../roadbook/RoadBookView';
+import { vehicleOversamplingService } from '../../services/VehicleOversamplingService';
+import { tripService } from '../../services/TripService';
+import { routePlannerService } from '../../services/route/RoutePlannerService';
+import { VehicleState } from '../../services/VehicleStateManager';
+import { TripState } from '../../services/TripService';
+import { RouteState } from '../../services/route/RoutePlannerTypes';
+import { VehicleTelemetry } from '../../types/VehicleTelemetry';
 
 interface MapAreaProps {
-  position: [number, number];
-  speed: number;
   onRoadStatusChange: (status: boolean) => void;
-  destination?: [number, number];
-  routePoints: [number, number][];
-  onMapClick: (location: [number, number], address: string) => void;
-  positionHistory: [number, number][];
-  viewMode: 'map' | 'drive';
+  viewMode: 'map' | 'drive' | 'roadbook';
 }
 
 const MapArea = ({
-  position,
-  speed,
   onRoadStatusChange,
-  destination,
-  routePoints,
-  onMapClick,
-  positionHistory,
   viewMode
 }: MapAreaProps) => {
+  const [vehicleState, setVehicleState] = useState<VehicleState>(vehicleOversamplingService.getState());
+  const [tripState, setTripState] = useState<TripState>(tripService.getState());
+  const [routeState, setRouteState] = useState<RouteState>(routePlannerService.getState());
+
+  useEffect(() => {
+    const handleVehicleUpdate = (state: VehicleState) => {
+      setVehicleState(state);
+    };
+
+    const handleTripUpdate = (state: TripState) => {
+      setTripState(state);
+    };
+
+    const handleRouteUpdate = (state: RouteState) => {
+      setRouteState(state);
+    };
+
+    vehicleOversamplingService.addObserver(handleVehicleUpdate);
+    tripService.addObserver(handleTripUpdate);
+    routePlannerService.addObserver(handleRouteUpdate);
+
+    return () => {
+      vehicleOversamplingService.removeObserver(handleVehicleUpdate);
+      tripService.removeObserver(handleTripUpdate);
+      routePlannerService.removeObserver(handleRouteUpdate);
+    };
+  }, []);
+
+  const handleMapClick = (location: [number, number], address: string) => {
+    routePlannerService.setDestination(location, address);
+  };
+
   return (
     <div className="flex-1 w-full h-full relative">
       {viewMode === 'map' ? (
         <MapView 
-          position={position} 
-          speed={speed} 
+          vehicle={vehicleState as VehicleTelemetry}
           onRoadStatusChange={onRoadStatusChange}
-          destination={destination}
-          routePoints={routePoints}
-          onMapClick={onMapClick}
-          positionHistory={positionHistory}
+          destination={routeState.destination?.location}
+          routePoints={routeState.routePoints}
+          onMapClick={handleMapClick}
+          positionHistory={tripState.positions}
+        />
+      ) : viewMode === 'drive' ? (
+        <DriveView 
+          vehicle={vehicleState as VehicleTelemetry}
+          positionHistory={tripState.positions}
         />
       ) : (
-        <DriveView 
-          position={position}
-          positionHistory={positionHistory}
-        />
+        <RoadBookView />
       )}
     </div>
   );

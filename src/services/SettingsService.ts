@@ -1,6 +1,7 @@
 export type RoadInfoProvider = 'overpass' | 'mapbox' | 'nominatim';
 export type SimulatorVersion = 'v1' | 'v2';
 export type DrivingStyle = 'prudent' | 'normal' | 'sportif';
+export type MapStyle = 'osm' | 'carto-positron' | 'carto-dark' | 'stamen-terrain' | 'stamen-toner' | 'wikimedia' | 'opentopomap';
 
 export interface Settings {
   defaultSpeed: number;
@@ -18,6 +19,7 @@ export interface Settings {
   drivingStyle: DrivingStyle;
   mapboxToken: string;
   enableAutoRecalculate: boolean; // New setting
+  mapStyle: MapStyle;
 }
 
 type SettingsObserver = (settings: Settings) => void;
@@ -42,10 +44,11 @@ class SettingsService {
       roadInfoProvider: 'nominatim',
       maxRouteDeviation: 50,
       disableOverpass: false,
-      simulatorVersion: 'v1',
+      simulatorVersion: 'v2', // Utiliser V2 par défaut (vitesse optimale)
       drivingStyle: 'prudent',
       mapboxToken: '',
-      enableAutoRecalculate: true // Default value
+      enableAutoRecalculate: true, // Default value
+      mapStyle: 'carto-positron' // Style de carte par défaut (plus beau que OSM standard)
     };
 
     if (savedSettings) {

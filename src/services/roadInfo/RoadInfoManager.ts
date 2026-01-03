@@ -62,6 +62,7 @@ class RoadInfoManager {
     return distance >= this.MIN_UPDATE_DISTANCE;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getRoadType(tags: any): string {
     if (!tags || !tags.highway) return 'unknown';
     
@@ -107,6 +108,7 @@ class RoadInfoManager {
         const tags = roadData.elements[0]?.tags || {};
         const roadType = this.getRoadType(tags);
         const speedLimit = tags.maxspeed ? parseInt(tags.maxspeed) : null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const currentSegment = roadData.elements[0]?.geometry?.map((node: any) => [node.lat, node.lon]) || [];
         const isInCity = speedLimit ? speedLimit <= 50 : false;
 

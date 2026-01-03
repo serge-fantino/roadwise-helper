@@ -23,7 +23,6 @@ export class RouteManager {
     distanceToTravel: number
   ): number {
     let targetIndex = this.currentRouteIndex;
-    let accumulatedDistance = 0;
 
     console.log('[RouteManager] Finding next target:', {
       currentPosition,
@@ -81,5 +80,9 @@ export class RouteManager {
 
   hasReachedEnd(): boolean {
     return this.currentRouteIndex >= this.routePoints.length - 1;
+  }
+
+  getRouteLength(): number {
+    return this.routePoints.length;
   }
 }

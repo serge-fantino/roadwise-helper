@@ -79,6 +79,7 @@ export class NominatimRoadInfoService implements RoadInfoAPIService {
     return [[lat, lon]];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getRoadData(lat: number, lon: number): Promise<any> {
     try {
       const response = await fetchWithRetry(

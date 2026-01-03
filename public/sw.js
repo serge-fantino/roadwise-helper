@@ -2,12 +2,12 @@ const CACHE_VERSION = '1.0.0';
 const CACHE_NAME = `roadwise-${CACHE_VERSION}`;
 
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico',
-  '/pwa-192x192.png',
-  '/pwa-512x512.png'
+  '/roadwise-helper/',
+  '/roadwise-helper/index.html',
+  '/roadwise-helper/manifest.json',
+  '/roadwise-helper/favicon.ico',
+  '/roadwise-helper/pwa-192x192.png',
+  '/roadwise-helper/pwa-512x512.png'
 ];
 
 // Installation du service worker

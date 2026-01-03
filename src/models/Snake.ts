@@ -69,6 +69,7 @@ export class Snake {
     console.log('Snake reset to position:', position);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isValidPosition(position: any): position is [number, number] {
     return Array.isArray(position) && 
            position.length === 2 && 

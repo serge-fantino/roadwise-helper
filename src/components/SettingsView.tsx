@@ -4,7 +4,7 @@ import { ArrowLeft, Info } from "lucide-react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { useEffect, useState } from "react";
-import { Settings, settingsService, RoadInfoProvider } from "../services/SettingsService";
+import { Settings, settingsService, RoadInfoProvider, MapStyle } from "../services/SettingsService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "./ui/use-toast";
 import { Switch } from "./ui/switch";
@@ -88,6 +88,7 @@ const SettingsView = () => {
             <TabsList className="mb-4">
               <TabsTrigger value="curves">Virages</TabsTrigger>
               <TabsTrigger value="providers">Services</TabsTrigger>
+              <TabsTrigger value="map">Carte</TabsTrigger>
               <TabsTrigger value="simulation">Simulation</TabsTrigger>
               <TabsTrigger value="navigation">Navigation</TabsTrigger>
             </TabsList>
@@ -203,6 +204,34 @@ const SettingsView = () => {
                     mapbox.com
                   </a>
                 </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="map" className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Style de carte</Label>
+                  <Select 
+                    value={settings.mapStyle} 
+                    onValueChange={(value: MapStyle) => handleSettingChange('mapStyle', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="carto-positron">CartoDB Positron (Clair, moderne)</SelectItem>
+                      <SelectItem value="carto-dark">CartoDB Dark Matter (Sombre)</SelectItem>
+                      <SelectItem value="stamen-terrain">Stamen Terrain (Avec relief)</SelectItem>
+                      <SelectItem value="stamen-toner">Stamen Toner (Noir & blanc)</SelectItem>
+                      <SelectItem value="wikimedia">Wikimedia (Clair, lisible)</SelectItem>
+                      <SelectItem value="opentopomap">OpenTopoMap (Topographique)</SelectItem>
+                      <SelectItem value="osm">OpenStreetMap (Standard)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500">
+                    Choisissez le style visuel de la carte. Tous les styles sont gratuits et ne nécessitent pas de clé API.
+                  </p>
+                </div>
               </div>
             </TabsContent>
 

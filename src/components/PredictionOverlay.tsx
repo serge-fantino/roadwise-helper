@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Polyline, useMap } from 'react-leaflet';
 import { predictRoadAhead, calculateBearing, calculateAngleDifference, calculateDistance } from '../utils/mapUtils';
 import { roadInfoService } from '../services/roadInfo';
+import { vehicleStateManager } from '../services/VehicleStateManager';
+import { tripService } from '../services/TripService';
 
 interface PredictionOverlayProps {
   position: [number, number];
@@ -32,11 +34,12 @@ const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayPr
   const [predictionPath, setPredictionPath] = useState<[number, number][]>([]);
   const [roadSegment, setRoadSegment] = useState<[number, number][]>([]);
   const [predictionColor, setPredictionColor] = useState('#F2FCE2');
-  const vehicle = (window as any).globalVehicle;
   
   useEffect(() => {
-    const heading = vehicle ? vehicle.heading : 0;
-    const path = predictRoadAhead(position, speed, heading);
+    const vehicleState = vehicleStateManager.getState();
+    const heading = vehicleState.heading;
+    const positionHistory = tripService.getState().positions;
+    const path = predictRoadAhead(position, speed, heading, positionHistory);
     setPredictionPath(path);
 
     const analyzePrediction = async () => {
@@ -88,7 +91,7 @@ const PredictionOverlay = ({ position, speed, routePoints }: PredictionOverlayPr
     };
 
     analyzePrediction();
-  }, [position, speed, vehicle, routePoints]);
+  }, [position, speed, routePoints]);
 
   return (
     <>

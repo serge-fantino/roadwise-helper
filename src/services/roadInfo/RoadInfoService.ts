@@ -37,6 +37,7 @@ export class RoadInfoService implements RoadInfoAPIService {
     return this.provider.getCurrentRoadSegment(lat, lon);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getRoadData(lat: number, lon: number): Promise<any> {
     if (this.isDisabled()) {
       console.log('Road info API calls are disabled');

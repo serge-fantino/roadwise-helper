@@ -23,23 +23,19 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
       throw new Error('Mapbox token not configured');
     }
 
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
-      );
+    const response = await fetch(
+      `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
+    );
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Quota exceeded');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Quota exceeded');
       }
-
-      const data = await response.json();
-      return data.features.length > 0;
-    } catch (error) {
-      throw error;
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    return data.features.length > 0;
   }
 
   async getSpeedLimit(lat: number, lon: number): Promise<number | null> {
@@ -47,30 +43,26 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
       throw new Error('Mapbox token not configured');
     }
 
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
-      );
+    const response = await fetch(
+      `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
+    );
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Quota exceeded');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Quota exceeded');
       }
-
-      const data = await response.json();
-      if (data.features.length === 0) return null;
-
-      const speedLimit = data.features[0].properties.maxspeed;
-      if (!speedLimit) return null;
-
-      return speedLimit.includes('mph') 
-        ? Math.round(parseInt(speedLimit) * 1.60934) 
-        : parseInt(speedLimit);
-    } catch (error) {
-      throw error;
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    if (data.features.length === 0) return null;
+
+    const speedLimit = data.features[0].properties.maxspeed;
+    if (!speedLimit) return null;
+
+    return speedLimit.includes('mph') 
+      ? Math.round(parseInt(speedLimit) * 1.60934) 
+      : parseInt(speedLimit);
   }
 
   async getCurrentRoadSegment(lat: number, lon: number): Promise<[number, number][]> {
@@ -78,62 +70,55 @@ export class MapboxRoadInfoService implements RoadInfoAPIService {
       throw new Error('Mapbox token not configured');
     }
 
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=20&access_token=${this.accessToken}`
-      );
+    const response = await fetch(
+      `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=20&access_token=${this.accessToken}`
+    );
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Quota exceeded');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Quota exceeded');
       }
-
-      const data = await response.json();
-      if (data.features.length === 0) return [];
-
-      const geometry = data.features[0].geometry;
-      if (!geometry || !geometry.coordinates) return [];
-
-      return geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]]);
-    } catch (error) {
-      throw error;
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    if (data.features.length === 0) return [];
+
+    const geometry = data.features[0].geometry;
+    if (!geometry || !geometry.coordinates) return [];
+
+    return geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]]);
   }
 
-  async getRoadData(lat: number, lon: number): Promise<any> {
+  async getRoadData(lat: number, lon: number): Promise<unknown> {
     if (!this.accessToken) {
       throw new Error('Mapbox token not configured');
     }
 
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
-      );
+    const response = await fetch(
+      `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lon},${lat}.json?layers=road&radius=10&access_token=${this.accessToken}`
+    );
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Quota exceeded');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Quota exceeded');
       }
-
-      const data = await response.json();
-      return {
-        elements: data.features.map((feature: any) => ({
-          tags: {
-            highway: feature.properties.class,
-            maxspeed: feature.properties.maxspeed
-          },
-          geometry: feature.geometry.coordinates.map((coord: [number, number]) => ({
-            lat: coord[1],
-            lon: coord[0]
-          }))
-        }))
-      };
-    } catch (error) {
-      throw error;
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      elements: data.features.map((feature: any) => ({
+        tags: {
+          highway: feature.properties.class,
+          maxspeed: feature.properties.maxspeed
+        },
+        geometry: feature.geometry.coordinates.map((coord: [number, number]) => ({
+          lat: coord[1],
+          lon: coord[0]
+        }))
+      }))
+    };
   }
 }

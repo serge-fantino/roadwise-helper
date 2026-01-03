@@ -5,6 +5,7 @@ import { roadInfoManager } from '../roadInfo/RoadInfoManager';
 import { RouteDeviationManager } from './managers/RouteDeviationManager';
 import { PredictionStateManager } from './managers/PredictionStateManager';
 import { routePlannerService } from '../route/RoutePlannerService';
+import { vehicleStateManager, VehicleState } from '../VehicleStateManager';
 
 type StateObserver = (isActive: boolean) => void;
 
@@ -23,6 +24,7 @@ class RoadPredictor {
     this.deviationManager = new RouteDeviationManager(this.routeTracker);
     this.predictionManager = new PredictionStateManager();
 
+    // Observer pour les informations routières
     roadInfoManager.addObserver((roadInfo) => {
       const currentPrediction = this.predictionManager.getCurrentPrediction();
       if (currentPrediction) {
@@ -30,12 +32,19 @@ class RoadPredictor {
       }
     });
 
+    // Observer pour les changements de route
     routePlannerService.addObserver((state) => {
       if (state.routePoints.length > 1) {
         this.startUpdates();
       } else {
         this.stopUpdates();
       }
+    });
+
+    // Observer directement VehicleStateManager pour les changements de position
+    vehicleStateManager.addObserver((vehicleState) => {
+      // Mettre à jour la position et déclencher le recalcul si actif
+      this.updatePosition(vehicleState.position);
     });
   }
 
@@ -78,13 +87,12 @@ class RoadPredictor {
   }
 
   private async updatePrediction() {
-    const vehicle = (window as any).globalVehicle;
+    const vehicleState = vehicleStateManager.getState();
     const routeState = routePlannerService.getState();
     const settings = settingsService.getSettings();
     
-    if (!vehicle || !this.currentPosition || routeState.routePoints.length < 2) {
+    if (!this.currentPosition || routeState.routePoints.length < 2) {
       console.log('Skipping prediction update - missing data:', {
-        hasVehicle: !!vehicle,
         hasPosition: !!this.currentPosition,
         routePointsLength: routeState.routePoints.length,
         currentPosition: this.currentPosition
@@ -93,7 +101,7 @@ class RoadPredictor {
       return;
     }
 
-    const currentSpeed = vehicle.speed * 3.6;
+    const currentSpeed = vehicleState.speed * 3.6; // Conversion en km/h
     const roadInfo = roadInfoManager.getCurrentInfo();
     const speedLimit = roadInfo?.speedLimit ?? null;
     const isOnRoad = roadInfo?.isOnRoad ?? false;
@@ -139,6 +147,10 @@ class RoadPredictor {
     this.deviationManager.reset();
     this._active = true;
     
+    // Initialiser la position avec la position actuelle du véhicule
+    const vehicleState = vehicleStateManager.getState();
+    this.currentPosition = vehicleState.position;
+    
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
@@ -168,8 +180,13 @@ class RoadPredictor {
 
   public updatePosition(position: [number, number]) {
     console.log('Updating position in RoadPredictor:', position);
+    const positionChanged = this.currentPosition === null || 
+      (this.currentPosition[0] !== position[0] || this.currentPosition[1] !== position[1]);
+    
     this.currentPosition = position;
-    if (this._active) {
+    
+    // Si la position a changé et que le prédicteur est actif, mettre à jour immédiatement
+    if (this._active && positionChanged) {
       this.updatePrediction();
     }
   }

@@ -1,58 +1,42 @@
 import { Marker } from 'react-leaflet';
 import L from 'leaflet';
-import { 
-  ArrowUp, 
-  ArrowUpRight, 
-  ArrowRight, 
-  ArrowDownRight,
-  ArrowDown,
-  ArrowDownLeft,
-  ArrowLeft,
-  ArrowUpLeft
-} from 'lucide-react';
-import { renderToString } from 'react-dom/server';
+import { useMemo } from 'react';
+import styles from './VehicleMarker.module.css';
 
 interface VehicleMarkerProps {
   position: [number, number];
-  isOnRoad: boolean;
-  heading?: number;
+  heading: number;
+  speed: number;
 }
 
-const VehicleMarker = ({ position, isOnRoad, heading = 0 }: VehicleMarkerProps) => {
-  const getDirectionIcon = (heading: number) => {
-    // Normalize heading to 0-360
-    const normalizedHeading = ((heading % 360) + 360) % 360;
-    
-    // Define direction ranges (45 degree segments)
-    if (normalizedHeading >= 337.5 || normalizedHeading < 22.5) return ArrowUp;
-    if (normalizedHeading >= 22.5 && normalizedHeading < 67.5) return ArrowUpRight;
-    if (normalizedHeading >= 67.5 && normalizedHeading < 112.5) return ArrowRight;
-    if (normalizedHeading >= 112.5 && normalizedHeading < 157.5) return ArrowDownRight;
-    if (normalizedHeading >= 157.5 && normalizedHeading < 202.5) return ArrowDown;
-    if (normalizedHeading >= 202.5 && normalizedHeading < 247.5) return ArrowDownLeft;
-    if (normalizedHeading >= 247.5 && normalizedHeading < 292.5) return ArrowLeft;
-    return ArrowUpLeft;
+const VehicleMarker: React.FC<VehicleMarkerProps> = ({ position, heading, speed }) => {
+  const getSpeedColor = (speedMS: number): string => {
+    // Convertir la vitesse en km/h et la limiter entre 0 et 150
+    const speedKmh = Math.min(Math.max(speedMS * 3.6, 0), 150);
+    // Convertir la vitesse en une valeur entre 0 et 1
+    const hue = (1 - speedKmh / 150) * 240; // 240 = bleu, 0 = rouge
+    return `hsl(${hue}, 100%, 50%)`;
   };
 
-  const DirectionIcon = getDirectionIcon(heading);
-  
-  const vehicleIcon = L.divIcon({
-    html: isOnRoad ? renderToString(
-      <DirectionIcon 
-        size={24}
-        color="#2563eb"
-        strokeWidth={3}
-      />
-    ) : '📍',
-    className: 'vehicle-marker',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12]
-  });
+  const icon = useMemo(() => {
+    const color = getSpeedColor(speed);
+    return L.divIcon({
+      className: styles['vehicle-marker'],
+      html: `
+        <div class="${styles['vehicle-icon']}" style="transform: rotate(${heading}deg);">
+          <div class="${styles.arrow}" style="border-bottom-color: ${color};"></div>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+  }, [heading, speed]);
 
   return (
     <Marker 
       position={position} 
-      icon={vehicleIcon}
+      icon={icon} 
+      zIndexOffset={1000}
     />
   );
 };

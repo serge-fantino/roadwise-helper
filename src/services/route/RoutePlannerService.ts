@@ -3,6 +3,7 @@ import { toast } from '../../components/ui/use-toast';
 import { EnhancedRoutePoint, RouteState, RouteObserver } from './RoutePlannerTypes';
 import { smoothPath, calculateAngleBetweenPoints } from '../prediction/CurveAnalyzerUtils';
 import { roadPredictor } from '../prediction/RoadPredictor';
+import { vehicleStateManager } from '../VehicleStateManager';
 
 class RoutePlannerService {
   private state: RouteState = {
@@ -88,7 +89,8 @@ class RoutePlannerService {
     return enhanced;
   }
 
-  public async calculateRoute(origin: [number, number], destination: [number, number]) {
+  public async calculateRoute(destination: [number, number]) {
+    const origin = vehicleStateManager.getState().position;
     console.log('[RoutePlannerService] Calculating route:', { origin, destination });
     
     try {
@@ -125,16 +127,17 @@ class RoutePlannerService {
   public setDestination(location: [number, number], address: string) {
     console.log('[RoutePlannerService] Setting destination:', { location, address });
     this.state.destination = { location, address };
+    this.calculateRoute(location);
     this.notifyObservers();
   }
 
   public async recalculateRoute() {
-    if (!this.state.origin || !this.state.destination) {
-      console.log('[RoutePlannerService] Cannot recalculate route: missing origin or destination');
+    if (!this.state.destination) {
+      console.log('[RoutePlannerService] Cannot recalculate route: missing destination');
       return;
     }
 
-    await this.calculateRoute(this.state.origin, this.state.destination.location);
+    await this.calculateRoute(this.state.destination.location);
   }
 
   public reset() {

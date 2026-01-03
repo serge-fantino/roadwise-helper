@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { roadPredictor } from '../services/prediction/RoadPredictor';
 import { useNavigate } from 'react-router-dom';
 import { roadInfoManager } from '../services/roadInfo/RoadInfoManager';
+import { LocationService, GpsDebugInfo } from '../services/location/LocationService';
 
 interface StatusBarProps {
   isOnRoad: boolean;
@@ -23,6 +24,9 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }
   } | null>(null);
   const [roadType, setRoadType] = useState<string>('unknown');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [gpsDebug, setGpsDebug] = useState<GpsDebugInfo>(() =>
+    LocationService.getInstance().getGpsDebugInfo()
+  );
 
   useEffect(() => {
     const observer = (newPrediction: typeof prediction) => {
@@ -44,6 +48,15 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }
     return () => {
       roadInfoManager.removeObserver(handleRoadInfo);
     };
+  }, []);
+
+  // GPS debug info (freshness + last fix time + quality + estimated Hz)
+  useEffect(() => {
+    const locationService = LocationService.getInstance();
+    const tick = () => setGpsDebug(locationService.getGpsDebugInfo());
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
   }, []);
 
   const handleRefresh = async () => {
@@ -69,6 +82,15 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }
 
   const isIdle = speed === 0;
 
+  const gpsDotColor = (() => {
+    // Rouge si pas de position réelle (pas en mode gps ou pas de fix)
+    if (!gpsDebug.hasRealFix) return 'bg-red-500';
+    // Orange si dernier fix > 5s
+    if (gpsDebug.ageMs !== null && gpsDebug.ageMs > 5000) return 'bg-orange-500';
+    // Vert si < 5s
+    return 'bg-green-500';
+  })();
+
   return (
     <div className="h-12 bg-gray-900 flex items-center justify-between">
       {/* Left side - Status information */}
@@ -90,6 +112,20 @@ const StatusBar = ({ isOnRoad, speed, isDebugMode, onDebugModeChange, position }
           >
             <RefreshCw className={`h-4 w-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
+
+          {/* GPS debug */}
+          <div className="flex items-center gap-2 ml-2 px-2 py-1 rounded bg-gray-800/60 border border-white/10">
+            <span className={`inline-block w-2 h-2 rounded-full ${gpsDotColor}`} />
+            <span className="text-xs font-mono text-gray-200">
+              GPS {gpsDebug.lastFixLocalTime ?? '—'}
+              {gpsDebug.ageMs !== null ? ` (${Math.round(gpsDebug.ageMs / 1000)}s)` : ''}
+              {gpsDebug.quality?.accuracyM != null ? ` acc:${Math.round(gpsDebug.quality.accuracyM)}m` : ''}
+              {gpsDebug.estimatedHz != null ? ` ~${gpsDebug.estimatedHz.toFixed(1)}Hz` : ''}
+              {` perm:${gpsDebug.permission}`}
+              {gpsDebug.lastError ? ` err:${gpsDebug.lastError.code}` : ''}
+              {' dop:n/a'}
+            </span>
+          </div>
         </div>
       </div>
 

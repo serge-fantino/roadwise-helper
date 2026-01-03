@@ -1,27 +1,27 @@
-import { Vehicle } from '../../models/Vehicle';
 import { NavigationCalculator } from './utils/NavigationCalculator';
 import { SpeedController } from './utils/SpeedController';
 import { RouteManager } from './utils/RouteManager';
 import { SimulationStateManager } from './managers/SimulationStateManager';
 import { PredictionManager } from './managers/PredictionManager';
 import { SimulationUpdateManager } from './managers/SimulationUpdateManager';
+import { vehicleStateManager } from '../VehicleStateManager';
 
 export class SimulationServiceV2 {
   private intervalId: NodeJS.Timeout | null = null;
+  private readonly UPDATE_INTERVAL_MS = 50; // 50ms = 20 FPS
   private stateManager: SimulationStateManager;
   private predictionManager: PredictionManager;
   private updateManager: SimulationUpdateManager;
   private routeManager: RouteManager;
   private speedController: SpeedController;
 
-  constructor(private vehicle: Vehicle) {
+  constructor() {
     const navigationCalculator = new NavigationCalculator();
     this.speedController = new SpeedController();
     this.routeManager = new RouteManager(navigationCalculator);
     this.stateManager = new SimulationStateManager();
     this.predictionManager = new PredictionManager();
     this.updateManager = new SimulationUpdateManager(
-      vehicle,
       navigationCalculator,
       this.speedController,
       this.routeManager
@@ -60,11 +60,15 @@ export class SimulationServiceV2 {
     console.log('[SimulationV2] Starting simulation with route points:', routePoints);
 
     if (routePoints.length > 0) {
-      this.vehicle.reset(routePoints[0]);
+      vehicleStateManager.updateState({
+        position: routePoints[0],
+        speed: 0,
+        acceleration: 0
+      });
       
       this.intervalId = setInterval(() => {
         this.updateSimulation();
-      }, 1000);
+      }, this.UPDATE_INTERVAL_MS);
     }
   }
 
@@ -73,9 +77,12 @@ export class SimulationServiceV2 {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    if (this.vehicle) {
-      this.vehicle.update(this.vehicle.position, 0, 0);
-    }
+    const currentState = vehicleStateManager.getState();
+    vehicleStateManager.updateState({
+      ...currentState,
+      speed: 0,
+      acceleration: 0
+    });
     this.stateManager.setIdle(true);
     console.log('[SimulationV2] Simulation stopped');
   }
@@ -87,12 +94,16 @@ export class SimulationServiceV2 {
     this.stateManager.setIdle(true);
     const firstPoint = this.routeManager.getRoutePoint(0);
     if (firstPoint) {
-      this.vehicle.reset(firstPoint);
+      vehicleStateManager.updateState({
+        position: firstPoint,
+        speed: 0,
+        acceleration: 0
+      });
     }
     console.log('[SimulationV2] Simulation reset');
   }
 }
 
-export const createSimulationServiceV2 = (vehicle: Vehicle) => {
-  return new SimulationServiceV2(vehicle);
+export const createSimulationServiceV2 = () => {
+  return new SimulationServiceV2();
 };
