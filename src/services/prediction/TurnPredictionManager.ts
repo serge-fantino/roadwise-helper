@@ -150,13 +150,26 @@ export class TurnPredictionManager {
       );
 
       // Calculer les vitesses et points de freinage avec CurveAssistant
-      const curveCalculations = this.curveAssistant.calculateAll(
+      let curveCalculations = this.curveAssistant.calculateAll(
         currentSpeed,
         distance,
         curveAnalysis,
         speedLimit,
         settings.drivingStyle
       );
+
+      // Intersections: le rayon est souvent peu représentatif (angle cassé).
+      // On force une vitesse cible plus conservatrice basée sur la config.
+      if (curveAnalysis.classification === 'intersection') {
+        const base = speedLimit || settings.defaultSpeed;
+        const intersectionTarget = Math.min(base, settings.minTurnSpeed);
+        const brakingPoint = this.curveAssistant.calculateBrakingPoint(currentSpeed, intersectionTarget, distance);
+        curveCalculations = {
+          ...curveCalculations,
+          optimalCurveSpeed: intersectionTarget,
+          brakingPoint,
+        };
+      }
 
       // Créer une nouvelle prédiction de virage
       const turnPrediction: TurnPrediction = {
@@ -168,7 +181,8 @@ export class TurnPredictionManager {
         optimalSpeed: curveCalculations.optimalCurveSpeed,
         requiredDeceleration: distance > curveCalculations.brakingPoint ? null : 
           (curveCalculations.optimalCurveSpeed - currentSpeed) / (distance || 1),
-        curveInfo: curveAnalysis
+        curveInfo: curveAnalysis,
+        classification: curveAnalysis.classification
       };
       /*
       console.log('[TurnPredictionManager] New turn prediction:', {

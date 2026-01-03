@@ -1,6 +1,7 @@
 import { Settings } from '../SettingsService';
 import { calculateCurveRadius, calculateCurveLength } from './CurveAnalyzerUtils';
 import { EnhancedRoutePoint } from '../route/RoutePlannerTypes';
+import { classifyTurn, TurnClassification } from './TurnClassifier';
 
 export interface CurveAnalysisResult {
     startPoint: [number,number];
@@ -15,6 +16,10 @@ export interface CurveAnalysisResult {
     endAngle: number;
     apexAngle: number;
     curvePoints: [number,number][];
+    /** High-level classification (intersection, hairpin, …). */
+    classification?: TurnClassification;
+    /** Signed heading delta across the curve, degrees. */
+    deltaHeadingDeg?: number;
 }
 
 export class CurveDetector {
@@ -172,7 +177,7 @@ export class CurveDetector {
             .slice(startPointIndex, endPointIndex + 1)
             .map(point => point.position);
 
-        return {
+        const baseResult: CurveAnalysisResult = {
             startPoint: turnStart.position,
             startIndex: startPointIndex,
             endPoint: turnEnd.position,
@@ -195,5 +200,11 @@ export class CurveDetector {
             apexAngle: turnApex.angleSmooth,
             curvePoints
         };
+
+        const classified = classifyTurn(enhancedPoints, baseResult);
+        baseResult.classification = classified.classification;
+        baseResult.deltaHeadingDeg = classified.deltaHeadingDeg;
+
+        return baseResult;
     }
 }

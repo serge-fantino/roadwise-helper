@@ -1,4 +1,5 @@
 import { CurveAnalysisResult } from "./CurveAnalyzer";
+import { TurnClassification } from "./TurnClassifier";
 
 export interface TurnPrediction {
   distance: number;  // Distance jusqu'au prochain virage en mètres
@@ -9,6 +10,8 @@ export interface TurnPrediction {
   optimalSpeed?: number; // Vitesse optimale en km/h
   requiredDeceleration?: number | null; // Décélération requise en g
   curveInfo: CurveAnalysisResult; // détail du virage
+  /** High-level classification (intersection, hairpin, …). */
+  classification?: TurnClassification;
 }
 
 export type RoadPrediction = TurnPrediction;

@@ -45,7 +45,16 @@ const getCurvatureLabel = (angle: number, radius?: number): string => {
 const TurnCard = ({ turn, currentSpeed, isNext, routePoints = [] }: TurnCardProps) => {
   const turnDirection = turn.angle < 0 ? 'droite' : 'gauche';
   const { type: turnType, color: turnColor } = getTurnType(turn.angle);
-  const curvatureLabel = getCurvatureLabel(turn.angle, turn.curveInfo?.radius);
+  const curvatureLabel = turn.classification
+    ? ({
+        intersection: 'Intersection',
+        uturn: 'Retour',
+        hairpin: 'Épingle',
+        tight: 'Virage serré',
+        wide: 'Virage large',
+        curve: 'Courbe',
+      } as const)[turn.classification]
+    : getCurvatureLabel(turn.angle, turn.curveInfo?.radius);
   
   const currentSpeedKmh = Math.round(currentSpeed * 3.6);
   const optimalSpeedKmh = turn.optimalSpeed ? Math.round(turn.optimalSpeed) : null;
