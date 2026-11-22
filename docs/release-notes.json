@@ -1,0 +1,63 @@
+[
+  {
+    "version": "0.3",
+    "date": "2026-11-22",
+    "heure": "02:58",
+    "titre": "RoadWise joins La Fabrique",
+    "changements": [
+      "The app is now served from the root of its address, so the installed app and its offline cache follow.",
+      "The site publishes its version at /version.json.",
+      "Every change is now checked automatically (types, code style, tests, build) before it reaches production.",
+      "The project leaves Lovable: its code stays, and is now developed through La Fabrique and Claude.",
+      "Release notes now live in docs/release-notes.json."
+    ],
+    "stories": [],
+    "liens": null
+  },
+  {
+    "version": "0.2",
+    "date": "2025-01-05",
+    "heure": "12:00",
+    "titre": "A real road in the 3D drive view",
+    "changements": [
+      "The drive view now shows a real road in 3D.",
+      "Better memory use and smoother display.",
+      "Part of the code now relies on services (work in progress).",
+      "The distance to the next turn is easier to read."
+    ],
+    "stories": [],
+    "liens": null
+  },
+  {
+    "version": "0.1.1",
+    "date": "2024-12-29",
+    "heure": "12:00",
+    "titre": "First 3D view (prototype)",
+    "changements": [
+      "A first 3D view of the road ahead, drawn from the road borders.",
+      "Very basic: road borders in wireframe only."
+    ],
+    "stories": [],
+    "liens": null
+  },
+  {
+    "version": "0.1",
+    "date": "2024-12-27",
+    "heure": "12:00",
+    "titre": "First alpha release",
+    "changements": [
+      "Tracks your position, speed and acceleration.",
+      "Search an address, or point and click on the map, to set a destination.",
+      "Once a destination is set, detects the next turn and suggests the speed to take it.",
+      "Detects the entry, apex and exit of each turn, and shows the turns on the map.",
+      "A progress bar before entering a turn.",
+      "A first \"drive\" view, seen from the driver's seat.",
+      "A settings screen.",
+      "A simulation mode to try the app without GPS.",
+      "A splash screen with credits.",
+      "Installs on your phone as an app (PWA)."
+    ],
+    "stories": [],
+    "liens": null
+  }
+]

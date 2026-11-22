@@ -269,11 +269,11 @@ export class LocationService {
     }
 
     // Best-effort permission state (not supported everywhere, esp. iOS Safari)
-    if ('permissions' in navigator && (navigator as any).permissions?.query) {
+    if ('permissions' in navigator && navigator.permissions?.query) {
       try {
-        (navigator as any).permissions
+        navigator.permissions
           .query({ name: 'geolocation' })
-          .then((status: any) => {
+          .then((status: PermissionStatus) => {
             this.permissionState = status?.state ?? 'unknown';
             if (status && typeof status.onchange === 'function') {
               status.onchange = () => {

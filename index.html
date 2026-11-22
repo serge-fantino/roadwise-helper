@@ -18,9 +18,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Utiliser le base path depuis window.location si disponible, sinon '/'
-          const base = window.location.pathname.startsWith('/roadwise-helper') ? '/roadwise-helper/' : '/';
-          navigator.serviceWorker.register(base + 'sw.js')
+          navigator.serviceWorker.register('/sw.js')
             .then(registration => {
               console.log('ServiceWorker registration successful');
               // Vérifie les mises à jour toutes les heures
@@ -41,7 +39,6 @@
         });
       }
     </script>
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

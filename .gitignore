@@ -22,7 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-package-lock.json
 output/*
 
 # Local HTTPS dev certs (mkcert)
