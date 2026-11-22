@@ -6,8 +6,8 @@
   "environnements": {
     "production": { "url": "https://roadwise-app.netlify.app", "version": "/version.json", "type": "production", "signalement": false }
   },
-  "workflows": { "ci": "ci.yml", "claude": "claude.yml", "promouvoir": null },
-  "version": { "fichier": "docs/release-notes.json", "forme": "0.N" },
+  "workflows": { "ci": "ci.yml", "claude": "claude.yml", "fusionner": "merge.yml", "publier": "release.yml", "promouvoir": null },
+  "version": { "fichier": "docs/release-notes.json", "forme": "0.N", "outil": "scripts/fabrique/release-notes.js" },
   "documentation": [
     { "titre": "The project", "chemin": "CLAUDE.md" },
     { "titre": "Read me", "chemin": "README.md" },
