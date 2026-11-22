@@ -2,7 +2,7 @@
   {
     "version": "0.3",
     "date": "2026-11-22",
-    "heure": "02:00",
+    "heure": "02:58",
     "titre": "RoadWise joins La Fabrique",
     "changements": [
       "The app is now served from the root of its address, so the installed app and its offline cache follow.",
