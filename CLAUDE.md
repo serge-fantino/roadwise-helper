@@ -37,7 +37,8 @@ CI (`.github/workflows/ci.yml`) runs all of these on every pull request and push
   `0.N`, `date`, `heure`, `titre`, `changements` in plain words for the driver, `stories` with the
   issue numbers, `liens`). An entry without `heure` is not released; it gets its date and time when it
   reaches `master`.
-- The build writes `version.json` from the first released entry; `package.json` > `version` follows.
+- The build writes `version.json`, and the splash screen shows the version, from the first released
+  entry; `package.json` > `version` follows (`0.N.0`).
 - Never skip or disable a failing test: say so in the pull request.
 - Never write a secret's value in the repository.
 

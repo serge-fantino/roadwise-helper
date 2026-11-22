@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.4",
+    "date": null,
+    "heure": null,
+    "titre": "The app shows its real version",
+    "changements": [
+      "The splash screen shows the version that is online (it still said 0.2)."
+    ],
+    "stories": [],
+    "liens": null
+  },
+  {
     "version": "0.3",
     "date": "2026-11-22",
     "heure": "02:58",

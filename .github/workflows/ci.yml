@@ -45,3 +45,5 @@ jobs:
       - name: Served version matches the release notes
         if: ${{ !cancelled() }}
         run: node scripts/check-version.mjs
+        env:
+          REQUIRE_RELEASED: ${{ github.event_name == 'push' && '1' || '0' }}
