@@ -6,10 +6,9 @@ RoadWise is a project that helps you to drive safely and efficiently:
 - and detect the curve ahead and provide you optimal speed and assist in braking
 
 You can test the latest stable version online: https://roadwise-app.netlify.app/
-or the development version: https://roadwise-helper.lovable.app/
 
 Note that the project run locally - no information regarding your GPS position is shared online.
-Also this is a functional WPA web site, you can easily install the app on your phone.
+Also this is a functional PWA web site, you can easily install the app on your phone.
 
 > ⚠️ **Warning**: This is an educational project. It is not a production ready software, nor something you can trust for driving. Be careful and drive safely, and look at the road, not at your phone.
 
@@ -75,33 +74,11 @@ The build output will be in the `dist` directory, ready for deployment.
 
 See [docs/tech-overview.md](docs/tech-overview.md) for more details.
 
-> This project is an attempt to test capabilities of AI code generation tools. The main service used to create the application is Lovable (https://lovable.dev). Gemini2 helped for some work on calculations, and also to generate the technical documentation. I also use Cursor & Claude for local editing to fine tune some algorithms.
+> This project is an attempt to test capabilities of AI code generation tools. The application was first created with Lovable, and is now developed with Claude through La Fabrique extraordinaire (see [CLAUDE.md](CLAUDE.md)). Gemini2 helped for some work on calculations, and also to generate the technical documentation. I also use Cursor & Claude for local editing to fine tune some algorithms.
 
 ## What's new
 
-- 27122024: Initial alpha release V0.1 (Sprint 1)
-  - This is the first mostly functional version!
-  - Will trak your position, speed & acceleration
-  - It provides address search as well as point and click direction on map
-  - Once you set a destination, it will detect next turn and provide optimal speed to take it
-  - turn detection algorithm will detect entry/apex/exit of turn (with the help of Gemini2)
-  - display turns on the map
-  - display progress bar before entering turn
-  - new "drive" view display, very early version, to give a subjective view
-  - settings screen to configure various parameters
-  - simulation mode to test the app without GPS: it will simulate driving the vehicle while adapting speed to prediction
-  - new splash screen with credits (with love!)
-  - this is a fully functional PWA app that you can easily install on your phone for on the road use
-
-- 29122024: Prototype 3D view (Sprint 2)
-  - First version of the 3D view, using custom code to build the road borders and WebGL to display it in 3D
-  - Very basic (mostly road borders / wireframe)
-
-- 05012025: Version 0.2 (Sprint 2)
-  - Updated "drive" view, now displays a real road in 3D using WebGL and Three.js
-  - Optimisations to better handle memory/performance
-  - Partial refactoring to rely more on services (still work in progress)
-  - Better display of the next turn distance
+See the release notes: [docs/release-notes.json](docs/release-notes.json).
 
 ## Feedback regarding AI tools
 
@@ -141,7 +118,7 @@ To share code with Gemini, a VSCode extension can generate a single markdown pag
 
 ## Project contribution
 
-This project has been built using Lovable assistant. See https://lovable.dev/projects/a633e3e6-d831-417c-ad56-2d4b003fa9d9
+Changes go through one pull request per story to `master`, checked by CI; see [CLAUDE.md](CLAUDE.md).
 
 ## License
 

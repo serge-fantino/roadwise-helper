@@ -1,0 +1,26 @@
+{
+  "nom": "RoadWise",
+  "description": "A driving assistant that sees the curves ahead and suggests the speed to take them; runs in the browser, no position sent online.",
+  "langue": "en",
+  "branches": { "production": "master", "travail": ["claude/*", "feature/*"] },
+  "environnements": {
+    "production": { "url": "https://roadwise-app.netlify.app", "version": "/version.json", "type": "production", "signalement": false }
+  },
+  "workflows": { "ci": "ci.yml", "claude": "claude.yml", "promouvoir": null },
+  "version": { "fichier": "docs/release-notes.json", "forme": "0.N" },
+  "documentation": [
+    { "titre": "The project", "chemin": "CLAUDE.md" },
+    { "titre": "Read me", "chemin": "README.md" },
+    { "titre": "Technical documentation", "chemin": "docs/" }
+  ],
+  "cycle": { "pret": ["criteres"], "priorites": ["P1", "P2", "P3"] },
+  "demandes": {
+    "etiquettes": { "demande": "request", "prete": "ready-for-claude", "a_valider": "to-validate" },
+    "rubriques": [
+      { "cle": "context", "titre": "Context", "obligatoire": true, "aide": "What happens today, and why it is not good enough." },
+      { "cle": "need", "titre": "Need", "obligatoire": true, "aide": "What the driver must be able to do." },
+      { "cle": "criteria", "titre": "Acceptance criteria", "obligatoire": true, "aide": "One line per criterion, checkable in the app." },
+      { "cle": "questions", "titre": "Open questions", "aide": "What remains to decide." }
+    ]
+  }
+}

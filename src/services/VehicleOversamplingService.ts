@@ -315,7 +315,7 @@ export class VehicleOversamplingService {
           I_KH[r][3] * P[3][c];
       }
     }
-    this.P = newP as any;
+    this.P = newP;
   }
 
   private tick() {
